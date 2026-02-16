@@ -34,16 +34,16 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back{role ? ` (${role})` : ""}!</p>
+      <div className="space-y-8">
+        <div className="bg-gradient-hero rounded-xl p-6 -m-2 animate-fade-in">
+          <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Overview of all clinic operations{role ? ` (${role})` : ""}</p>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <StatsCard title="Clinics" value={clinicCount ?? 0} icon={Building2} description="Total registered clinics" />
-          <StatsCard title="Content Posts" value={postCount ?? 0} icon={FileText} description="Total posts created" />
-          <StatsCard title="Submissions" value={submissionCount ?? 0} icon={ClipboardList} description="Intake form submissions" />
-          <StatsCard title="Analytics" value="—" icon={BarChart3} description="Engagement metrics" />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatsCard title="Clinics" value={clinicCount ?? 0} icon={Building2} description="Total registered clinics" index={0} />
+          <StatsCard title="Content Posts" value={postCount ?? 0} icon={FileText} description="Total posts created" index={1} />
+          <StatsCard title="Submissions" value={submissionCount ?? 0} icon={ClipboardList} description="Intake form submissions" index={2} />
+          <StatsCard title="Analytics" value="—" icon={BarChart3} description="Engagement metrics" index={3} />
         </div>
       </div>
     </DashboardLayout>
