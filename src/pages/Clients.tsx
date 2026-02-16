@@ -89,7 +89,18 @@ export default function ClientsPage() {
                 <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 6 characters" /></div>
               </div>
               <DialogFooter>
-                <Button disabled={creating} onClick={() => toast.info("Client creation requires an edge function. Set up the create-team-member function.")}>
+                <Button disabled={creating} onClick={async () => {
+                  if (!form.full_name || !form.email || !form.password) { toast.error("All fields are required"); return; }
+                  if (form.password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+                  setCreating(true);
+                  const { data, error } = await supabase.functions.invoke("create-team-member", { body: { ...form, role: "client" } });
+                  setCreating(false);
+                  if (error || data?.error) { toast.error(data?.error || error.message); return; }
+                  toast.success("Client created");
+                  setForm({ full_name: "", email: "", password: "" });
+                  setDialogOpen(false);
+                  await fetchData();
+                }}>
                   {creating ? "Creating…" : "Create Client"}
                 </Button>
               </DialogFooter>

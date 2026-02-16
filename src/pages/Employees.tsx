@@ -114,7 +114,18 @@ export default function Employees() {
                 </div>
               </div>
               <DialogFooter>
-                <Button disabled={creating} onClick={() => toast.info("Team member creation requires an edge function. Set up the create-team-member function.")}>
+                <Button disabled={creating} onClick={async () => {
+                  if (!form.full_name || !form.email || !form.password) { toast.error("All fields are required"); return; }
+                  if (form.password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+                  setCreating(true);
+                  const { data, error } = await supabase.functions.invoke("create-team-member", { body: form });
+                  setCreating(false);
+                  if (error || data?.error) { toast.error(data?.error || error.message); return; }
+                  toast.success("Team member created");
+                  setForm({ full_name: "", email: "", password: "", role: "concierge" });
+                  setDialogOpen(false);
+                  await fetchData();
+                }}>
                   {creating ? "Creating…" : "Create Member"}
                 </Button>
               </DialogFooter>
