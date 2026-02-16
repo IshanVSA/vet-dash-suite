@@ -25,7 +25,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    const anonKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
     const supabaseAuth = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
