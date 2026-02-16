@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole } from "@/hooks/useUserRole";
-import { RoleBadge } from "@/components/RoleBadge";
+import { Settings as SettingsIcon } from "lucide-react";
 
 export default function Settings() {
   const { user } = useAuth();
@@ -48,27 +50,60 @@ export default function Settings() {
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-2xl">
-        <h1 className="text-3xl font-bold">Settings</h1>
-        <Card>
-          <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
+        <div className="bg-gradient-hero rounded-xl p-6 -mx-2 animate-fade-in">
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <SettingsIcon className="h-6 w-6 text-primary" />
+            Settings
+          </h1>
+          <p className="text-muted-foreground mt-1">Manage your account and preferences</p>
+        </div>
+
+        <Card className="hover-lift animate-fade-in" style={{ animationDelay: "100ms", animationFillMode: "both" }}>
+          <CardHeader><CardTitle className="text-base">Profile</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
-              <Label className="text-muted-foreground">Role:</Label>
-              {role && <RoleBadge role={role} />}
+            <div className="space-y-2">
+              <Label>Full Name</Label>
+              <Input value={fullName} onChange={e => setFullName(e.target.value)} className="input-glow" />
             </div>
-            <div className="flex items-center gap-4">
-              <Label className="text-muted-foreground">Email:</Label>
-              <span className="text-sm">{user?.email}</span>
+            <div className="space-y-2">
+              <Label>Email</Label>
+              <Input defaultValue={user?.email || ""} disabled />
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); updateProfile.mutate(); }} className="space-y-4">
-              <div className="space-y-2">
-                <Label>Full Name</Label>
-                <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
-              </div>
-              <Button type="submit" disabled={updateProfile.isPending}>Save Changes</Button>
-            </form>
+            <div className="space-y-2">
+              <Label>Role</Label>
+              <Input value={role || ""} disabled className="capitalize" />
+            </div>
+            <Button onClick={() => updateProfile.mutate()} disabled={updateProfile.isPending}>
+              {updateProfile.isPending ? "Saving..." : "Save Changes"}
+            </Button>
           </CardContent>
         </Card>
+
+        {role === "admin" && (
+          <>
+            <Separator className="my-2" />
+
+            <Card className="hover-lift animate-fade-in" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
+              <CardHeader><CardTitle className="text-base">Notifications</CardTitle></CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Email notifications</p>
+                    <p className="text-xs text-muted-foreground">Receive email when content is submitted for review</p>
+                  </div>
+                  <Switch defaultChecked />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Weekly digest</p>
+                    <p className="text-xs text-muted-foreground">Receive weekly performance summary</p>
+                  </div>
+                  <Switch />
+                </div>
+              </CardContent>
+            </Card>
+          </>
+        )}
       </div>
     </DashboardLayout>
   );
