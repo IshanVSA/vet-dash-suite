@@ -1,34 +1,57 @@
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { BarChart3 } from "lucide-react";
 
-export default function Analytics() {
-  const { data: analytics, isLoading } = useQuery({
-    queryKey: ["analytics"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("analytics").select("*").order("recorded_at", { ascending: false }).limit(50);
-      if (error) throw error;
-      return data;
-    },
-  });
+interface ChartPoint { date: string; records: number; }
 
-  const chartData = analytics?.reduce((acc, item) => {
-    const existing = acc.find((d) => d.platform === item.platform);
-    if (existing) {
-      existing.value += Number(item.value);
-    } else {
-      acc.push({ platform: item.platform, value: Number(item.value) });
-    }
-    return acc;
-  }, [] as { platform: string; value: number }[]) ?? [];
+export default function Analytics() {
+  const { role } = useUserRole();
+  const { user } = useAuth();
+  const [data, setData] = useState<any[]>([]);
+  const [chartData, setChartData] = useState<ChartPoint[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      let query = supabase.from("analytics").select("*").order("recorded_at", { ascending: true });
+
+      if (role === "concierge" && user) {
+        const { data: clinics } = await supabase.from("clinics").select("id").eq("assigned_concierge_id", user.id);
+        if (clinics?.length) {
+          query = query.in("clinic_id", clinics.map(c => c.id));
+        }
+      }
+
+      const { data: rows } = await query;
+      const analytics = rows || [];
+      setData(analytics);
+
+      const dateMap: Record<string, number> = {};
+      analytics.forEach((r: any) => {
+        const month = r.date?.slice(0, 7) || r.recorded_at?.slice(0, 7);
+        if (month) dateMap[month] = (dateMap[month] || 0) + 1;
+      });
+      setChartData(
+        Object.entries(dateMap)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .slice(-12)
+          .map(([date, records]) => ({ date, records }))
+      );
+      setLoading(false);
+    };
+    if (role) fetchAnalytics();
+  }, [role, user]);
 
   const summaryStats = [
-    { label: "Total Records", value: analytics?.length ?? 0, accent: "border-l-primary" },
-    { label: "Platforms", value: new Set(analytics?.map(d => d.platform)).size, accent: "border-l-success" },
-    { label: "Clinics", value: new Set(analytics?.map(d => d.clinic_id).filter(Boolean)).size, accent: "border-l-warning" },
+    { label: "Total Records", value: data.length, accent: "border-l-primary" },
+    { label: "Platforms", value: new Set(data.map(d => d.platform)).size, accent: "border-l-success" },
+    { label: "Clinics", value: new Set(data.map(d => d.clinic_id).filter(Boolean)).size, accent: "border-l-warning" },
+    { label: "Date Range", value: data.length > 0 ? `${data[0].date || data[0].recorded_at?.slice(0, 10)} – ${data[data.length - 1].date || data[data.length - 1].recorded_at?.slice(0, 10)}` : "—", accent: "border-l-[hsl(var(--chart-4))]", isText: true },
   ];
 
   return (
@@ -39,12 +62,14 @@ export default function Analytics() {
             <BarChart3 className="h-6 w-6 text-primary" />
             Analytics
           </h1>
-          <p className="text-muted-foreground mt-1">Performance metrics across all platforms</p>
+          <p className="text-muted-foreground mt-1">
+            {role === "admin" ? "Agency-wide performance metrics" : "Your clinic performance"}
+          </p>
         </div>
 
-        {isLoading ? (
+        {loading ? (
           <p className="text-muted-foreground">Loading analytics...</p>
-        ) : !analytics?.length ? (
+        ) : data.length === 0 ? (
           <Card className="animate-fade-in">
             <CardContent className="py-12 text-center text-muted-foreground">
               <div className="h-16 w-16 rounded-2xl bg-accent flex items-center justify-center mx-auto mb-4">
@@ -55,58 +80,60 @@ export default function Analytics() {
             </CardContent>
           </Card>
         ) : (
-          <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card className="hover-lift animate-fade-in" style={{ animationDelay: "100ms", animationFillMode: "both" }}>
-                <CardHeader className="bg-gradient-hero rounded-t-lg">
-                  <CardTitle className="text-base">Engagement by Platform</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <BarChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="platform" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card className="hover-lift animate-fade-in" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
-                <CardHeader className="bg-gradient-hero rounded-t-lg">
-                  <CardTitle className="text-base">Trend</CardTitle>
-                </CardHeader>
-                <CardContent className="pt-4">
-                  <ResponsiveContainer width="100%" height={300}>
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                      <XAxis dataKey="platform" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                      <Tooltip />
-                      <Line type="monotone" dataKey="value" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card className="animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
-              <CardHeader><CardTitle className="text-base">Summary</CardTitle></CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {summaryStats.map((stat, i) => (
-                    <div key={i} className={`border-l-4 pl-3 ${stat.accent}`}>
-                      <p className="text-sm text-muted-foreground">{stat.label}</p>
-                      <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                    </div>
-                  ))}
-                </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card className="hover-lift animate-fade-in" style={{ animationDelay: "100ms", animationFillMode: "both" }}>
+              <CardHeader className="bg-gradient-hero rounded-t-lg">
+                <CardTitle className="text-base">Analytics Records Over Time</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="records" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
+                  </LineChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
-          </>
+
+            <Card className="hover-lift animate-fade-in" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
+              <CardHeader className="bg-gradient-hero rounded-t-lg">
+                <CardTitle className="text-base">Records by Month</CardTitle>
+              </CardHeader>
+              <CardContent className="pt-4">
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <Tooltip />
+                    <Bar dataKey="records" fill="hsl(var(--chart-2))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
         )}
+
+        <Card className="animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
+          <CardHeader><CardTitle className="text-base">Summary</CardTitle></CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {summaryStats.map((stat, i) => (
+                <div key={i} className={`border-l-4 pl-3 ${stat.accent}`}>
+                  <p className="text-sm text-muted-foreground">{stat.label}</p>
+                  {stat.isText ? (
+                    <p className="text-sm font-medium text-foreground">{stat.value}</p>
+                  ) : (
+                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

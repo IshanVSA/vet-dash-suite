@@ -7,6 +7,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Clinics from "./pages/Clinics";
+import ClinicDetail from "./pages/ClinicDetail";
 import ContentCalendar from "./pages/ContentCalendar";
 import AIContent from "./pages/AIContent";
 import Analytics from "./pages/Analytics";
@@ -27,7 +28,8 @@ const App = () => (
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-          <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin"]}><Clinics /></ProtectedRoute>} />
+          <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Clinics /></ProtectedRoute>} />
+          <Route path="/clinics/:id" element={<ProtectedRoute><ClinicDetail /></ProtectedRoute>} />
           <Route path="/content" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><ContentCalendar /></ProtectedRoute>} />
           <Route path="/ai-content" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><AIContent /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
