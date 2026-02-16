@@ -5,7 +5,7 @@ import { useUserRole, type AppRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
-  CalendarDays, ShieldCheck, ClipboardList, Sparkles, LayoutDashboard, MessageSquare
+  CalendarDays, ShieldCheck, ClipboardList, Sparkles, LayoutDashboard, MessageSquare, UserCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,7 @@ const adminSections: NavSection[] = [
     items: [
       { label: "Clinics", icon: Building2, path: "/clinics" },
       { label: "Employees", icon: Users, path: "/employees" },
+      { label: "Clients", icon: UserCheck, path: "/clients" },
       { label: "Settings", icon: Settings, path: "/settings" },
     ],
   },
