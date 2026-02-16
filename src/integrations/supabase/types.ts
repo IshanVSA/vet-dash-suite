@@ -21,8 +21,11 @@ export type Database = {
           created_by: string | null
           generated_content: string | null
           id: string
+          intake_data: Json | null
+          month: string | null
           prompt: string
           status: string
+          version_number: number
         }
         Insert: {
           clinic_id?: string | null
@@ -30,8 +33,11 @@ export type Database = {
           created_by?: string | null
           generated_content?: string | null
           id?: string
+          intake_data?: Json | null
+          month?: string | null
           prompt: string
           status?: string
+          version_number?: number
         }
         Update: {
           clinic_id?: string | null
@@ -39,8 +45,11 @@ export type Database = {
           created_by?: string | null
           generated_content?: string | null
           id?: string
+          intake_data?: Json | null
+          month?: string | null
           prompt?: string
           status?: string
+          version_number?: number
         }
         Relationships: [
           {
@@ -55,24 +64,30 @@ export type Database = {
       analytics: {
         Row: {
           clinic_id: string | null
+          date: string | null
           id: string
           metric_type: string
+          metrics_json: Json | null
           platform: string
           recorded_at: string
           value: number
         }
         Insert: {
           clinic_id?: string | null
+          date?: string | null
           id?: string
           metric_type: string
+          metrics_json?: Json | null
           platform: string
           recorded_at?: string
           value?: number
         }
         Update: {
           clinic_id?: string | null
+          date?: string | null
           id?: string
           metric_type?: string
+          metrics_json?: Json | null
           platform?: string
           recorded_at?: string
           value?: number
@@ -89,35 +104,47 @@ export type Database = {
       }
       calendar_submissions: {
         Row: {
+          admin_notes: string | null
           clinic_id: string | null
           created_at: string
           id: string
+          month: string | null
           notes: string | null
           pet_name: string | null
           pet_type: string | null
           status: string
+          submitted_at: string | null
+          submitted_by: string | null
           submitter_email: string | null
           submitter_name: string
         }
         Insert: {
+          admin_notes?: string | null
           clinic_id?: string | null
           created_at?: string
           id?: string
+          month?: string | null
           notes?: string | null
           pet_name?: string | null
           pet_type?: string | null
           status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
           submitter_email?: string | null
           submitter_name: string
         }
         Update: {
+          admin_notes?: string | null
           clinic_id?: string | null
           created_at?: string
           id?: string
+          month?: string | null
           notes?: string | null
           pet_name?: string | null
           pet_type?: string | null
           status?: string
+          submitted_at?: string | null
+          submitted_by?: string | null
           submitter_email?: string | null
           submitter_name?: string
         }
@@ -133,34 +160,49 @@ export type Database = {
       }
       clinic_api_credentials: {
         Row: {
-          api_key_encrypted: string | null
-          api_secret_encrypted: string | null
           clinic_id: string
           created_at: string
+          google_ads_customer_id: string | null
+          google_ads_login_customer_id: string | null
+          google_ads_refresh_token: string | null
           id: string
-          platform: string
+          last_google_sync_at: string | null
+          last_meta_sync_at: string | null
+          meta_instagram_business_id: string | null
+          meta_page_access_token: string | null
+          meta_page_id: string | null
         }
         Insert: {
-          api_key_encrypted?: string | null
-          api_secret_encrypted?: string | null
           clinic_id: string
           created_at?: string
+          google_ads_customer_id?: string | null
+          google_ads_login_customer_id?: string | null
+          google_ads_refresh_token?: string | null
           id?: string
-          platform: string
+          last_google_sync_at?: string | null
+          last_meta_sync_at?: string | null
+          meta_instagram_business_id?: string | null
+          meta_page_access_token?: string | null
+          meta_page_id?: string | null
         }
         Update: {
-          api_key_encrypted?: string | null
-          api_secret_encrypted?: string | null
           clinic_id?: string
           created_at?: string
+          google_ads_customer_id?: string | null
+          google_ads_login_customer_id?: string | null
+          google_ads_refresh_token?: string | null
           id?: string
-          platform?: string
+          last_google_sync_at?: string | null
+          last_meta_sync_at?: string | null
+          meta_instagram_business_id?: string | null
+          meta_page_access_token?: string | null
+          meta_page_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "clinic_api_credentials_clinic_id_fkey"
             columns: ["clinic_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "clinics"
             referencedColumns: ["id"]
           },
@@ -169,74 +211,98 @@ export type Database = {
       clinics: {
         Row: {
           address: string | null
+          assigned_concierge_id: string | null
+          clinic_name: string
           created_at: string
           email: string | null
           id: string
           logo_url: string | null
-          name: string
-          owner_id: string | null
+          owner_user_id: string | null
           phone: string | null
+          status: string
           website: string | null
         }
         Insert: {
           address?: string | null
+          assigned_concierge_id?: string | null
+          clinic_name: string
           created_at?: string
           email?: string | null
           id?: string
           logo_url?: string | null
-          name: string
-          owner_id?: string | null
+          owner_user_id?: string | null
           phone?: string | null
+          status?: string
           website?: string | null
         }
         Update: {
           address?: string | null
+          assigned_concierge_id?: string | null
+          clinic_name?: string
           created_at?: string
           email?: string | null
           id?: string
           logo_url?: string | null
-          name?: string
-          owner_id?: string | null
+          owner_user_id?: string | null
           phone?: string | null
+          status?: string
           website?: string | null
         }
         Relationships: []
       }
       content_posts: {
         Row: {
+          caption: string | null
           clinic_id: string | null
+          compliance_note: string | null
           content: string | null
+          content_type: string
           created_at: string
           created_by: string | null
           id: string
           platform: string
           published_at: string | null
           scheduled_at: string | null
+          scheduled_date: string | null
+          scheduled_time: string | null
           status: string
+          tags: string[] | null
           title: string
         }
         Insert: {
+          caption?: string | null
           clinic_id?: string | null
+          compliance_note?: string | null
           content?: string | null
+          content_type?: string
           created_at?: string
           created_by?: string | null
           id?: string
           platform?: string
           published_at?: string | null
           scheduled_at?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
           status?: string
+          tags?: string[] | null
           title: string
         }
         Update: {
+          caption?: string | null
           clinic_id?: string | null
+          compliance_note?: string | null
           content?: string | null
+          content_type?: string
           created_at?: string
           created_by?: string | null
           id?: string
           platform?: string
           published_at?: string | null
           scheduled_at?: string | null
+          scheduled_date?: string | null
+          scheduled_time?: string | null
           status?: string
+          tags?: string[] | null
           title?: string
         }
         Relationships: [
@@ -253,23 +319,29 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          email: string | null
           full_name: string | null
           id: string
           updated_at: string
+          user_id: string | null
         }
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id: string
           updated_at?: string
+          user_id?: string | null
         }
         Update: {
           avatar_url?: string | null
           created_at?: string
+          email?: string | null
           full_name?: string | null
           id?: string
           updated_at?: string
+          user_id?: string | null
         }
         Relationships: []
       }
