@@ -13,6 +13,7 @@ import AIContent from "./pages/AIContent";
 import Analytics from "./pages/Analytics";
 import IntakeForms from "./pages/IntakeForms";
 import Employees from "./pages/Employees";
+import ClientsPage from "./pages/Clients";
 import AdminReview from "./pages/AdminReview";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -35,6 +36,7 @@ const App = () => (
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/intake-forms" element={<ProtectedRoute><IntakeForms /></ProtectedRoute>} />
           <Route path="/employees" element={<ProtectedRoute allowedRoles={["admin"]}><Employees /></ProtectedRoute>} />
+          <Route path="/clients" element={<ProtectedRoute allowedRoles={["admin"]}><ClientsPage /></ProtectedRoute>} />
           <Route path="/review" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReview /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
