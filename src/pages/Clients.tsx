@@ -8,8 +8,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Trash2 } from "lucide-react";
 
@@ -17,32 +17,34 @@ interface Profile { id: string; full_name: string | null; email: string | null; 
 interface UserRole { user_id: string; role: string; }
 interface ClinicAssignment { user_id: string; clinic_names: string[]; }
 
-export default function Employees() {
+export default function ClientsPage() {
   const { role } = useUserRole();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [assignments, setAssignments] = useState<ClinicAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ full_name: "", email: "", password: "", role: "concierge" });
+  const [form, setForm] = useState({ full_name: "", email: "", password: "" });
   const [creating, setCreating] = useState(false);
 
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes] = await Promise.all([
       supabase.from("profiles").select("id, full_name, email"),
       supabase.from("user_roles").select("user_id, role"),
-      supabase.from("clinics").select("assigned_concierge_id, clinic_name"),
+      supabase.from("clinics").select("owner_user_id, clinic_name"),
     ]);
-    setProfiles(profilesRes.data || []);
-    setRoles(rolesRes.data || []);
+    const allRoles = rolesRes.data || [];
+    const clientUserIds = allRoles.filter(r => r.role === "client").map(r => r.user_id);
+    setProfiles((profilesRes.data || []).filter(p => clientUserIds.includes(p.id)));
+    setRoles(allRoles);
 
     const clinics = clinicsRes.data || [];
     const assignMap = new Map<string, string[]>();
     clinics.forEach(c => {
-      if (c.assigned_concierge_id) {
-        const existing = assignMap.get(c.assigned_concierge_id) || [];
+      if (c.owner_user_id) {
+        const existing = assignMap.get(c.owner_user_id) || [];
         existing.push(c.clinic_name);
-        assignMap.set(c.assigned_concierge_id, existing);
+        assignMap.set(c.owner_user_id, existing);
       }
     });
     setAssignments(Array.from(assignMap.entries()).map(([user_id, clinic_names]) => ({ user_id, clinic_names })));
@@ -54,26 +56,10 @@ export default function Employees() {
     fetchData();
   }, [role]);
 
-  // Filter to only admin/concierge users
-  const staffProfiles = profiles.filter(p => {
-    const r = roles.find(r => r.user_id === p.id)?.role;
-    return r === "admin" || r === "concierge";
-  });
-
-  const getRole = (userId: string) => roles.find(r => r.user_id === userId)?.role || "unknown";
   const getAssignedClinics = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_names || [];
 
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    const { error } = await supabase.from("user_roles").update({ role: newRole as any }).eq("user_id", userId);
-    if (error) { toast.error("Failed to update role"); } else {
-      toast.success("Role updated");
-      setRoles(prev => prev.map(r => r.user_id === userId ? { ...r, role: newRole } : r));
-    }
-  };
-
   const handleDelete = async (userId: string, name: string) => {
-    if (!confirm(`Delete team member "${name}"? This cannot be undone.`)) return;
-    // Delete role entry
+    if (!confirm(`Remove client "${name}"? This cannot be undone.`)) return;
     const { error } = await supabase.from("user_roles").delete().eq("user_id", userId);
     if (error) { toast.error(error.message); return; }
     toast.success(`"${name}" removed`);
@@ -85,37 +71,26 @@ export default function Employees() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Team Members</h1>
-            <p className="text-muted-foreground mt-1">Manage your agency team</p>
+            <h1 className="text-2xl font-bold text-foreground">Clients</h1>
+            <p className="text-muted-foreground mt-1">Manage your clinic clients</p>
           </div>
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />Add Team Member</Button>
+              <Button><Plus className="h-4 w-4 mr-2" />Add Client</Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add Team Member</DialogTitle>
-                <DialogDescription>Create a new account with a specific role.</DialogDescription>
+                <DialogTitle>Add Client</DialogTitle>
+                <DialogDescription>Create a new client account.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4 py-2">
                 <div className="space-y-2"><Label>Full Name</Label><Input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="Jane Doe" /></div>
                 <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@example.com" /></div>
                 <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 6 characters" /></div>
-                <div className="space-y-2">
-                  <Label>Role</Label>
-                  <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="concierge">Concierge</SelectItem>
-                      <SelectItem value="client">Client</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
               </div>
               <DialogFooter>
-                <Button disabled={creating} onClick={() => toast.info("Team member creation requires an edge function. Set up the create-team-member function.")}>
-                  {creating ? "Creating…" : "Create Member"}
+                <Button disabled={creating} onClick={() => toast.info("Client creation requires an edge function. Set up the create-team-member function.")}>
+                  {creating ? "Creating…" : "Create Client"}
                 </Button>
               </DialogFooter>
             </DialogContent>
@@ -124,8 +99,8 @@ export default function Employees() {
 
         {loading ? (
           <Card><CardContent className="py-8 text-center text-muted-foreground">Loading...</CardContent></Card>
-        ) : staffProfiles.length === 0 ? (
-          <Card><CardContent className="py-8 text-center text-muted-foreground">No team members found.</CardContent></Card>
+        ) : profiles.length === 0 ? (
+          <Card><CardContent className="py-8 text-center text-muted-foreground">No clients found.</CardContent></Card>
         ) : (
           <div className="bg-card rounded-xl border border-border">
             <Table>
@@ -133,29 +108,17 @@ export default function Employees() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Assigned Clinics</TableHead>
+                  <TableHead>Clinics</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {staffProfiles.map((p) => {
-                  const userRole = getRole(p.id);
+                {profiles.map((p) => {
                   const assignedClinics = getAssignedClinics(p.id);
                   return (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{p.email || "—"}</TableCell>
-                      <TableCell>
-                        <Select value={userRole} onValueChange={v => handleRoleChange(p.id, v)}>
-                          <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="concierge">Concierge</SelectItem>
-                            <SelectItem value="client">Client</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </TableCell>
                       <TableCell>
                         {assignedClinics.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
