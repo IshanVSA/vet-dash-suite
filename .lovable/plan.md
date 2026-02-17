@@ -1,36 +1,33 @@
 
 
-## Create Team Member Edge Function
+## Fix: OpenAI API Failure in Content Generation
 
-The "Add Team Member" button on the Employees page currently shows a placeholder message because no backend logic exists to create users. This plan adds a Supabase Edge Function that securely creates new users with role assignment.
+### Problem
+The `generate-content` edge function runs both OpenAI and Claude in parallel. Claude succeeds, but OpenAI fails. The database confirms only a Claude version was saved. The OpenAI API key is likely **invalid, expired, or has insufficient permissions**.
 
-### What will change
+### Root Cause
+The OpenAI project-scoped API key (`sk-proj-...`) stored as a secret is being rejected by the OpenAI API. The error is caught but only shown as a generic toast message on the frontend.
 
-1. **New Edge Function: `create-team-member`**
-   - Accepts `full_name`, `email`, `password`, and `role` (admin/concierge/client)
-   - Verifies the calling user is an admin (server-side check)
-   - Creates the user via `supabase.auth.admin.createUser()`
-   - The existing `handle_new_user` database trigger will automatically create the profile and default role
-   - Then updates the role from the default "client" to the requested role if needed
-   - Returns the new user's ID on success
+### Plan
 
-2. **Update `src/pages/Employees.tsx`**
-   - Replace the placeholder toast with an actual call to the `create-team-member` edge function
-   - On success, refresh the table and close the dialog
-   - On error, show the error message
+#### Step 1: Add better error logging to the edge function
+- Add `console.error` logs inside the OpenAI/Claude catch blocks so failures appear in edge function logs for debugging
+- Log the actual error message from the OpenAI API response
 
-3. **Update `src/pages/Clients.tsx`**
-   - Wire up the same edge function for adding clients (role fixed to "client")
+#### Step 2: Update the OpenAI API key
+- The current key appears to be invalid. You will need to provide a **new, valid OpenAI API key** from [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
+- Once provided, it will be securely stored as a Supabase secret
+
+#### Step 3: Improve frontend error display
+- Update the toast message in `IntakeForms.tsx` to show the specific model error message (e.g., "OpenAI error 401: invalid API key") so issues are easier to diagnose in the future
 
 ### Technical Details
 
-**Edge Function (`supabase/functions/create-team-member/index.ts`)**
-- Uses `SUPABASE_SERVICE_ROLE_KEY` (already configured) to call `auth.admin.createUser()`
-- Validates the caller is an admin by checking their JWT and querying `user_roles`
-- Sets `email_confirm: true` so the new user can log in immediately
+**Edge function change** (`supabase/functions/generate-content/index.ts`):
+- Add `console.error("OpenAI call failed:", err.message)` and `console.error("Claude call failed:", err.message)` in the respective catch handlers
+- This ensures errors appear in the Supabase edge function logs
 
-**Employees.tsx changes**
-- The `onClick` handler calls `supabase.functions.invoke("create-team-member", { body: form })`
-- Handles loading state and error display
-- Resets form and refreshes data on success
+**No database changes required** -- the schema and workflow are working correctly. Claude content was generated and saved successfully.
 
+### Action Needed From You
+- Generate a new OpenAI API key from your OpenAI dashboard and share it so it can be updated as a secret
