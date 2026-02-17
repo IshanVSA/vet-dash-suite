@@ -250,6 +250,54 @@ export type Database = {
         }
         Relationships: []
       }
+      content_calendar: {
+        Row: {
+          clinic_id: string
+          content_request_id: string | null
+          created_at: string
+          final_content: Json
+          id: string
+          platform: string
+          scheduled_date: string | null
+          status: string
+        }
+        Insert: {
+          clinic_id: string
+          content_request_id?: string | null
+          created_at?: string
+          final_content?: Json
+          id?: string
+          platform?: string
+          scheduled_date?: string | null
+          status?: string
+        }
+        Update: {
+          clinic_id?: string
+          content_request_id?: string | null
+          created_at?: string
+          final_content?: Json
+          id?: string
+          platform?: string
+          scheduled_date?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_calendar_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "content_calendar_content_request_id_fkey"
+            columns: ["content_request_id"]
+            isOneToOne: false
+            referencedRelation: "content_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       content_posts: {
         Row: {
           caption: string | null
@@ -311,6 +359,82 @@ export type Database = {
             columns: ["clinic_id"]
             isOneToOne: false
             referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_requests: {
+        Row: {
+          clinic_id: string
+          created_at: string
+          created_by_concierge_id: string
+          id: string
+          intake_data: Json
+          status: string
+        }
+        Insert: {
+          clinic_id: string
+          created_at?: string
+          created_by_concierge_id: string
+          id?: string
+          intake_data?: Json
+          status?: string
+        }
+        Update: {
+          clinic_id?: string
+          created_at?: string
+          created_by_concierge_id?: string
+          id?: string
+          intake_data?: Json
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_requests_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      content_versions: {
+        Row: {
+          admin_approved: boolean
+          client_selected: boolean
+          concierge_preferred: boolean
+          content_request_id: string
+          created_at: string
+          generated_content: Json
+          id: string
+          model_name: string
+        }
+        Insert: {
+          admin_approved?: boolean
+          client_selected?: boolean
+          concierge_preferred?: boolean
+          content_request_id: string
+          created_at?: string
+          generated_content?: Json
+          id?: string
+          model_name: string
+        }
+        Update: {
+          admin_approved?: boolean
+          client_selected?: boolean
+          concierge_preferred?: boolean
+          content_request_id?: string
+          created_at?: string
+          generated_content?: Json
+          id?: string
+          model_name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_versions_content_request_id_fkey"
+            columns: ["content_request_id"]
+            isOneToOne: false
+            referencedRelation: "content_requests"
             referencedColumns: ["id"]
           },
         ]
