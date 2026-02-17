@@ -25,7 +25,7 @@ Return your response as valid JSON with this exact structure:
   ]
 }
 
-Generate exactly ${totalPosts} posts, spread across 4 weeks. Each post should be unique, varied in theme, and relevant to the clinic's goals. Only output the JSON, no other text.`;
+Generate exactly ${totalPosts} posts, spread across 4 weeks. Each post should be unique, varied in theme, and relevant to the clinic's goals. Only output the raw JSON. Do not wrap it in markdown code fences or any other formatting.`;
 }
 
 function buildUserPrompt(intake: any): string {
@@ -86,7 +86,7 @@ async function callClaude(apiKey: string, systemPrompt: string, userPrompt: stri
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 4096,
+      max_tokens: 8192,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
@@ -98,7 +98,15 @@ async function callClaude(apiKey: string, systemPrompt: string, userPrompt: stri
   const data = await res.json();
   const text = data.content?.[0]?.text || "{}";
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  return JSON.parse(jsonMatch ? jsonMatch[1].trim() : text.trim());
+  let jsonStr: string;
+  if (jsonMatch) {
+    jsonStr = jsonMatch[1].trim();
+  } else {
+    const start = text.indexOf("{");
+    const end = text.lastIndexOf("}");
+    jsonStr = start !== -1 && end !== -1 ? text.substring(start, end + 1) : text.trim();
+  }
+  return JSON.parse(jsonStr);
 }
 
 Deno.serve(async (req) => {
