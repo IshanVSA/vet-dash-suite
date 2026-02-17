@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, ThumbsUp, Check, Sparkles } from "lucide-react";
+import { Star, ThumbsUp, Check, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContentPostCard } from "./ContentPostCard";
 
@@ -26,25 +27,46 @@ interface ContentVersionCardProps {
   onClientSelect: (requestId: string, versionId: string, clinicId: string) => void;
 }
 
+function MultiPostBlock({ posts }: { posts: any[] }) {
+  const [allExpanded, setAllExpanded] = useState(false);
+  const [key, setKey] = useState(0);
+
+  const toggleAll = () => {
+    setAllExpanded(v => !v);
+    setKey(k => k + 1); // force re-mount to reset individual states
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-3.5 w-3.5 text-primary/60" />
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+            {posts.length} Posts for the Month
+          </p>
+        </div>
+        <button
+          onClick={toggleAll}
+          className="flex items-center gap-1 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer"
+        >
+          {allExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+          {allExpanded ? "Collapse All" : "Expand All"}
+        </button>
+      </div>
+      <div key={key} className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[600px] overflow-y-auto pr-1">
+        {posts.map((post: any, i: number) => (
+          <ContentPostCard key={i} post={post} index={i} defaultOpen={allExpanded} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function renderContentBlock(content: any) {
   if (!content) return <p className="text-sm text-muted-foreground">No content generated</p>;
 
   if (content.posts && Array.isArray(content.posts)) {
-    return (
-      <div className="space-y-3">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-3.5 w-3.5 text-primary/60" />
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            {content.posts.length} Posts for the Month
-          </p>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[600px] overflow-y-auto pr-1">
-          {content.posts.map((post: any, i: number) => (
-            <ContentPostCard key={i} post={post} index={i} />
-          ))}
-        </div>
-      </div>
-    );
+    return <MultiPostBlock posts={content.posts} />;
   }
 
   // Legacy single-post format
