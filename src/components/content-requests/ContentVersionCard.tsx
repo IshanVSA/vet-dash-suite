@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, ThumbsUp, Check, Sparkles, ChevronDown, ChevronUp } from "lucide-react";
+import { Star, ThumbsUp, Check, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContentPostCard } from "./ContentPostCard";
 
@@ -27,37 +27,45 @@ interface ContentVersionCardProps {
   onClientSelect: (requestId: string, versionId: string, clinicId: string) => void;
 }
 
-function MultiPostBlock({ posts }: { posts: any[] }) {
-  const [allExpanded, setAllExpanded] = useState(false);
-  const [key, setKey] = useState(0);
+const INITIAL_VISIBLE = 3;
 
-  const toggleAll = () => {
-    setAllExpanded(v => !v);
-    setKey(k => k + 1); // force re-mount to reset individual states
-  };
+function MultiPostBlock({ posts }: { posts: any[] }) {
+  const [showAll, setShowAll] = useState(false);
+  const visiblePosts = showAll ? posts : posts.slice(0, INITIAL_VISIBLE);
+  const hiddenCount = posts.length - INITIAL_VISIBLE;
+
+  // Compute week range
+  const weeks = posts.map((p, i) => p.week || Math.ceil((i + 1) / 4));
+  const minWeek = Math.min(...weeks);
+  const maxWeek = Math.max(...weeks);
+  const weekLabel = minWeek === maxWeek ? `Week ${minWeek}` : `Week ${minWeek}–${maxWeek}`;
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Sparkles className="h-3.5 w-3.5 text-primary/60" />
-          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-            {posts.length} Posts for the Month
-          </p>
-        </div>
-        <button
-          onClick={toggleAll}
-          className="flex items-center gap-1 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors cursor-pointer"
-        >
-          {allExpanded ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-          {allExpanded ? "Collapse All" : "Expand All"}
-        </button>
-      </div>
-      <div key={key} className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[600px] overflow-y-auto pr-1">
-        {posts.map((post: any, i: number) => (
-          <ContentPostCard key={i} post={post} index={i} defaultOpen={allExpanded} />
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">
+        {posts.length} posts · {weekLabel}
+      </p>
+
+      <div className="flex flex-col">
+        {visiblePosts.map((post: any, i: number) => (
+          <ContentPostCard
+            key={i}
+            post={post}
+            index={i}
+            isLast={!showAll && i === visiblePosts.length - 1 && hiddenCount <= 0}
+          />
         ))}
       </div>
+
+      {hiddenCount > 0 && (
+        <button
+          onClick={() => setShowAll(v => !v)}
+          className="flex items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer pt-1"
+        >
+          <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", showAll && "rotate-180")} />
+          {showAll ? "Show fewer" : `Show all ${posts.length} posts`}
+        </button>
+      )}
     </div>
   );
 }
@@ -69,30 +77,29 @@ function renderContentBlock(content: any) {
     return <MultiPostBlock posts={content.posts} />;
   }
 
-  // Legacy single-post format
   return (
     <div className="space-y-3 text-sm">
       {content.caption && (
         <div className="space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Caption</p>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">Caption</p>
           <p className="text-foreground">{content.caption}</p>
         </div>
       )}
       {content.main_copy && (
         <div className="space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Main Copy</p>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">Main Copy</p>
           <p className="text-foreground">{content.main_copy}</p>
         </div>
       )}
       {content.cta && (
         <div className="space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Call to Action</p>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">Call to Action</p>
           <p className="text-foreground font-medium">{content.cta}</p>
         </div>
       )}
       {content.hashtags && (
         <div className="space-y-1">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/70">Hashtags</p>
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">Hashtags</p>
           <p className="text-primary text-xs">{content.hashtags}</p>
         </div>
       )}
@@ -114,34 +121,32 @@ export function ContentVersionCard({
 
   return (
     <div className={cn(
-      "glass-card rounded-xl p-5 space-y-4 transition-all duration-300",
+      "glass-card rounded-xl p-6 space-y-5 transition-all duration-300",
       version.client_selected && "ring-2 ring-primary/30 border-primary/40 bg-primary/5",
       version.admin_approved && !version.client_selected && "ring-1 ring-success/30 border-success/30",
       version.concierge_preferred && !version.admin_approved && !version.client_selected && "ring-1 ring-[hsl(280,65%,60%)]/30 border-[hsl(280,65%,60%)]/30",
       !isHighlighted && "hover:border-primary/20"
     )}>
       {/* Header */}
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <div className="flex items-center gap-2 flex-wrap">
-          <Badge className="bg-gradient-to-r from-primary to-[hsl(280,65%,60%)] text-primary-foreground text-[10px] font-bold border-0 shadow-sm">
-            {version.model_name}
+      <div className="flex items-center gap-2 flex-wrap">
+        <Badge className="bg-gradient-to-r from-primary to-[hsl(280,65%,60%)] text-primary-foreground text-[10px] font-bold border-0 shadow-sm">
+          {version.model_name}
+        </Badge>
+        {version.concierge_preferred && (
+          <Badge className="bg-[hsl(280,65%,60%)]/15 text-[hsl(280,65%,60%)] border-[hsl(280,65%,60%)]/20 text-[10px] font-semibold">
+            <Star className="h-3 w-3 mr-1 fill-current" /> Concierge Pick
           </Badge>
-          {version.concierge_preferred && (
-            <Badge className="bg-[hsl(280,65%,60%)]/15 text-[hsl(280,65%,60%)] border-[hsl(280,65%,60%)]/20 text-[10px] font-semibold">
-              <Star className="h-3 w-3 mr-1 fill-current" /> Concierge Pick
-            </Badge>
-          )}
-          {version.admin_approved && (
-            <Badge className="bg-success/15 text-success border-success/20 text-[10px] font-semibold">
-              <ThumbsUp className="h-3 w-3 mr-1" /> Approved
-            </Badge>
-          )}
-          {version.client_selected && (
-            <Badge className="bg-primary/15 text-primary border-primary/20 text-[10px] font-semibold">
-              <Check className="h-3 w-3 mr-1" /> Selected
-            </Badge>
-          )}
-        </div>
+        )}
+        {version.admin_approved && (
+          <Badge className="bg-success/15 text-success border-success/20 text-[10px] font-semibold">
+            <ThumbsUp className="h-3 w-3 mr-1" /> Approved
+          </Badge>
+        )}
+        {version.client_selected && (
+          <Badge className="bg-primary/15 text-primary border-primary/20 text-[10px] font-semibold">
+            <Check className="h-3 w-3 mr-1" /> Selected
+          </Badge>
+        )}
       </div>
 
       {/* Content */}

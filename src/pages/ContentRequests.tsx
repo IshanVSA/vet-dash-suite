@@ -195,7 +195,7 @@ export default function ContentRequests() {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-5">
+          <div className="space-y-8">
             {requests.map((req, idx) => (
               <ContentRequestCard
                 key={req.id}
