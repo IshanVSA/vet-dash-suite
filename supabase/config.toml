@@ -2,3 +2,6 @@ project_id = "yuyossgquiyuoqbeenri"
 
 [functions.create-team-member]
 verify_jwt = false
+
+[functions.generate-content]
+verify_jwt = false

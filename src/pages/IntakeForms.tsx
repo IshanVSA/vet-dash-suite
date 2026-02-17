@@ -84,25 +84,48 @@ export default function IntakeForms() {
     e.preventDefault();
     if (!selectedClinicId) { toast.error("Please select a clinic first"); return; }
     setGenerating(true);
-    // For now, save as a calendar_submission
-    const { error } = await supabase.from("calendar_submissions").insert({
+
+    const intakeData = {
+      clinicName: clinics.find(c => c.id === selectedClinicId)?.clinic_name,
+      goal, secondaryGoals, promotions, targetAudience, adBudget, specialEvents,
+      tone, services, competitors, notes, selectedMonth, country, language,
+      topPost, avgEngagement, followerGrowth, topContentType, performanceNotes,
+      selectedThemes, preferredPlatforms, postsPerWeek,
+      platform: preferredPlatforms,
+    };
+
+    // Also save as calendar_submission for tracking
+    await supabase.from("calendar_submissions").insert({
       clinic_id: selectedClinicId,
       submitter_name: user?.email || "Unknown",
       submitter_email: user?.email,
       month: selectedMonth,
       submitted_by: user?.id,
-      notes: JSON.stringify({
-        goal, secondaryGoals, promotions, targetAudience, adBudget, specialEvents,
-        tone, services, competitors, notes, selectedMonth, country, language,
-        topPost, avgEngagement, followerGrowth, topContentType, performanceNotes,
-        selectedThemes, preferredPlatforms, postsPerWeek,
-      }),
+      notes: JSON.stringify(intakeData),
       status: "pending",
     });
-    setGenerating(false);
-    if (error) { toast.error(error.message); } else {
-      toast.success("Intake form submitted!");
+
+    // Call dual-AI generation edge function
+    try {
+      const { data, error } = await supabase.functions.invoke("generate-content", {
+        body: { clinic_id: selectedClinicId, intake_data: intakeData },
+      });
+
+      if (error) throw error;
+
+      const errorList = data?.errors || [];
+      if (errorList.length > 0 && (!data?.versions || data.versions.length === 0)) {
+        toast.error("AI generation failed: " + errorList.map((e: any) => `${e.model}: ${e.error}`).join("; "));
+      } else if (errorList.length > 0) {
+        toast.warning(`Content generated with partial results. ${errorList[0].model} failed.`);
+      } else {
+        toast.success("Content generated! View results in Content Requests.");
+      }
+    } catch (err: any) {
+      toast.error("Generation failed: " + (err.message || "Unknown error"));
     }
+
+    setGenerating(false);
   };
 
   const sectionHeader = (step: number, title: string, description: string) => (
