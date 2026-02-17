@@ -1,33 +1,28 @@
 
 
-## Fix: OpenAI API Failure in Content Generation
+## Fix: Add "Content Requests" to Sidebar Navigation
 
 ### Problem
-The `generate-content` edge function runs both OpenAI and Claude in parallel. Claude succeeds, but OpenAI fails. The database confirms only a Claude version was saved. The OpenAI API key is likely **invalid, expired, or has insufficient permissions**.
+The sidebar navigation is defined in `src/components/DashboardLayout.tsx`, but "Content Requests" (`/content-requests`) is not listed in either the `adminSections` or `conciergeSections` arrays. The route exists in `App.tsx` and works if navigated to directly, but there is no link in the sidebar.
 
-### Root Cause
-The OpenAI project-scoped API key (`sk-proj-...`) stored as a secret is being rejected by the OpenAI API. The error is caught but only shown as a generic toast message on the frontend.
+### Fix
+Add a "Content Requests" nav item to the sidebar in `DashboardLayout.tsx` for all three roles:
 
-### Plan
+**Admin sections** (line 29-33): Add `{ label: "Content Requests", icon: FileCheck, path: "/content-requests" }` after "Client Intake"
 
-#### Step 1: Add better error logging to the edge function
-- Add `console.error` logs inside the OpenAI/Claude catch blocks so failures appear in edge function logs for debugging
-- Log the actual error message from the OpenAI API response
+**Concierge sections** (line 55-58): Add `{ label: "Content Requests", icon: FileCheck, path: "/content-requests" }` after "Client Intake"
 
-#### Step 2: Update the OpenAI API key
-- The current key appears to be invalid. You will need to provide a **new, valid OpenAI API key** from [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
-- Once provided, it will be securely stored as a Supabase secret
+**Client sections** (line 102-108): Add `{ label: "Content Requests", icon: FileCheck, path: "/content-requests" }` so clients can review and approve content
 
-#### Step 3: Improve frontend error display
-- Update the toast message in `IntakeForms.tsx` to show the specific model error message (e.g., "OpenAI error 401: invalid API key") so issues are easier to diagnose in the future
+Also import the `FileCheck` icon from lucide-react (already used in `AppSidebar.tsx`).
 
 ### Technical Details
 
-**Edge function change** (`supabase/functions/generate-content/index.ts`):
-- Add `console.error("OpenAI call failed:", err.message)` and `console.error("Claude call failed:", err.message)` in the respective catch handlers
-- This ensures errors appear in the Supabase edge function logs
+**File**: `src/components/DashboardLayout.tsx`
 
-**No database changes required** -- the schema and workflow are working correctly. Claude content was generated and saved successfully.
+1. Add `FileCheck` to the lucide-react import on line 7
+2. Add nav item to `adminSections` MAIN group (after line 32)
+3. Add nav item to `conciergeSections` MAIN group (after line 57)
+4. Add nav item to both `defaultClientSections` and dynamic `clientSections` (after Dashboard)
 
-### Action Needed From You
-- Generate a new OpenAI API key from your OpenAI dashboard and share it so it can be updated as a secret
+This is a one-file, minimal change.
