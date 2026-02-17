@@ -165,14 +165,20 @@ Deno.serve(async (req) => {
       promises.push(
         callOpenAI(openaiKey, userPrompt)
           .then(content => results.push({ model: "OpenAI", content }))
-          .catch(err => results.push({ model: "OpenAI", content: null, error: err.message }))
+          .catch(err => {
+            console.error("OpenAI call failed:", err.message);
+            results.push({ model: "OpenAI", content: null, error: err.message });
+          })
       );
     }
     if (claudeKey) {
       promises.push(
         callClaude(claudeKey, userPrompt)
           .then(content => results.push({ model: "Claude", content }))
-          .catch(err => results.push({ model: "Claude", content: null, error: err.message }))
+          .catch(err => {
+            console.error("Claude call failed:", err.message);
+            results.push({ model: "Claude", content: null, error: err.message });
+          })
       );
     }
 
