@@ -126,7 +126,7 @@ export function ContentRequestCard({
             <p className="text-sm text-muted-foreground">No versions generated yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          <div className="space-y-4">
             {versions.map(version => (
               <ContentVersionCard
                 key={version.id}
