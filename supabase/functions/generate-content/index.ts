@@ -6,17 +6,27 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const SYSTEM_PROMPT = `You are a veterinary social media content expert. Generate engaging social media content for veterinary clinics.
+function buildSystemPrompt(totalPosts: number): string {
+  return `You are a veterinary social media content expert. Generate ${totalPosts} unique social media posts for a veterinary clinic for an entire month.
 
 Return your response as valid JSON with this exact structure:
 {
-  "caption": "The main social media caption text",
-  "main_copy": "The extended body/main copy for the post",
-  "cta": "A clear call-to-action",
-  "hashtags": "Relevant hashtags as a string"
+  "posts": [
+    {
+      "post_number": 1,
+      "week": 1,
+      "caption": "The main social media caption text",
+      "main_copy": "The extended body/main copy for the post",
+      "cta": "A clear call-to-action",
+      "hashtags": "Relevant hashtags as a string",
+      "content_type": "IMAGE or VIDEO or CAROUSEL",
+      "theme": "The theme or topic of this post"
+    }
+  ]
 }
 
-Only output the JSON, no other text.`;
+Generate exactly ${totalPosts} posts, spread across 4 weeks. Each post should be unique, varied in theme, and relevant to the clinic's goals. Only output the JSON, no other text.`;
+}
 
 function buildUserPrompt(intake: any): string {
   const parts = [
@@ -32,20 +42,25 @@ function buildUserPrompt(intake: any): string {
     intake.country && `Country: ${intake.country}`,
     intake.language && `Language: ${intake.language}`,
     intake.notes && `Additional Notes: ${intake.notes}`,
-    intake.month && `Month: ${intake.month}`,
+    intake.selectedMonth && `Month: ${intake.selectedMonth}`,
     intake.postsPerWeek && `Posts Per Week: ${intake.postsPerWeek}`,
   ].filter(Boolean);
   return parts.join("\n");
 }
 
-async function callOpenAI(apiKey: string, userPrompt: string): Promise<any> {
+function calculateTotalPosts(intake: any): number {
+  const perWeek = parseInt(intake.postsPerWeek) || 3;
+  return perWeek * 4;
+}
+
+async function callOpenAI(apiKey: string, systemPrompt: string, userPrompt: string): Promise<any> {
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
       model: "gpt-4o-mini",
       messages: [
-        { role: "system", content: SYSTEM_PROMPT },
+        { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
       temperature: 0.7,
@@ -61,7 +76,7 @@ async function callOpenAI(apiKey: string, userPrompt: string): Promise<any> {
   return JSON.parse(content);
 }
 
-async function callClaude(apiKey: string, userPrompt: string): Promise<any> {
+async function callClaude(apiKey: string, systemPrompt: string, userPrompt: string): Promise<any> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -71,8 +86,8 @@ async function callClaude(apiKey: string, userPrompt: string): Promise<any> {
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 1024,
-      system: SYSTEM_PROMPT,
+      max_tokens: 4096,
+      system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
   });
@@ -82,7 +97,6 @@ async function callClaude(apiKey: string, userPrompt: string): Promise<any> {
   }
   const data = await res.json();
   const text = data.content?.[0]?.text || "{}";
-  // Extract JSON from possible markdown code blocks
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   return JSON.parse(jsonMatch ? jsonMatch[1].trim() : text.trim());
 }
@@ -116,7 +130,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Check role - only admin or concierge
+    // Check role
     const { data: roleData } = await supabaseAdmin
       .from("user_roles").select("role").eq("user_id", user.id).maybeSingle();
     if (!roleData || !["admin", "concierge"].includes(roleData.role)) {
@@ -132,6 +146,8 @@ Deno.serve(async (req) => {
       });
     }
 
+    const totalPosts = calculateTotalPosts(intake_data);
+    const systemPrompt = buildSystemPrompt(totalPosts);
     const userPrompt = buildUserPrompt(intake_data);
 
     // Create content request
@@ -154,16 +170,16 @@ Deno.serve(async (req) => {
 
     const contentRequestId = requestData.id;
 
-    // Call both APIs in parallel
+    // Call APIs in parallel
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
     const claudeKey = Deno.env.get("ANTHROPIC_API_KEY");
 
     const results: { model: string; content: any; error?: string }[] = [];
-
     const promises = [];
+
     if (openaiKey) {
       promises.push(
-        callOpenAI(openaiKey, userPrompt)
+        callOpenAI(openaiKey, systemPrompt, userPrompt)
           .then(content => results.push({ model: "OpenAI", content }))
           .catch(err => {
             console.error("OpenAI call failed:", err.message);
@@ -173,7 +189,7 @@ Deno.serve(async (req) => {
     }
     if (claudeKey) {
       promises.push(
-        callClaude(claudeKey, userPrompt)
+        callClaude(claudeKey, systemPrompt, userPrompt)
           .then(content => results.push({ model: "Claude", content }))
           .catch(err => {
             console.error("Claude call failed:", err.message);
@@ -204,6 +220,7 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({
       content_request_id: contentRequestId,
       versions,
+      total_posts: totalPosts,
       errors: results.filter(r => r.error).map(r => ({ model: r.model, error: r.error })),
     }), {
       status: 200,

@@ -146,8 +146,64 @@ export default function ContentRequests() {
     fetchData();
   };
 
+  const renderSinglePost = (post: any, index: number) => (
+    <div key={index} className="border border-border rounded-lg p-3 space-y-2">
+      <div className="flex items-center gap-2 mb-2">
+        <Badge variant="outline" className="text-xs">
+          Week {post.week || Math.ceil((index + 1) / 4)} · Post {post.post_number || index + 1}
+        </Badge>
+        {post.content_type && (
+          <Badge variant="secondary" className="text-xs">{post.content_type}</Badge>
+        )}
+        {post.theme && (
+          <span className="text-xs text-muted-foreground">{post.theme}</span>
+        )}
+      </div>
+      {post.caption && (
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Caption</p>
+          <p className="text-sm text-foreground">{post.caption}</p>
+        </div>
+      )}
+      {post.main_copy && (
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Main Copy</p>
+          <p className="text-sm text-foreground">{post.main_copy}</p>
+        </div>
+      )}
+      {post.cta && (
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Call to Action</p>
+          <p className="text-sm text-foreground font-medium">{post.cta}</p>
+        </div>
+      )}
+      {post.hashtags && (
+        <div>
+          <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Hashtags</p>
+          <p className="text-primary text-xs">{post.hashtags}</p>
+        </div>
+      )}
+    </div>
+  );
+
   const renderContentBlock = (content: any) => {
     if (!content) return <p className="text-sm text-muted-foreground">No content generated</p>;
+    
+    // Handle new multi-post format
+    if (content.posts && Array.isArray(content.posts)) {
+      return (
+        <div className="space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase">
+            {content.posts.length} Posts for the Month
+          </p>
+          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+            {content.posts.map((post: any, i: number) => renderSinglePost(post, i))}
+          </div>
+        </div>
+      );
+    }
+
+    // Legacy single-post format
     return (
       <div className="space-y-3 text-sm">
         {content.caption && (
