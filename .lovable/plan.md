@@ -1,28 +1,45 @@
 
 
-## Fix: Add "Content Requests" to Sidebar Navigation
+## Fix: Claude JSON Parsing Failure
 
 ### Problem
-The sidebar navigation is defined in `src/components/DashboardLayout.tsx`, but "Content Requests" (`/content-requests`) is not listed in either the `adminSections` or `conciergeSections` arrays. The route exists in `App.tsx` and works if navigated to directly, but there is no link in the sidebar.
+Claude is wrapping its JSON response in markdown code fences (` ```json ... ``` `), and the current parsing logic fails to extract the JSON properly. The error log shows:
+> `Claude call failed: Unexpected token '`', "```json\n{\n"... is not valid JSON`
 
-### Fix
-Add a "Content Requests" nav item to the sidebar in `DashboardLayout.tsx` for all three roles:
+### Root Cause
+Two issues:
+1. The system prompt says "Only output the JSON, no other text" but Claude still wraps it in code fences
+2. The regex extraction on line 100 may fail on edge cases (e.g., backticks within the content, greedy vs lazy matching issues)
 
-**Admin sections** (line 29-33): Add `{ label: "Content Requests", icon: FileCheck, path: "/content-requests" }` after "Client Intake"
+### Fix (in `supabase/functions/generate-content/index.ts`)
 
-**Concierge sections** (line 55-58): Add `{ label: "Content Requests", icon: FileCheck, path: "/content-requests" }` after "Client Intake"
+**1. Update the system prompt** to explicitly tell the model not to use code fences:
+- Change `"Only output the JSON, no other text."` to `"Only output the raw JSON. Do not wrap it in markdown code fences or any other formatting."`
 
-**Client sections** (line 102-108): Add `{ label: "Content Requests", icon: FileCheck, path: "/content-requests" }` so clients can review and approve content
+**2. Make the Claude JSON extraction more robust** (lines 99-101):
+- Strip any leading/trailing whitespace
+- Try regex extraction for code fences first
+- If that fails, find the first `{` and last `}` in the response and extract that substring
+- Then parse the result
 
-Also import the `FileCheck` icon from lucide-react (already used in `AppSidebar.tsx`).
+```text
+const text = data.content?.[0]?.text || "{}";
+// Try to extract JSON from code fences
+const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
+let jsonStr: string;
+if (jsonMatch) {
+  jsonStr = jsonMatch[1].trim();
+} else {
+  // Fallback: find the JSON object boundaries
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  jsonStr = start !== -1 && end !== -1 ? text.substring(start, end + 1) : text.trim();
+}
+return JSON.parse(jsonStr);
+```
 
-### Technical Details
+**3. Increase `max_tokens`** from 4096 to 8192 to ensure the full JSON for 12+ posts isn't truncated (truncated JSON also causes parse failures).
 
-**File**: `src/components/DashboardLayout.tsx`
-
-1. Add `FileCheck` to the lucide-react import on line 7
-2. Add nav item to `adminSections` MAIN group (after line 32)
-3. Add nav item to `conciergeSections` MAIN group (after line 57)
-4. Add nav item to both `defaultClientSections` and dynamic `clientSections` (after Dashboard)
-
-This is a one-file, minimal change.
+### Files to Change
+- `supabase/functions/generate-content/index.ts` (system prompt + Claude parsing logic + max_tokens)
+- Redeploy the edge function after changes
