@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Building2, CalendarDays, Sparkles, BarChart3,
-  ClipboardList, Users, UserCheck, ShieldCheck, Settings, LogOut,
+  ClipboardList, Users, UserCheck, ShieldCheck, Settings, LogOut, FileCheck,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useUserRole, type AppRole } from "@/hooks/useUserRole";
@@ -23,6 +23,7 @@ const navItems: NavItem[] = [
   { title: "Clinics", url: "/clinics", icon: Building2, roles: ["admin"] },
   { title: "Content", url: "/content", icon: CalendarDays, roles: ["admin", "concierge"] },
   { title: "AI Content", url: "/ai-content", icon: Sparkles, roles: ["admin", "concierge"] },
+  { title: "Content Requests", url: "/content-requests", icon: FileCheck, roles: ["admin", "concierge", "client"] },
   { title: "Analytics", url: "/analytics", icon: BarChart3, roles: ["admin", "concierge", "client"] },
   { title: "Intake Forms", url: "/intake-forms", icon: ClipboardList, roles: ["admin", "concierge", "client"] },
   { title: "Employees", url: "/employees", icon: Users, roles: ["admin"] },

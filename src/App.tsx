@@ -15,6 +15,7 @@ import IntakeForms from "./pages/IntakeForms";
 import Employees from "./pages/Employees";
 import ClientsPage from "./pages/Clients";
 import AdminReview from "./pages/AdminReview";
+import ContentRequests from "./pages/ContentRequests";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/clinics/:id" element={<ProtectedRoute><ClinicDetail /></ProtectedRoute>} />
           <Route path="/content" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><ContentCalendar /></ProtectedRoute>} />
           <Route path="/ai-content" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><AIContent /></ProtectedRoute>} />
+          <Route path="/content-requests" element={<ProtectedRoute><ContentRequests /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/intake-forms" element={<ProtectedRoute><IntakeForms /></ProtectedRoute>} />
           <Route path="/employees" element={<ProtectedRoute allowedRoles={["admin"]}><Employees /></ProtectedRoute>} />
