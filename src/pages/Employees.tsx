@@ -108,7 +108,6 @@ export default function Employees() {
                     <SelectContent>
                       <SelectItem value="admin">Admin</SelectItem>
                       <SelectItem value="concierge">Concierge</SelectItem>
-                      <SelectItem value="client">Client</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -163,7 +162,6 @@ export default function Employees() {
                           <SelectContent>
                             <SelectItem value="admin">Admin</SelectItem>
                             <SelectItem value="concierge">Concierge</SelectItem>
-                            <SelectItem value="client">Client</SelectItem>
                           </SelectContent>
                         </Select>
                       </TableCell>
