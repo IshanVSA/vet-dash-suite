@@ -151,8 +151,8 @@ export function ContentRequestCard({
 
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-3">
-          <div className="space-y-2 min-w-0">
-            <div className="flex items-center gap-2">
+          <div className="space-y-3 min-w-0">
+            <div className="flex items-center gap-2.5">
               <h3 className="text-lg font-bold text-foreground truncate">{clinicName}</h3>
               {isComplete && (
                 <div className="flex items-center gap-1 bg-success/10 text-success rounded-full px-2.5 py-0.5">
@@ -162,31 +162,35 @@ export function ContentRequestCard({
               )}
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <Badge className={cn("text-[10px] font-bold border-0", status.color)}>
+              <Badge className={cn("text-[11px] font-semibold border-0 px-3 py-1 rounded-full", status.color)}>
                 {status.label}
               </Badge>
               {intake?.goal && (
-                <Badge variant="outline" className="text-[10px] border-border/60">{intake.goal}</Badge>
+                <Badge variant="outline" className="text-[11px] px-3 py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70 capitalize">
+                  {String(intake.goal).replace(/_/g, " ")}
+                </Badge>
               )}
               {intake?.tone && (
-                <Badge variant="outline" className="text-[10px] border-border/60">{intake.tone}</Badge>
+                <Badge variant="outline" className="text-[11px] px-3 py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70 capitalize">
+                  {intake.tone}
+                </Badge>
               )}
               {intake?.selectedMonth && (
-                <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                  <Calendar className="h-3 w-3" /> {intake.selectedMonth}
-                </span>
+                <Badge variant="outline" className="text-[11px] px-3 py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70">
+                  <Calendar className="h-3 w-3 mr-1.5 text-muted-foreground" /> {intake.selectedMonth}
+                </Badge>
               )}
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-1 shrink-0">
-            <span className="text-[10px] text-muted-foreground">
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <span className="text-[11px] text-muted-foreground font-medium">
               {format(new Date(request.created_at), "MMM d, yyyy")}
             </span>
             {totalPosts > 0 && (
-              <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                <FileText className="h-3 w-3" /> {totalPosts} posts
-              </span>
+              <Badge variant="secondary" className="text-[10px] font-semibold rounded-full px-2.5 py-0.5">
+                <FileText className="h-3 w-3 mr-1" /> {totalPosts} posts
+              </Badge>
             )}
           </div>
         </div>
