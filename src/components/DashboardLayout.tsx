@@ -249,14 +249,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex-1" />
 
-          {/* Search */}
-          <div className="hidden md:flex items-center relative">
-            <Search className="absolute left-3 h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              placeholder="Search..."
-              className="w-56 h-9 pl-9 text-sm bg-muted/50 border-transparent focus:border-border focus:bg-card rounded-lg"
-            />
-          </div>
 
           {/* Dark mode toggle */}
           <button
