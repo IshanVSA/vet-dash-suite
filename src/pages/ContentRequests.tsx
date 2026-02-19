@@ -144,6 +144,7 @@ export default function ContentRequests() {
 
   return (
     <DashboardLayout>
+      <div className="min-h-full dot-grid rounded-xl p-6 md:p-8">
       <div className="space-y-6">
         {/* Hero Header */}
         <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-[hsl(280,65%,60%)] p-8 text-primary-foreground shadow-lg">
@@ -220,6 +221,7 @@ export default function ContentRequests() {
             ))}
           </div>
         )}
+      </div>
       </div>
     </DashboardLayout>
   );
