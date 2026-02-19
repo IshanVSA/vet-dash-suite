@@ -136,12 +136,15 @@ export default function AdminReview() {
           </div>
         </div>
 
-        <div className="bg-gradient-hero rounded-xl p-6 -mx-2 animate-fade-in">
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <ShieldCheck className="h-6 w-6 text-primary" />
-            Admin Calendar Review
-          </h1>
-          <p className="text-muted-foreground mt-1">Review, tweak, and approve full monthly calendars before concierges can view them.</p>
+        <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-card to-card p-8">
+          <div className="relative z-10">
+            <h1 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-2">
+              <ShieldCheck className="h-7 w-7 text-primary" />
+              Admin Calendar Review
+            </h1>
+            <p className="text-muted-foreground mt-1 text-[15px]">Review, tweak, and approve full monthly calendars before concierges can view them.</p>
+          </div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         </div>
 
         {loading ? (

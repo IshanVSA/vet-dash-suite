@@ -69,15 +69,16 @@ export default function ClientsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Clients</h1>
-            <p className="text-muted-foreground mt-1">Manage your clinic clients</p>
-          </div>
-          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger asChild>
-              <Button><Plus className="h-4 w-4 mr-2" />Add Client</Button>
-            </DialogTrigger>
+        <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-card to-card p-8">
+          <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground tracking-tight">Clients</h1>
+              <p className="text-muted-foreground mt-1 text-[15px]">Manage your clinic clients</p>
+            </div>
+            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+              <DialogTrigger asChild>
+                <Button><Plus className="h-4 w-4 mr-2" />Add Client</Button>
+              </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add Client</DialogTitle>
@@ -106,6 +107,8 @@ export default function ClientsPage() {
               </DialogFooter>
             </DialogContent>
           </Dialog>
+          </div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         </div>
 
         {loading ? (
@@ -113,7 +116,7 @@ export default function ClientsPage() {
         ) : profiles.length === 0 ? (
           <Card><CardContent className="py-8 text-center text-muted-foreground">No clients found.</CardContent></Card>
         ) : (
-          <div className="bg-card rounded-xl border border-border">
+          <Card className="overflow-hidden border-border/60">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -147,7 +150,7 @@ export default function ClientsPage() {
                 })}
               </TableBody>
             </Table>
-          </div>
+          </Card>
         )}
       </div>
     </DashboardLayout>

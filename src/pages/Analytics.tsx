@@ -57,14 +57,21 @@ export default function Analytics() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="bg-gradient-hero rounded-xl p-6 -mx-2 animate-fade-in">
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <BarChart3 className="h-6 w-6 text-primary" />
-            Analytics
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            {role === "admin" ? "Agency-wide performance metrics" : "Your clinic performance"}
-          </p>
+        <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-card to-card p-8">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-1">
+              <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+              <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Analytics</span>
+            </div>
+            <h1 className="text-3xl font-bold text-foreground tracking-tight flex items-center gap-2">
+              <BarChart3 className="h-7 w-7 text-primary" />
+              Performance
+            </h1>
+            <p className="text-muted-foreground mt-1 text-[15px]">
+              {role === "admin" ? "Agency-wide performance metrics" : "Your clinic performance"}
+            </p>
+          </div>
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         </div>
 
         {loading ? (
@@ -81,8 +88,8 @@ export default function Analytics() {
           </Card>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card className="hover-lift animate-fade-in" style={{ animationDelay: "100ms", animationFillMode: "both" }}>
-              <CardHeader className="bg-gradient-hero rounded-t-lg">
+            <Card className="overflow-hidden border-border/60 hover-lift animate-fade-in" style={{ animationDelay: "100ms", animationFillMode: "both" }}>
+              <CardHeader className="border-b border-border/40 bg-muted/30">
                 <CardTitle className="text-base">Analytics Records Over Time</CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
@@ -98,8 +105,8 @@ export default function Analytics() {
               </CardContent>
             </Card>
 
-            <Card className="hover-lift animate-fade-in" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
-              <CardHeader className="bg-gradient-hero rounded-t-lg">
+            <Card className="overflow-hidden border-border/60 hover-lift animate-fade-in" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
+              <CardHeader className="border-b border-border/40 bg-muted/30">
                 <CardTitle className="text-base">Records by Month</CardTitle>
               </CardHeader>
               <CardContent className="pt-4">
