@@ -216,7 +216,7 @@ export default function ContentCalendar() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <Popover open={clinicPopoverOpen} onOpenChange={setClinicPopoverOpen}>
               <PopoverTrigger asChild>
