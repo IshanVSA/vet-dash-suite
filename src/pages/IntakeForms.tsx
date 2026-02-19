@@ -8,10 +8,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { ArrowLeft, Sparkles, FileText, ClipboardList } from "lucide-react";
+import { ArrowLeft, Sparkles, FileText, ClipboardList, ChevronsUpDown } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +60,8 @@ export default function IntakeForms() {
   const [preferredPlatforms, setPreferredPlatforms] = useState("instagram_facebook");
   const [postsPerWeek, setPostsPerWeek] = useState("3");
   const [generating, setGenerating] = useState(false);
+
+  const [clinicPopoverOpen, setClinicPopoverOpen] = useState(false);
 
   const section1Done = !!selectedClinicId && !!selectedMonth;
   const section2Done = !!(topPost || avgEngagement || followerGrowth);
@@ -166,11 +170,30 @@ export default function IntakeForms() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Select Clinic *</Label>
-                  <Select value={selectedClinicId} onValueChange={setSelectedClinicId}>
-                    <SelectTrigger><SelectValue placeholder="Choose a clinic..." /></SelectTrigger>
-                    <SelectContent>{clinics.map(c => (<SelectItem key={c.id} value={c.id}>{c.clinic_name}</SelectItem>))}</SelectContent>
-                  </Select>
+                   <Label>Select Clinic *</Label>
+                   <Popover open={clinicPopoverOpen} onOpenChange={setClinicPopoverOpen}>
+                     <PopoverTrigger asChild>
+                       <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                         {selectedClinicId ? clinics.find(c => c.id === selectedClinicId)?.clinic_name : "Choose a clinic..."}
+                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                       </Button>
+                     </PopoverTrigger>
+                     <PopoverContent className="w-[--radix-popover-trigger-width] p-0 z-50 bg-popover" align="start">
+                       <Command>
+                         <CommandInput placeholder="Search clinics..." />
+                         <CommandList>
+                           <CommandEmpty>No clinic found.</CommandEmpty>
+                           <CommandGroup>
+                             {clinics.map(c => (
+                               <CommandItem key={c.id} value={c.clinic_name} onSelect={() => { setSelectedClinicId(c.id); setClinicPopoverOpen(false); }} className="cursor-pointer">
+                                 {c.clinic_name}
+                               </CommandItem>
+                             ))}
+                           </CommandGroup>
+                         </CommandList>
+                       </Command>
+                     </PopoverContent>
+                   </Popover>
                 </div>
                 <div className="space-y-2">
                   <Label>Calendar Month *</Label>
