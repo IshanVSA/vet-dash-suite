@@ -5,6 +5,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EditPostDialog } from "@/components/content-calendar/EditPostDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ChevronLeft, ChevronRight, Download, Plus, Pencil, Check, Flag, Clock,
@@ -84,6 +85,7 @@ export default function ContentCalendar() {
   const [posts, setPosts] = useState<ContentPost[]>([]);
   const [activeFilter, setActiveFilter] = useState("All");
   const [loading, setLoading] = useState(true);
+  const [editingPost, setEditingPost] = useState<ContentPost | null>(null);
 
   useEffect(() => {
     const fetchClinics = async () => {
@@ -230,7 +232,7 @@ export default function ContentCalendar() {
                   )}
                 </div>
                 <div className="border-t border-border grid grid-cols-3 bg-muted/50">
-                  <Button variant="ghost" size="sm" className="rounded-none text-xs h-10"><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
+                  <Button variant="ghost" size="sm" className="rounded-none text-xs h-10" onClick={() => setEditingPost(post)}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
                   <Button variant="ghost" size="sm" className="rounded-none text-xs h-10 text-success hover:text-success" onClick={() => updatePostStatus(post.id, "approved")}>
                     <Check className="h-3.5 w-3.5 mr-1" /> Approve
                   </Button>
@@ -243,6 +245,12 @@ export default function ContentCalendar() {
           </div>
         )}
       </div>
+      <EditPostDialog
+        post={editingPost}
+        open={!!editingPost}
+        onOpenChange={(open) => { if (!open) setEditingPost(null); }}
+        onSaved={(updated) => setPosts(prev => prev.map(p => p.id === updated.id ? updated : p))}
+      />
     </DashboardLayout>
   );
 }
