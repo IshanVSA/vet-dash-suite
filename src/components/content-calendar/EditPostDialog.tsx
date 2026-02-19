@@ -37,6 +37,7 @@ const statuses = ["draft", "scheduled", "pending", "approved", "posted", "flagge
 export function EditPostDialog({ post, open, onOpenChange, onSaved }: EditPostDialogProps) {
   const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
+  const [content, setContent] = useState("");
   const [platform, setPlatform] = useState("instagram");
   const [contentType, setContentType] = useState("IMAGE");
   const [scheduledDate, setScheduledDate] = useState("");
@@ -50,6 +51,7 @@ export function EditPostDialog({ post, open, onOpenChange, onSaved }: EditPostDi
     if (post) {
       setTitle(post.title);
       setCaption(post.caption || "");
+      setContent(post.content || "");
       setPlatform(post.platform);
       setContentType(post.content_type);
       setScheduledDate(post.scheduled_date || "");
@@ -66,6 +68,7 @@ export function EditPostDialog({ post, open, onOpenChange, onSaved }: EditPostDi
     const updatedFields = {
       title,
       caption: caption || null,
+      content: content || null,
       platform,
       content_type: contentType,
       scheduled_date: scheduledDate || null,
@@ -102,6 +105,10 @@ export function EditPostDialog({ post, open, onOpenChange, onSaved }: EditPostDi
           <div className="space-y-1.5">
             <Label htmlFor="edit-caption">Caption</Label>
             <Textarea id="edit-caption" value={caption} onChange={e => setCaption(e.target.value)} rows={4} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-content">Main Copy</Label>
+            <Textarea id="edit-content" value={content} onChange={e => setContent(e.target.value)} rows={4} placeholder="Main copy / body text" />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
