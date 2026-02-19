@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import vsaLogo from "@/assets/vsa-logo.jpg";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -61,9 +62,7 @@ export default function Login() {
 
         <div className="max-w-md text-primary-foreground relative z-10">
           <div className="flex items-center gap-3 mb-8">
-            <div className="h-10 w-10 rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center">
-              <span className="font-bold text-lg text-primary-foreground">V</span>
-            </div>
+            <img src={vsaLogo} alt="VSA Vet Media" className="h-10 w-10 rounded-xl object-cover" />
             <span className="text-xl font-bold">VSA Vet Media</span>
           </div>
           <h2 className="text-3xl font-bold mb-4">Digital Marketing, Simplified.</h2>
@@ -77,9 +76,7 @@ export default function Login() {
       <div className="flex-1 flex items-center justify-center p-6 bg-background">
         <div className="w-full max-w-sm space-y-6 animate-fade-in">
           <div className="lg:hidden flex items-center gap-3 mb-4">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="font-bold text-sm text-primary-foreground">V</span>
-            </div>
+            <img src={vsaLogo} alt="VSA Vet Media" className="h-8 w-8 rounded-lg object-cover" />
             <span className="font-semibold text-foreground">VSA Vet Media</span>
           </div>
 
