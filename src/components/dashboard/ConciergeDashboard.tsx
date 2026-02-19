@@ -46,20 +46,19 @@ export default function ConciergeDashboard() {
   return (
     <div className="space-y-8">
       {/* Hero */}
-      <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-card to-card p-8">
+      <div className="hero-section">
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-1">
             <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Concierge View</span>
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Concierge View</span>
           </div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">
             Welcome back{user?.user_metadata?.full_name ? `, ${(user.user_metadata.full_name as string).split(" ")[0]}` : ""} 👋
           </h1>
-          <p className="text-muted-foreground mt-1 text-[15px]">
+          <p className="text-muted-foreground mt-0.5 text-sm">
             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })} — Your assigned clinics and performance
           </p>
         </div>
-        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Users } from "lucide-react";
 
 interface Profile { id: string; full_name: string | null; email: string | null; }
 interface UserRole { user_id: string; role: string; }
@@ -54,7 +54,6 @@ export default function Employees() {
     fetchData();
   }, [role]);
 
-  // Filter to only admin/concierge users
   const staffProfiles = profiles.filter(p => {
     const r = roles.find(r => r.user_id === p.id)?.role;
     return r === "admin" || r === "concierge";
@@ -73,7 +72,6 @@ export default function Employees() {
 
   const handleDelete = async (userId: string, name: string) => {
     if (!confirm(`Delete team member "${name}"? This cannot be undone.`)) return;
-    // Delete role entry
     const { error } = await supabase.from("user_roles").delete().eq("user_id", userId);
     if (error) { toast.error(error.message); return; }
     toast.success(`"${name}" removed`);
@@ -83,67 +81,81 @@ export default function Employees() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-card to-card p-8">
+        {/* Hero */}
+        <div className="hero-section">
           <div className="relative z-10 flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-foreground tracking-tight">Team Members</h1>
-              <p className="text-muted-foreground mt-1 text-[15px]">Manage your agency team</p>
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="h-5 w-5 text-primary" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Manage</span>
+              </div>
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">Team Members</h1>
+              <p className="text-muted-foreground mt-0.5 text-sm">Manage your agency team</p>
             </div>
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button><Plus className="h-4 w-4 mr-2" />Add Team Member</Button>
+                <Button className="rounded-lg shadow-sm"><Plus className="h-4 w-4 mr-2" />Add Team Member</Button>
               </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add Team Member</DialogTitle>
-                <DialogDescription>Create a new account with a specific role.</DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-2">
-                <div className="space-y-2"><Label>Full Name</Label><Input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="Jane Doe" /></div>
-                <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@example.com" /></div>
-                <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 6 characters" /></div>
-                <div className="space-y-2">
-                  <Label>Role</Label>
-                  <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="concierge">Concierge</SelectItem>
-                    </SelectContent>
-                  </Select>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add Team Member</DialogTitle>
+                  <DialogDescription>Create a new account with a specific role.</DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4 py-2">
+                  <div className="space-y-2"><Label>Full Name</Label><Input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="Jane Doe" className="input-glow" /></div>
+                  <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@example.com" className="input-glow" /></div>
+                  <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 6 characters" className="input-glow" /></div>
+                  <div className="space-y-2">
+                    <Label>Role</Label>
+                    <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
+                      <SelectTrigger><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="admin">Admin</SelectItem>
+                        <SelectItem value="concierge">Concierge</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <Button disabled={creating} onClick={async () => {
-                  if (!form.full_name || !form.email || !form.password) { toast.error("All fields are required"); return; }
-                  if (form.password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
-                  setCreating(true);
-                  const { data, error } = await supabase.functions.invoke("create-team-member", { body: form });
-                  setCreating(false);
-                  if (error || data?.error) { toast.error(data?.error || error.message); return; }
-                  toast.success("Team member created");
-                  setForm({ full_name: "", email: "", password: "", role: "concierge" });
-                  setDialogOpen(false);
-                  await fetchData();
-                }}>
-                  {creating ? "Creating…" : "Create Member"}
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+                <DialogFooter>
+                  <Button disabled={creating} onClick={async () => {
+                    if (!form.full_name || !form.email || !form.password) { toast.error("All fields are required"); return; }
+                    if (form.password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+                    setCreating(true);
+                    const { data, error } = await supabase.functions.invoke("create-team-member", { body: form });
+                    setCreating(false);
+                    if (error || data?.error) { toast.error(data?.error || error.message); return; }
+                    toast.success("Team member created");
+                    setForm({ full_name: "", email: "", password: "", role: "concierge" });
+                    setDialogOpen(false);
+                    await fetchData();
+                  }}>
+                    {creating ? "Creating…" : "Create Member"}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         </div>
 
         {loading ? (
-          <Card><CardContent className="py-8 text-center text-muted-foreground">Loading...</CardContent></Card>
+          <Card><CardContent className="py-12 text-center text-muted-foreground">
+            <div className="inline-flex items-center gap-2">
+              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              Loading team...
+            </div>
+          </CardContent></Card>
         ) : staffProfiles.length === 0 ? (
-          <Card><CardContent className="py-8 text-center text-muted-foreground">No team members found.</CardContent></Card>
+          <Card><CardContent className="py-12 text-center text-muted-foreground">
+            <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+              <Users className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <p>No team members found.</p>
+          </CardContent></Card>
         ) : (
           <Card className="overflow-hidden border-border/60">
-            <Table>
+            <Table className="data-table">
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
@@ -161,7 +173,7 @@ export default function Employees() {
                       <TableCell className="text-muted-foreground">{p.email || "—"}</TableCell>
                       <TableCell>
                         <Select value={userRole} onValueChange={v => handleRoleChange(p.id, v)}>
-                          <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="admin">Admin</SelectItem>
                             <SelectItem value="concierge">Concierge</SelectItem>
@@ -171,13 +183,13 @@ export default function Employees() {
                       <TableCell>
                         {assignedClinics.length > 0 ? (
                           <div className="flex flex-wrap gap-1">
-                            {assignedClinics.map((name, i) => (<Badge key={i} variant="secondary" className="text-xs">{name}</Badge>))}
+                            {assignedClinics.map((name, i) => (<Badge key={i} variant="secondary" className="text-[11px] rounded-full">{name}</Badge>))}
                           </div>
-                        ) : (<span className="text-muted-foreground text-sm italic">None</span>)}
+                        ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDelete(p.id, p.full_name || "User")}>
-                          <Trash2 className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => handleDelete(p.id, p.full_name || "User")}>
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       </TableCell>
                     </TableRow>

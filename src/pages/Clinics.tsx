@@ -13,7 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Search, Eye, Trash2, ChevronDown, Pencil } from "lucide-react";
+import { Plus, Search, Eye, Trash2, ChevronDown, Pencil, Building2 } from "lucide-react";
 import { toast } from "sonner";
 
 interface Clinic {
@@ -179,23 +179,28 @@ export default function Clinics() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-card to-card p-8">
-          <div className="relative z-10">
-            <h1 className="text-3xl font-bold text-foreground tracking-tight">Clinics</h1>
-            <p className="text-muted-foreground mt-1 text-[15px]">{clinics.length} total clinics</p>
-          </div>
-          {role === "admin" && (
-            <div className="absolute top-6 right-6 z-10">
+        {/* Hero */}
+        <div className="hero-section">
+          <div className="relative z-10 flex items-center justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Building2 className="h-5 w-5 text-primary" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Manage</span>
+              </div>
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">Clinics</h1>
+              <p className="text-muted-foreground mt-0.5 text-sm">{clinics.length} total clinics registered</p>
+            </div>
+            {role === "admin" && (
               <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetAddForm(); }}>
                 <DialogTrigger asChild>
-                  <Button><Plus className="h-4 w-4 mr-2" /> Add Clinic</Button>
+                  <Button className="rounded-lg shadow-sm"><Plus className="h-4 w-4 mr-2" /> Add Clinic</Button>
                 </DialogTrigger>
                 <DialogContent className="max-h-[85vh] overflow-y-auto">
                   <DialogHeader><DialogTitle>Add New Clinic</DialogTitle></DialogHeader>
                   <div className="space-y-4 pt-2">
-                    <div className="space-y-2"><Label>Clinic Name</Label><Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Happy Paws Vet" /></div>
-                    <div className="space-y-2"><Label>Phone</Label><Input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="(555) 123-4567" /></div>
-                    <div className="space-y-2"><Label>Address</Label><Input value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="123 Main St" /></div>
+                    <div className="space-y-2"><Label>Clinic Name</Label><Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Happy Paws Vet" className="input-glow" /></div>
+                    <div className="space-y-2"><Label>Phone</Label><Input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="(555) 123-4567" className="input-glow" /></div>
+                    <div className="space-y-2"><Label>Address</Label><Input value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="123 Main St" className="input-glow" /></div>
                     <div className="space-y-2">
                       <Label>Client Owner (Optional)</Label>
                       <Select value={newOwnerId} onValueChange={setNewOwnerId}>
@@ -216,15 +221,15 @@ export default function Clinics() {
                       <CollapsibleContent className="space-y-4 pt-2">
                         <div className="space-y-3">
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Meta / Instagram</p>
-                          <div className="space-y-2"><Label className="text-xs">Page Access Token</Label><Input value={metaPageAccessToken} onChange={e => setMetaPageAccessToken(e.target.value)} placeholder="EAAGm..." type="password" /></div>
-                          <div className="space-y-2"><Label className="text-xs">Page ID</Label><Input value={metaPageId} onChange={e => setMetaPageId(e.target.value)} placeholder="123456789" /></div>
-                          <div className="space-y-2"><Label className="text-xs">Instagram Business ID</Label><Input value={metaInstagramBusinessId} onChange={e => setMetaInstagramBusinessId(e.target.value)} placeholder="17841..." /></div>
+                          <div className="space-y-2"><Label className="text-xs">Page Access Token</Label><Input value={metaPageAccessToken} onChange={e => setMetaPageAccessToken(e.target.value)} placeholder="EAAGm..." type="password" className="input-glow" /></div>
+                          <div className="space-y-2"><Label className="text-xs">Page ID</Label><Input value={metaPageId} onChange={e => setMetaPageId(e.target.value)} placeholder="123456789" className="input-glow" /></div>
+                          <div className="space-y-2"><Label className="text-xs">Instagram Business ID</Label><Input value={metaInstagramBusinessId} onChange={e => setMetaInstagramBusinessId(e.target.value)} placeholder="17841..." className="input-glow" /></div>
                         </div>
                         <div className="space-y-3">
                           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Google Ads</p>
-                          <div className="space-y-2"><Label className="text-xs">Refresh Token</Label><Input value={googleRefreshToken} onChange={e => setGoogleRefreshToken(e.target.value)} placeholder="1//0..." type="password" /></div>
-                          <div className="space-y-2"><Label className="text-xs">Customer ID</Label><Input value={googleCustomerId} onChange={e => setGoogleCustomerId(e.target.value)} placeholder="123-456-7890" /></div>
-                          <div className="space-y-2"><Label className="text-xs">Login Customer ID (MCC)</Label><Input value={googleLoginCustomerId} onChange={e => setGoogleLoginCustomerId(e.target.value)} placeholder="123-456-7890" /></div>
+                          <div className="space-y-2"><Label className="text-xs">Refresh Token</Label><Input value={googleRefreshToken} onChange={e => setGoogleRefreshToken(e.target.value)} placeholder="1//0..." type="password" className="input-glow" /></div>
+                          <div className="space-y-2"><Label className="text-xs">Customer ID</Label><Input value={googleCustomerId} onChange={e => setGoogleCustomerId(e.target.value)} placeholder="123-456-7890" className="input-glow" /></div>
+                          <div className="space-y-2"><Label className="text-xs">Login Customer ID (MCC)</Label><Input value={googleLoginCustomerId} onChange={e => setGoogleLoginCustomerId(e.target.value)} placeholder="123-456-7890" className="input-glow" /></div>
                         </div>
                       </CollapsibleContent>
                     </Collapsible>
@@ -232,25 +237,36 @@ export default function Clinics() {
                   </div>
                 </DialogContent>
               </Dialog>
-            </div>
-          )}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+            )}
+          </div>
         </div>
 
+        {/* Search */}
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search clinics..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
+          <Input placeholder="Search clinics..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9 input-glow" />
         </div>
 
+        {/* Table */}
         <Card className="overflow-hidden border-border/60">
           {loading ? (
-            <div className="p-8 text-center text-muted-foreground">Loading...</div>
+            <div className="p-12 text-center text-muted-foreground">
+              <div className="inline-flex items-center gap-2">
+                <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                Loading clinics...
+              </div>
+            </div>
           ) : filtered.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">No clinics found.</div>
+            <div className="p-12 text-center text-muted-foreground">
+              <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+                <Building2 className="h-5 w-5 text-muted-foreground" />
+              </div>
+              <p>No clinics found.</p>
+            </div>
           ) : (
-            <Table>
+            <Table className="data-table">
               <TableHeader>
-                <TableRow>
+                <TableRow className="hover:bg-transparent">
                   <TableHead>Clinic Name</TableHead>
                   {role === "admin" && <TableHead>Assigned Concierge</TableHead>}
                   {role === "admin" && <TableHead>Client Owner</TableHead>}
@@ -266,7 +282,7 @@ export default function Clinics() {
                     {role === "admin" && (
                       <TableCell>
                         <Select value={clinic.assigned_concierge_id || "none"} onValueChange={v => assignConcierge(clinic.id, v)}>
-                          <SelectTrigger className="w-[180px]"><SelectValue placeholder="Assign..." /></SelectTrigger>
+                          <SelectTrigger className="w-[180px] h-8 text-xs"><SelectValue placeholder="Assign..." /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="none">Unassigned</SelectItem>
                             {concierges.map(c => (<SelectItem key={c.user_id} value={c.user_id}>{c.full_name}</SelectItem>))}
@@ -276,7 +292,7 @@ export default function Clinics() {
                     )}
                     {role === "admin" && (
                       <TableCell>
-                        <span className={clinic.owner_user_id ? "text-foreground" : "text-muted-foreground italic"}>
+                        <span className={clinic.owner_user_id ? "text-foreground" : "text-muted-foreground italic text-xs"}>
                           {getClientName(clinic.owner_user_id) || "No owner"}
                         </span>
                       </TableCell>
@@ -284,25 +300,25 @@ export default function Clinics() {
                     <TableCell>
                       <Badge
                         variant={clinic.status === "active" ? "default" : "secondary"}
-                        className={role === "admin" ? "cursor-pointer" : ""}
+                        className={`rounded-full text-[11px] ${role === "admin" ? "cursor-pointer" : ""}`}
                         onClick={() => role === "admin" && toggleStatus(clinic.id, clinic.status)}
                       >
                         {clinic.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{clinic.phone || "—"}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{clinic.phone || "—"}</TableCell>
                     <TableCell className="text-right space-x-1">
                       {role === "admin" && (
-                        <Button variant="ghost" size="sm" onClick={() => openEditDialog(clinic)}>
-                          <Pencil className="h-4 w-4 mr-1" /> Edit
+                        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => openEditDialog(clinic)}>
+                          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
                         </Button>
                       )}
                       <Link to={`/clinics/${clinic.id}`}>
-                        <Button variant="ghost" size="sm"><Eye className="h-4 w-4 mr-1" /> View</Button>
+                        <Button variant="ghost" size="sm" className="h-8 text-xs"><Eye className="h-3.5 w-3.5 mr-1" /> View</Button>
                       </Link>
                       {role === "admin" && (
-                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => deleteClinic(clinic.id)}>
-                          <Trash2 className="h-4 w-4" />
+                        <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => deleteClinic(clinic.id)}>
+                          <Trash2 className="h-3.5 w-3.5" />
                         </Button>
                       )}
                     </TableCell>
@@ -313,13 +329,14 @@ export default function Clinics() {
           )}
         </Card>
 
+        {/* Edit Dialog */}
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
             <DialogHeader><DialogTitle>Edit Clinic</DialogTitle></DialogHeader>
             <div className="space-y-4 pt-2">
-              <div className="space-y-2"><Label>Clinic Name</Label><Input value={editName} onChange={e => setEditName(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Phone</Label><Input value={editPhone} onChange={e => setEditPhone(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Address</Label><Input value={editAddress} onChange={e => setEditAddress(e.target.value)} /></div>
+              <div className="space-y-2"><Label>Clinic Name</Label><Input value={editName} onChange={e => setEditName(e.target.value)} className="input-glow" /></div>
+              <div className="space-y-2"><Label>Phone</Label><Input value={editPhone} onChange={e => setEditPhone(e.target.value)} className="input-glow" /></div>
+              <div className="space-y-2"><Label>Address</Label><Input value={editAddress} onChange={e => setEditAddress(e.target.value)} className="input-glow" /></div>
               <div className="space-y-2">
                 <Label>Client Owner</Label>
                 <Select value={editOwnerId} onValueChange={setEditOwnerId}>
