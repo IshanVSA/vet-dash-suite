@@ -141,11 +141,11 @@ export default function ContentCalendar() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <Popover open={clinicPopoverOpen} onOpenChange={setClinicPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="outline" role="combobox" className="w-[260px] justify-between">
+                <Button variant="outline" role="combobox" className="w-full sm:w-[260px] justify-between text-sm">
                   {selectedClinicId ? `🐾 ${clinics.find(c => c.id === selectedClinicId)?.clinic_name}` : "Select clinic..."}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
@@ -173,37 +173,37 @@ export default function ContentCalendar() {
             </Popover>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}><ChevronLeft className="h-4 w-4" /></Button>
-              <span className="text-lg font-semibold text-foreground min-w-[160px] text-center">{format(currentMonth, "MMMM yyyy")}</span>
+              <span className="text-base sm:text-lg font-semibold text-foreground min-w-[140px] sm:min-w-[160px] text-center">{format(currentMonth, "MMMM yyyy")}</span>
               <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}><ChevronRight className="h-4 w-4" /></Button>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" /> Export</Button>
-            <Button size="sm" onClick={() => setNewPostOpen(true)}><Plus className="h-4 w-4 mr-2" /> New Post</Button>
+            <Button variant="outline" size="sm" className="text-xs sm:text-sm"><Download className="h-4 w-4 mr-1 sm:mr-2" /> Export</Button>
+            <Button size="sm" className="text-xs sm:text-sm" onClick={() => setNewPostOpen(true)}><Plus className="h-4 w-4 mr-1 sm:mr-2" /> New Post</Button>
           </div>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
           {kpis.map((kpi, i) => (
-            <div key={i} className="bg-card rounded-xl border border-border p-4 flex items-center gap-3 hover-lift animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}>
-              <div className={cn("h-10 w-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm", kpi.iconBg)}>{kpi.icon}</div>
+            <div key={i} className="bg-card rounded-xl border border-border p-3 sm:p-4 flex items-center gap-2 sm:gap-3 hover-lift animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}>
+              <div className={cn("h-8 w-8 sm:h-10 sm:w-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm", kpi.iconBg)}>{kpi.icon}</div>
               <div>
-                <p className="text-2xl font-bold text-foreground">{kpi.value}</p>
-                <p className="text-xs text-muted-foreground">{kpi.label}</p>
+                <p className="text-lg sm:text-2xl font-bold text-foreground">{kpi.value}</p>
+                <p className="text-[10px] sm:text-xs text-muted-foreground">{kpi.label}</p>
               </div>
             </div>
           ))}
         </div>
 
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-primary" />
+        <div className="flex flex-col gap-3">
+          <h2 className="text-base sm:text-lg font-semibold text-foreground flex items-center gap-2">
+            <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Content Cards — {format(currentMonth, "MMMM yyyy")}
           </h2>
-          <div className="flex gap-1.5">
+          <div className="flex gap-1 sm:gap-1.5 flex-wrap">
             {filterTabs.map(tab => (
               <Button key={tab} variant={activeFilter === tab ? "default" : "outline"} size="sm"
-                className={cn("text-xs rounded-full px-4", activeFilter === tab && "shadow-sm")}
+                className={cn("text-[10px] sm:text-xs rounded-full px-2.5 sm:px-4 h-7 sm:h-8", activeFilter === tab && "shadow-sm")}
                 onClick={() => setActiveFilter(tab)}
               >{tab}</Button>
             ))}
@@ -222,7 +222,7 @@ export default function ContentCalendar() {
             <Button size="sm" className="shadow-sm" onClick={() => setNewPostOpen(true)}><Plus className="h-4 w-4 mr-2" /> Create First Post</Button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
             {filtered.map((post, i) => (
               <div key={post.id} className="bg-card rounded-xl border border-border overflow-hidden flex flex-col hover-lift animate-fade-in" style={{ animationDelay: `${i * 50}ms`, animationFillMode: "both" }}>
                 <div className={cn("h-[3px] bg-gradient-to-r", platformGradient[post.platform] || "from-muted to-muted")} />
