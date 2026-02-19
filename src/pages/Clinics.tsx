@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -178,59 +179,62 @@ export default function Clinics() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Clinics</h1>
-            <p className="text-muted-foreground mt-1">{clinics.length} total clinics</p>
+        <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-card to-card p-8">
+          <div className="relative z-10">
+            <h1 className="text-3xl font-bold text-foreground tracking-tight">Clinics</h1>
+            <p className="text-muted-foreground mt-1 text-[15px]">{clinics.length} total clinics</p>
           </div>
           {role === "admin" && (
-            <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetAddForm(); }}>
-              <DialogTrigger asChild>
-                <Button><Plus className="h-4 w-4 mr-2" /> Add Clinic</Button>
-              </DialogTrigger>
-              <DialogContent className="max-h-[85vh] overflow-y-auto">
-                <DialogHeader><DialogTitle>Add New Clinic</DialogTitle></DialogHeader>
-                <div className="space-y-4 pt-2">
-                  <div className="space-y-2"><Label>Clinic Name</Label><Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Happy Paws Vet" /></div>
-                  <div className="space-y-2"><Label>Phone</Label><Input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="(555) 123-4567" /></div>
-                  <div className="space-y-2"><Label>Address</Label><Input value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="123 Main St" /></div>
-                  <div className="space-y-2">
-                    <Label>Client Owner (Optional)</Label>
-                    <Select value={newOwnerId} onValueChange={setNewOwnerId}>
-                      <SelectTrigger><SelectValue placeholder="Select client..." /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="none">No owner</SelectItem>
-                        {clients.map(c => (<SelectItem key={c.user_id} value={c.user_id}>{c.full_name}</SelectItem>))}
-                      </SelectContent>
-                    </Select>
+            <div className="absolute top-6 right-6 z-10">
+              <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetAddForm(); }}>
+                <DialogTrigger asChild>
+                  <Button><Plus className="h-4 w-4 mr-2" /> Add Clinic</Button>
+                </DialogTrigger>
+                <DialogContent className="max-h-[85vh] overflow-y-auto">
+                  <DialogHeader><DialogTitle>Add New Clinic</DialogTitle></DialogHeader>
+                  <div className="space-y-4 pt-2">
+                    <div className="space-y-2"><Label>Clinic Name</Label><Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Happy Paws Vet" /></div>
+                    <div className="space-y-2"><Label>Phone</Label><Input value={newPhone} onChange={e => setNewPhone(e.target.value)} placeholder="(555) 123-4567" /></div>
+                    <div className="space-y-2"><Label>Address</Label><Input value={newAddress} onChange={e => setNewAddress(e.target.value)} placeholder="123 Main St" /></div>
+                    <div className="space-y-2">
+                      <Label>Client Owner (Optional)</Label>
+                      <Select value={newOwnerId} onValueChange={setNewOwnerId}>
+                        <SelectTrigger><SelectValue placeholder="Select client..." /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No owner</SelectItem>
+                          {clients.map(c => (<SelectItem key={c.user_id} value={c.user_id}>{c.full_name}</SelectItem>))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <Collapsible open={credentialsOpen} onOpenChange={setCredentialsOpen}>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="w-full justify-between px-0 hover:bg-transparent">
+                          <span className="text-sm font-medium text-muted-foreground">API Credentials (Optional)</span>
+                          <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${credentialsOpen ? "rotate-180" : ""}`} />
+                        </Button>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent className="space-y-4 pt-2">
+                        <div className="space-y-3">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Meta / Instagram</p>
+                          <div className="space-y-2"><Label className="text-xs">Page Access Token</Label><Input value={metaPageAccessToken} onChange={e => setMetaPageAccessToken(e.target.value)} placeholder="EAAGm..." type="password" /></div>
+                          <div className="space-y-2"><Label className="text-xs">Page ID</Label><Input value={metaPageId} onChange={e => setMetaPageId(e.target.value)} placeholder="123456789" /></div>
+                          <div className="space-y-2"><Label className="text-xs">Instagram Business ID</Label><Input value={metaInstagramBusinessId} onChange={e => setMetaInstagramBusinessId(e.target.value)} placeholder="17841..." /></div>
+                        </div>
+                        <div className="space-y-3">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Google Ads</p>
+                          <div className="space-y-2"><Label className="text-xs">Refresh Token</Label><Input value={googleRefreshToken} onChange={e => setGoogleRefreshToken(e.target.value)} placeholder="1//0..." type="password" /></div>
+                          <div className="space-y-2"><Label className="text-xs">Customer ID</Label><Input value={googleCustomerId} onChange={e => setGoogleCustomerId(e.target.value)} placeholder="123-456-7890" /></div>
+                          <div className="space-y-2"><Label className="text-xs">Login Customer ID (MCC)</Label><Input value={googleLoginCustomerId} onChange={e => setGoogleLoginCustomerId(e.target.value)} placeholder="123-456-7890" /></div>
+                        </div>
+                      </CollapsibleContent>
+                    </Collapsible>
+                    <Button onClick={addClinic} className="w-full">Add Clinic</Button>
                   </div>
-                  <Collapsible open={credentialsOpen} onOpenChange={setCredentialsOpen}>
-                    <CollapsibleTrigger asChild>
-                      <Button variant="ghost" className="w-full justify-between px-0 hover:bg-transparent">
-                        <span className="text-sm font-medium text-muted-foreground">API Credentials (Optional)</span>
-                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${credentialsOpen ? "rotate-180" : ""}`} />
-                      </Button>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="space-y-4 pt-2">
-                      <div className="space-y-3">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Meta / Instagram</p>
-                        <div className="space-y-2"><Label className="text-xs">Page Access Token</Label><Input value={metaPageAccessToken} onChange={e => setMetaPageAccessToken(e.target.value)} placeholder="EAAGm..." type="password" /></div>
-                        <div className="space-y-2"><Label className="text-xs">Page ID</Label><Input value={metaPageId} onChange={e => setMetaPageId(e.target.value)} placeholder="123456789" /></div>
-                        <div className="space-y-2"><Label className="text-xs">Instagram Business ID</Label><Input value={metaInstagramBusinessId} onChange={e => setMetaInstagramBusinessId(e.target.value)} placeholder="17841..." /></div>
-                      </div>
-                      <div className="space-y-3">
-                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Google Ads</p>
-                        <div className="space-y-2"><Label className="text-xs">Refresh Token</Label><Input value={googleRefreshToken} onChange={e => setGoogleRefreshToken(e.target.value)} placeholder="1//0..." type="password" /></div>
-                        <div className="space-y-2"><Label className="text-xs">Customer ID</Label><Input value={googleCustomerId} onChange={e => setGoogleCustomerId(e.target.value)} placeholder="123-456-7890" /></div>
-                        <div className="space-y-2"><Label className="text-xs">Login Customer ID (MCC)</Label><Input value={googleLoginCustomerId} onChange={e => setGoogleLoginCustomerId(e.target.value)} placeholder="123-456-7890" /></div>
-                      </div>
-                    </CollapsibleContent>
-                  </Collapsible>
-                  <Button onClick={addClinic} className="w-full">Add Clinic</Button>
-                </div>
-              </DialogContent>
-            </Dialog>
+                </DialogContent>
+              </Dialog>
+            </div>
           )}
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         </div>
 
         <div className="relative">
@@ -238,7 +242,7 @@ export default function Clinics() {
           <Input placeholder="Search clinics..." value={search} onChange={e => setSearch(e.target.value)} className="pl-9" />
         </div>
 
-        <div className="bg-card rounded-xl border border-border">
+        <Card className="overflow-hidden border-border/60">
           {loading ? (
             <div className="p-8 text-center text-muted-foreground">Loading...</div>
           ) : filtered.length === 0 ? (
@@ -307,7 +311,7 @@ export default function Clinics() {
               </TableBody>
             </Table>
           )}
-        </div>
+        </Card>
 
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
