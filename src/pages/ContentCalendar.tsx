@@ -9,9 +9,10 @@ import { EditPostDialog } from "@/components/content-calendar/EditPostDialog";
 import { NewPostDialog } from "@/components/content-calendar/NewPostDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   ChevronLeft, ChevronRight, Download, Plus, Pencil, Check, Flag, Clock,
-  Instagram, Facebook, LayoutGrid, Film, Tag, AlertTriangle, CheckCircle2, Clock3, CalendarDays, ChevronsUpDown, Search
+  Instagram, Facebook, LayoutGrid, Film, Tag, AlertTriangle, CheckCircle2, Clock3, CalendarDays, ChevronsUpDown, Search, FileText, FileSpreadsheet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
@@ -128,27 +129,33 @@ export default function ContentCalendar() {
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, status } : p));
   };
 
-  const handleExport = () => {
+  const getExportData = () => {
+    const dataToExport = activeFilter === "All" ? posts : posts.filter(p => p.status === activeFilter.toLowerCase());
+    if (dataToExport.length === 0) {
+      toast.error("No posts to export.");
+      return null;
+    }
+    const headers = ["Title", "Platform", "Content Type", "Scheduled Date", "Time", "Status", "Tags", "Caption", "Content", "Compliance Note"];
+    const rows = dataToExport.map(p => [
+      p.title,
+      p.platform,
+      p.content_type,
+      p.scheduled_date || "",
+      p.scheduled_time?.slice(0, 5) || "",
+      p.status,
+      (p.tags || []).join("; "),
+      p.caption || "",
+      p.content || "",
+      p.compliance_note || "",
+    ]);
+    return { headers, rows, count: dataToExport.length };
+  };
+
+  const handleExportCSV = () => {
     try {
-      const dataToExport = activeFilter === "All" ? posts : posts.filter(p => p.status === activeFilter.toLowerCase());
-      if (dataToExport.length === 0) {
-        toast.error("No posts to export.");
-        return;
-      }
-      const headers = ["Title", "Platform", "Content Type", "Scheduled Date", "Time", "Status", "Tags", "Caption", "Content", "Compliance Note"];
-      const rows = dataToExport.map(p => [
-        p.title,
-        p.platform,
-        p.content_type,
-        p.scheduled_date || "",
-        p.scheduled_time?.slice(0, 5) || "",
-        p.status,
-        (p.tags || []).join("; "),
-        (p.caption || "").replace(/"/g, '""'),
-        (p.content || "").replace(/"/g, '""'),
-        (p.compliance_note || "").replace(/"/g, '""'),
-      ]);
-      const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+      const data = getExportData();
+      if (!data) return;
+      const csv = [data.headers, ...data.rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -156,10 +163,42 @@ export default function ContentCalendar() {
       a.download = `content-calendar-${format(currentMonth, "yyyy-MM")}.csv`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success(`Exported ${dataToExport.length} posts.`);
+      toast.success(`Exported ${data.count} posts as CSV.`);
     } catch (error) {
-      console.error("Export failed:", error);
+      console.error("CSV export failed:", error);
       toast.error("Export failed. Please try again.");
+    }
+  };
+
+  const handleExportPDF = async () => {
+    try {
+      const data = getExportData();
+      if (!data) return;
+      const { default: jsPDF } = await import("jspdf");
+      const { default: autoTable } = await import("jspdf-autotable");
+      const doc = new jsPDF({ orientation: "landscape" });
+      const clinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name || "All Clinics";
+      doc.setFontSize(16);
+      doc.text(`Content Calendar — ${clinicName}`, 14, 18);
+      doc.setFontSize(10);
+      doc.text(format(currentMonth, "MMMM yyyy"), 14, 25);
+      autoTable(doc, {
+        head: [data.headers],
+        body: data.rows,
+        startY: 30,
+        styles: { fontSize: 7, cellPadding: 2 },
+        headStyles: { fillColor: [59, 130, 246] },
+        columnStyles: {
+          7: { cellWidth: 40 },
+          8: { cellWidth: 50 },
+          9: { cellWidth: 30 },
+        },
+      });
+      doc.save(`content-calendar-${format(currentMonth, "yyyy-MM")}.pdf`);
+      toast.success(`Exported ${data.count} posts as PDF.`);
+    } catch (error) {
+      console.error("PDF export failed:", error);
+      toast.error("PDF export failed. Please try again.");
     }
   };
 
@@ -214,7 +253,15 @@ export default function ContentCalendar() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={handleExport}><Download className="h-4 w-4 mr-1 sm:mr-2" /> Export</Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="text-xs sm:text-sm"><Download className="h-4 w-4 mr-1 sm:mr-2" /> Export</Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportCSV}><FileSpreadsheet className="h-4 w-4 mr-2" /> Export as CSV</DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportPDF}><FileText className="h-4 w-4 mr-2" /> Export as PDF</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Button size="sm" className="text-xs sm:text-sm" onClick={() => setNewPostOpen(true)}><Plus className="h-4 w-4 mr-1 sm:mr-2" /> New Post</Button>
           </div>
         </div>
