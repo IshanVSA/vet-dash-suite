@@ -146,7 +146,8 @@ export default function IntakeForms() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-4xl">
+      <div className="min-h-full dot-grid rounded-xl p-6 md:p-8">
+      <div className="space-y-6 max-w-4xl mx-auto">
         <div className="hero-section">
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-1">
@@ -425,6 +426,7 @@ export default function IntakeForms() {
             </Button>
           </div>
         </form>
+      </div>
       </div>
     </DashboardLayout>
   );
