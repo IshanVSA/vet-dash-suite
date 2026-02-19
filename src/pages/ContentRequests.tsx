@@ -115,14 +115,23 @@ export default function ContentRequests() {
 
     const selectedVersion = reqVersions.find(v => v.id === versionId);
     if (selectedVersion) {
-      const platform = (requests.find(r => r.id === requestId)?.intake_data as any)?.preferredPlatforms || "instagram";
-      await supabase.from("content_calendar").insert({
-        clinic_id: clinicId,
-        content_request_id: requestId,
-        final_content: selectedVersion.generated_content,
-        status: "draft",
-        platform: platform.includes("instagram") ? "instagram" : platform,
-      });
+      const content = selectedVersion.generated_content as any;
+      const posts = content?.posts || [];
+
+      for (const post of posts) {
+        await supabase.from("content_posts").insert({
+          clinic_id: clinicId,
+          title: post.hook || post.theme || "Untitled Post",
+          caption: post.caption || post.main_copy || null,
+          platform: (post.platform || "instagram").toLowerCase(),
+          content_type: (post.content_type || "IMAGE").toUpperCase(),
+          scheduled_date: post.suggested_date || null,
+          status: "scheduled",
+          tags: [post.goal_type, post.funnel_stage, post.service_highlighted].filter(Boolean),
+          compliance_note: null,
+          content: post.main_copy || null,
+        });
+      }
     }
 
     toast.success("Content selected and added to calendar!");
