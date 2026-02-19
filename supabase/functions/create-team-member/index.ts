@@ -51,10 +51,30 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { full_name, email, password, role } = await req.json();
+    const body = await req.json();
+    const full_name = typeof body.full_name === "string" ? body.full_name.trim().slice(0, 200) : "";
+    const email = typeof body.email === "string" ? body.email.trim().slice(0, 255) : "";
+    const password = typeof body.password === "string" ? body.password : "";
+    const role = typeof body.role === "string" ? body.role : "";
 
     if (!email || !password || !full_name) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return new Response(JSON.stringify({ error: "Invalid email format" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    if (password.length < 8 || password.length > 128) {
+      return new Response(JSON.stringify({ error: "Password must be between 8 and 128 characters" }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -72,7 +92,8 @@ Deno.serve(async (req) => {
     });
 
     if (createError) {
-      return new Response(JSON.stringify({ error: createError.message }), {
+      console.error("Create user error:", createError.message);
+      return new Response(JSON.stringify({ error: "Failed to create user. Please check the provided details." }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -97,7 +118,8 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    console.error("create-team-member error:", err);
+    return new Response(JSON.stringify({ error: "An internal error occurred" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
