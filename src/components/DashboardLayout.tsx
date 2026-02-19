@@ -171,7 +171,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               )}
               <div className="space-y-0.5">
                 {section.items.map((item) => {
-                  const active = item.path === "/" ? location.pathname === "/" : location.pathname.startsWith(item.path);
+                  const active = item.path === "/" ? location.pathname === "/" : location.pathname === item.path || location.pathname.startsWith(item.path + "/");
                   return (
                     <Link
                       key={item.path}
