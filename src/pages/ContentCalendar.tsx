@@ -21,6 +21,7 @@ interface ContentPost {
   clinic_id: string;
   title: string;
   caption: string | null;
+  content: string | null;
   platform: string;
   content_type: string;
   scheduled_date: string;
@@ -214,7 +215,13 @@ export default function ContentCalendar() {
                 </div>
                 <div className="px-4 pb-3 flex-1">
                   <h3 className="font-semibold text-foreground mb-1">{post.title}</h3>
-                  {post.caption && <p className="text-sm text-muted-foreground line-clamp-3">{post.caption}</p>}
+                  {post.caption && <p className="text-sm text-muted-foreground line-clamp-2">{post.caption}</p>}
+                  {post.content && (
+                    <div className="mt-2">
+                      <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50 mb-1">Main Copy</p>
+                      <p className="text-sm text-foreground/80 line-clamp-3">{post.content}</p>
+                    </div>
+                  )}
                   {post.compliance_note && (
                     <div className="mt-3 p-2.5 rounded-lg bg-warning/10 border border-warning/20">
                       <p className="text-xs font-semibold text-warning mb-0.5 flex items-center gap-1"><AlertTriangle className="h-3 w-3" /> CVBC COMPLIANCE ALERT</p>

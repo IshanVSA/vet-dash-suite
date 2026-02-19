@@ -14,6 +14,7 @@ interface ContentPost {
   clinic_id: string;
   title: string;
   caption: string | null;
+  content: string | null;
   platform: string;
   content_type: string;
   scheduled_date: string;
