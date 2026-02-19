@@ -118,31 +118,34 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       )}
 
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r border-border flex flex-col transition-transform duration-300 ease-out lg:translate-x-0 lg:static lg:z-auto",
+        "fixed inset-y-0 left-0 z-50 w-[260px] bg-card border-r border-border/60 flex flex-col transition-transform duration-300 ease-out lg:translate-x-0 lg:static lg:z-auto",
         sidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <div className="h-[2px] bg-gradient-to-r from-primary via-[hsl(280,65%,60%)] to-primary/40" />
+        {/* Top accent bar */}
+        <div className="h-[2px] bg-gradient-to-r from-primary via-[hsl(280,65%,60%)] to-primary/30" />
 
-        <div className="flex items-center gap-3 px-6 py-5 border-b border-border">
-          <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-sm">
+        {/* Logo */}
+        <div className="flex items-center gap-3 px-5 py-5 border-b border-border/40">
+          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-md shadow-primary/20">
             <span className="text-primary-foreground font-bold text-sm">V</span>
           </div>
           <div>
-            <h1 className="font-semibold text-sm text-foreground">
+            <h1 className="font-bold text-sm text-foreground tracking-tight">
               <span className="text-primary">VSA</span> Vetmedia
             </h1>
-            <p className="text-xs text-muted-foreground">Content Calendar Platform</p>
+            <p className="text-[11px] text-muted-foreground">Content Platform</p>
           </div>
           <button className="ml-auto lg:hidden" onClick={() => setSidebarOpen(false)}>
             <X className="h-5 w-5 text-muted-foreground" />
           </button>
         </div>
 
+        {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto">
           {sections.map((section, si) => (
             <div key={si}>
               {section.title && (
-                <p className="px-3 mb-2 text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
+                <p className="px-3 mb-2 text-[10px] font-bold tracking-[0.12em] text-muted-foreground/70 uppercase">
                   {section.title}
                 </p>
               )}
@@ -155,20 +158,23 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       to={item.path}
                       onClick={() => setSidebarOpen(false)}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group",
+                        "flex items-center gap-3 px-3 py-2 rounded-lg text-[13px] font-medium transition-all duration-200 group relative",
                         active
-                          ? "bg-primary/10 text-primary border-l-[3px] border-primary"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary hover:translate-x-0.5"
+                          ? "bg-primary/8 text-primary"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/60"
                       )}
                     >
-                      <item.icon className={cn("h-4 w-4 transition-transform duration-200 group-hover:scale-110", active && "text-primary")} />
+                      {active && (
+                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-primary rounded-r-full" />
+                      )}
+                      <item.icon className={cn("h-[18px] w-[18px] shrink-0 transition-all duration-200", active ? "text-primary" : "group-hover:text-foreground")} />
                       {item.label}
                       {item.badge && (
-                        <span className="ml-auto bg-destructive text-destructive-foreground text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                        <span className="ml-auto bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1 flex items-center justify-center">
                           {item.badge}
                         </span>
                       )}
-                      {active && !item.badge && <ChevronRight className="h-3 w-3 ml-auto text-primary" />}
+                      {active && !item.badge && <ChevronRight className="h-3 w-3 ml-auto text-primary/50" />}
                     </Link>
                   );
                 })}
@@ -177,22 +183,23 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        <div className="px-3 py-4 border-t border-border">
-          <div className="flex items-center gap-3 px-3 py-2 mb-2">
+        {/* User footer */}
+        <div className="px-3 py-4 border-t border-border/40">
+          <div className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-lg bg-muted/40">
             <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-2 ring-primary/10">
               <span className="text-xs font-semibold text-primary">
                 {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
               </span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{profile?.full_name || "User"}</p>
-              <p className="text-xs text-muted-foreground truncate capitalize">{role}</p>
+              <p className="text-[13px] font-medium text-foreground truncate">{profile?.full_name || "User"}</p>
+              <p className="text-[11px] text-muted-foreground truncate capitalize">{role}</p>
             </div>
           </div>
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-muted-foreground hover:text-destructive"
+            className="w-full justify-start text-muted-foreground hover:text-destructive rounded-lg text-[13px]"
             onClick={signOut}
           >
             <LogOut className="h-4 w-4 mr-2" />
@@ -202,8 +209,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       <main className="flex-1 min-w-0">
-        <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border px-4 lg:px-8 py-3 flex items-center gap-4">
-          <button className="lg:hidden" onClick={() => setSidebarOpen(true)}>
+        <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border/40 px-4 lg:px-8 h-14 flex items-center gap-4">
+          <button className="lg:hidden p-1.5 rounded-lg hover:bg-muted transition-colors" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5 text-foreground" />
           </button>
           <div className="flex-1" />
