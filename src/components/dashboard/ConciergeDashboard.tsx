@@ -52,8 +52,12 @@ export default function ConciergeDashboard() {
             <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Concierge View</span>
           </div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">My Dashboard</h1>
-          <p className="text-muted-foreground mt-1 text-[15px]">Your assigned clinics and performance overview</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">
+            Welcome back{user?.user_metadata?.full_name ? `, ${(user.user_metadata.full_name as string).split(" ")[0]}` : ""} 👋
+          </h1>
+          <p className="text-muted-foreground mt-1 text-[15px]">
+            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })} — Your assigned clinics and performance
+          </p>
         </div>
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
       </div>

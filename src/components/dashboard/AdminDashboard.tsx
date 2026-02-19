@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import KPICard from "./KPICard";
 import { Building2, FileText, BarChart3, UserCheck, UserCircle, Eye, TrendingUp, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,8 +28,18 @@ interface TrendPoint {
 }
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [userName, setUserName] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
+      .then(({ data }) => { if (data) setUserName(data.full_name); });
+  }, [user]);
+
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   const [roleCounts, setRoleCounts] = useState({ concierges: 0, clients: 0 });
   const [totalPosts, setTotalPosts] = useState(0);
   const [pendingPosts, setPendingPosts] = useState(0);
@@ -87,8 +98,10 @@ export default function AdminDashboard() {
             <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
             <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live Overview</span>
           </div>
-          <h1 className="text-3xl font-bold text-foreground tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground mt-1 text-[15px]">Monitor clinic operations and content performance</p>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">
+            Welcome back{userName ? `, ${userName.split(" ")[0]}` : ""} 👋
+          </h1>
+          <p className="text-muted-foreground mt-1 text-[15px]">{today} — Monitor clinic operations and content performance</p>
         </div>
         <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         <div className="absolute bottom-0 left-1/2 w-48 h-48 bg-[hsl(280,65%,60%)]/5 rounded-full blur-3xl translate-y-1/2 pointer-events-none" />
