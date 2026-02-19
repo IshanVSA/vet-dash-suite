@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EditPostDialog } from "@/components/content-calendar/EditPostDialog";
 import { NewPostDialog } from "@/components/content-calendar/NewPostDialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import {
   ChevronLeft, ChevronRight, Download, Plus, Pencil, Check, Flag, Clock,
-  Instagram, Facebook, LayoutGrid, Film, Tag, AlertTriangle, CheckCircle2, Clock3, CalendarDays
+  Instagram, Facebook, LayoutGrid, Film, Tag, AlertTriangle, CheckCircle2, Clock3, CalendarDays, ChevronsUpDown, Search
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
@@ -88,6 +89,7 @@ export default function ContentCalendar() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [loading, setLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<ContentPost | null>(null);
+  const [clinicPopoverOpen, setClinicPopoverOpen] = useState(false);
   const [newPostOpen, setNewPostOpen] = useState(false);
 
   useEffect(() => {
@@ -141,12 +143,34 @@ export default function ContentCalendar() {
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Select value={selectedClinicId} onValueChange={setSelectedClinicId}>
-              <SelectTrigger className="w-[260px]"><SelectValue placeholder="Select clinic" /></SelectTrigger>
-              <SelectContent>
-                {clinics.map(c => (<SelectItem key={c.id} value={c.id}>🐾 {c.clinic_name}</SelectItem>))}
-              </SelectContent>
-            </Select>
+            <Popover open={clinicPopoverOpen} onOpenChange={setClinicPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" role="combobox" className="w-[260px] justify-between">
+                  {selectedClinicId ? `🐾 ${clinics.find(c => c.id === selectedClinicId)?.clinic_name}` : "Select clinic..."}
+                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[260px] p-0 z-50 bg-popover" align="start">
+                <Command>
+                  <CommandInput placeholder="Search clinics..." />
+                  <CommandList>
+                    <CommandEmpty>No clinic found.</CommandEmpty>
+                    <CommandGroup>
+                      {clinics.map(c => (
+                        <CommandItem
+                          key={c.id}
+                          value={c.clinic_name}
+                          onSelect={() => { setSelectedClinicId(c.id); setClinicPopoverOpen(false); }}
+                          className="cursor-pointer"
+                        >
+                          🐾 {c.clinic_name}
+                        </CommandItem>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}><ChevronLeft className="h-4 w-4" /></Button>
               <span className="text-lg font-semibold text-foreground min-w-[160px] text-center">{format(currentMonth, "MMMM yyyy")}</span>
