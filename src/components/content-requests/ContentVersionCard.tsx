@@ -29,12 +29,68 @@ interface ContentVersionCardProps {
 
 const INITIAL_VISIBLE = 3;
 
+function StrategySummary({ summary }: { summary: any }) {
+  if (!summary) return null;
+
+  return (
+    <div className="space-y-3 p-4 rounded-lg bg-muted/30 border border-border/40">
+      <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">📊 Strategy Summary</p>
+
+      {summary.content_mix && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">Content Mix</p>
+          <div className="flex gap-2 flex-wrap">
+            {Object.entries(summary.content_mix).map(([key, val]) => (
+              <Badge key={key} variant="outline" className="text-[10px] py-0 capitalize">
+                {key}: {val as number}%
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {summary.format_distribution && (
+        <div className="space-y-1.5">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">Format Distribution</p>
+          <div className="flex gap-2 flex-wrap">
+            {Object.entries(summary.format_distribution).map(([key, val]) => (
+              <Badge key={key} variant="secondary" className="text-[10px] py-0 capitalize">
+                {key}: {val as number}%
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {summary.goal_alignment && (
+        <div className="space-y-1">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">Goal Alignment</p>
+          <p className="text-xs text-foreground/80">{summary.goal_alignment}</p>
+        </div>
+      )}
+
+      {summary.revenue_focus && (
+        <div className="space-y-1">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">Revenue Focus</p>
+          <p className="text-xs text-foreground/80">{summary.revenue_focus}</p>
+        </div>
+      )}
+
+      {summary.competitive_positioning && (
+        <div className="space-y-1">
+          <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">Competitive Positioning</p>
+          <p className="text-xs text-foreground/80">{summary.competitive_positioning}</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function MultiPostBlock({ posts }: { posts: any[] }) {
   const [showAll, setShowAll] = useState(false);
   const visiblePosts = showAll ? posts : posts.slice(0, INITIAL_VISIBLE);
   const hiddenCount = posts.length - INITIAL_VISIBLE;
 
-  // Compute week range
   const weeks = posts.map((p, i) => p.week || Math.ceil((i + 1) / 4));
   const minWeek = Math.min(...weeks);
   const maxWeek = Math.max(...weeks);
@@ -73,8 +129,14 @@ function MultiPostBlock({ posts }: { posts: any[] }) {
 function renderContentBlock(content: any) {
   if (!content) return <p className="text-sm text-muted-foreground">No content generated</p>;
 
+  // Render strategy summary + posts
   if (content.posts && Array.isArray(content.posts)) {
-    return <MultiPostBlock posts={content.posts} />;
+    return (
+      <div className="space-y-4">
+        {content.strategy_summary && <StrategySummary summary={content.strategy_summary} />}
+        <MultiPostBlock posts={content.posts} />
+      </div>
+    );
   }
 
   return (

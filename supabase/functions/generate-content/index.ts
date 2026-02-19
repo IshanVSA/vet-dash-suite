@@ -7,19 +7,60 @@ const corsHeaders = {
 };
 
 function buildSystemPrompt(totalPosts: number): string {
-  return `You are a veterinary social media content expert. Generate ${totalPosts} unique social media posts for a veterinary clinic for an entire month.
+  return `You are a senior veterinary marketing strategist creating a high-performing monthly social media content calendar for a veterinary clinic.
+
+Your goal is to generate a strategic, revenue-aware, platform-optimized content calendar for the selected month.
+
+You must:
+- Balance brand awareness, education, engagement, and revenue generation.
+- Prioritize services that drive revenue.
+- Use past performance insights to optimize content mix.
+- Automatically determine ideal post distribution and formats.
+- Create content that is differentiated from competitors.
+- Generate conversion-focused CTAs aligned with business goals.
+
+🔥 AI Decision Logic Requirements:
+Before generating the calendar:
+1. Determine ideal content mix: Awareness %, Engagement %, Promotion %, Education %
+2. Decide content formats: Reels, Carousel, Static, Story
+3. Sequence posts logically: Educational before promotional, offer buildup before deadline, event reminders near event date
+4. Use tone consistently.
+5. Ensure CTAs align with goal.
+6. Avoid repetitive ideas.
+
+🧠 Advanced Behavior:
+- Automatically prioritize revenue-driving services.
+- Build anticipation for promotions.
+- Space promotional posts properly. Avoid back-to-back heavy sales posts.
+- Include at least: 1 authority-building post per week, 1 engagement-focused post per week, 1 conversion-driven post per week.
+- If budget is high → Increase lead-focused content.
+- If engagement rate is low → Increase engagement posts.
+- If follower growth is low → Add awareness-focused posts.
 
 Return your response as valid JSON with this exact structure:
 {
+  "strategy_summary": {
+    "content_mix": { "awareness": 30, "engagement": 25, "promotion": 25, "education": 20 },
+    "format_distribution": { "reel": 40, "carousel": 30, "static": 20, "story": 10 },
+    "goal_alignment": "Explanation of how content aligns with goals",
+    "revenue_focus": "Explanation of revenue strategy",
+    "competitive_positioning": "How content differentiates from competitors"
+  },
   "posts": [
     {
       "post_number": 1,
       "week": 1,
+      "suggested_date": "YYYY-MM-DD",
+      "platform": "Instagram",
+      "content_type": "Reel",
+      "hook": "Attention-grabbing opening line",
       "caption": "The main social media caption text",
       "main_copy": "The extended body/main copy for the post",
       "cta": "A clear call-to-action",
       "hashtags": "Relevant hashtags as a string",
-      "content_type": "IMAGE or VIDEO or CAROUSEL",
+      "goal_type": "Awareness",
+      "service_highlighted": "Service name",
+      "funnel_stage": "Top",
       "theme": "The theme or topic of this post"
     }
   ]
@@ -30,20 +71,30 @@ Generate exactly ${totalPosts} posts, spread across 4 weeks. Each post should be
 
 function buildUserPrompt(intake: any): string {
   const parts = [
-    `Clinic: ${intake.clinicName || "Veterinary Clinic"}`,
-    intake.platform && `Platform: ${intake.platform}`,
-    intake.goal && `Campaign Objective: ${intake.goal}`,
-    intake.tone && `Tone: ${intake.tone}`,
-    intake.services && `Services: ${intake.services}`,
-    intake.targetAudience && `Target Audience: ${intake.targetAudience}`,
-    intake.promotions && `Promotions: ${intake.promotions}`,
-    intake.specialEvents && `Special Events: ${intake.specialEvents}`,
-    intake.selectedThemes?.length && `Themes: ${intake.selectedThemes.join(", ")}`,
+    `Clinic Name: ${intake.clinicName || "Veterinary Clinic"}`,
     intake.country && `Country: ${intake.country}`,
     intake.language && `Language: ${intake.language}`,
-    intake.notes && `Additional Notes: ${intake.notes}`,
-    intake.selectedMonth && `Month: ${intake.selectedMonth}`,
+    intake.budget && `Budget: ${intake.budget}`,
+    intake.tone && `Tone: ${intake.tone}`,
+    intake.selectedMonth && `Calendar Month: ${intake.selectedMonth}`,
+    // Past Performance
+    intake.topPost && `Top Performing Post: ${intake.topPost}`,
+    intake.engagementRate && `Engagement Rate: ${intake.engagementRate}`,
+    intake.followerGrowth && `Follower Growth: ${intake.followerGrowth}`,
+    intake.topContentType && `Top Content Type: ${intake.topContentType}`,
+    intake.performanceNotes && `Performance Notes: ${intake.performanceNotes}`,
+    // Goals
+    intake.goal && `Primary Goal: ${intake.goal}`,
+    intake.secondaryGoals && `Secondary Goals: ${intake.secondaryGoals}`,
+    intake.promotions && `Promotions: ${intake.promotions}`,
+    intake.specialEvents && `Upcoming Events: ${intake.specialEvents}`,
+    intake.services && `Services to Highlight: ${intake.services}`,
+    intake.targetAudience && `Target Audience: ${intake.targetAudience}`,
+    intake.competitors && `Competitors: ${intake.competitors}`,
+    intake.selectedThemes?.length && `Themes: ${intake.selectedThemes.join(", ")}`,
+    intake.platform && `Preferred Platforms: ${intake.platform}`,
     intake.postsPerWeek && `Posts Per Week: ${intake.postsPerWeek}`,
+    intake.notes && `Additional Notes: ${intake.notes}`,
   ].filter(Boolean);
   return parts.join("\n");
 }
@@ -86,7 +137,7 @@ async function callClaude(apiKey: string, systemPrompt: string, userPrompt: stri
     },
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
-      max_tokens: 8192,
+      max_tokens: 16384,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
