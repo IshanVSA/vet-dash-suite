@@ -149,11 +149,11 @@ export function ContentRequestCard({
           : "bg-gradient-to-r from-primary to-[hsl(280,65%,60%)]"
       )} />
 
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-3 min-w-0">
-            <div className="flex items-center gap-2.5">
-              <h3 className="text-lg font-bold text-foreground truncate">{clinicName}</h3>
+      <CardHeader className="px-4 sm:px-6 pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-2 sm:gap-3">
+          <div className="space-y-2 sm:space-y-3 min-w-0">
+            <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap">
+              <h3 className="text-base sm:text-lg font-bold text-foreground truncate">{clinicName}</h3>
               {isComplete && (
                 <div className="flex items-center gap-1 bg-success/10 text-success rounded-full px-2.5 py-0.5">
                   <Check className="h-3 w-3" />
@@ -161,30 +161,30 @@ export function ContentRequestCard({
                 </div>
               )}
             </div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <Badge className={cn("text-[11px] font-semibold border-0 px-3 py-1 rounded-full", status.color)}>
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <Badge className={cn("text-[10px] sm:text-[11px] font-semibold border-0 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full", status.color)}>
                 {status.label}
               </Badge>
               {intake?.goal && (
-                <Badge variant="outline" className="text-[11px] px-3 py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70 capitalize">
+                <Badge variant="outline" className="text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70 capitalize">
                   {String(intake.goal).replace(/_/g, " ")}
                 </Badge>
               )}
               {intake?.tone && (
-                <Badge variant="outline" className="text-[11px] px-3 py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70 capitalize">
+                <Badge variant="outline" className="text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70 capitalize">
                   {intake.tone}
                 </Badge>
               )}
               {intake?.selectedMonth && (
-                <Badge variant="outline" className="text-[11px] px-3 py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70">
-                  <Calendar className="h-3 w-3 mr-1.5 text-muted-foreground" /> {intake.selectedMonth}
+                <Badge variant="outline" className="text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70">
+                  <Calendar className="h-3 w-3 mr-1 text-muted-foreground" /> {intake.selectedMonth}
                 </Badge>
               )}
             </div>
           </div>
 
-          <div className="flex flex-col items-end gap-1.5 shrink-0">
-            <span className="text-[11px] text-muted-foreground font-medium">
+          <div className="flex sm:flex-col items-center sm:items-end gap-2 sm:gap-1.5 shrink-0">
+            <span className="text-[10px] sm:text-[11px] text-muted-foreground font-medium">
               {format(new Date(request.created_at), "MMM d, yyyy")}
             </span>
             {totalPosts > 0 && (
@@ -196,7 +196,7 @@ export function ContentRequestCard({
         </div>
       </CardHeader>
 
-      <CardContent className="pt-0">
+      <CardContent className="px-4 sm:px-6 pt-0">
         {versions.length === 0 ? (
           <div className="rounded-lg bg-muted/50 p-6 text-center">
             <p className="text-sm text-muted-foreground">No versions generated yet.</p>

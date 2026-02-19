@@ -144,19 +144,19 @@ export default function ContentRequests() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-full dot-grid rounded-xl p-6 md:p-8">
-      <div className="space-y-6">
+      <div className="min-h-full dot-grid rounded-xl p-4 sm:p-6 md:p-8">
+      <div className="space-y-4 sm:space-y-6">
         {/* Hero Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-[hsl(280,65%,60%)] p-8 text-primary-foreground shadow-lg">
+        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-[hsl(280,65%,60%)] p-5 sm:p-8 text-primary-foreground shadow-lg">
           <div className="absolute inset-0 dot-grid opacity-10" />
           <div className="relative z-10">
-            <div className="flex items-center gap-3 mb-2">
-              <div className="h-10 w-10 rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center">
-                <Sparkles className="h-5 w-5" />
+            <div className="flex items-center gap-2.5 sm:gap-3 mb-2">
+              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center shrink-0">
+                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
-              <h1 className="text-2xl font-bold">Content Requests</h1>
+              <h1 className="text-xl sm:text-2xl font-bold">Content Requests</h1>
             </div>
-            <p className="text-primary-foreground/80 text-sm max-w-lg">
+            <p className="text-primary-foreground/80 text-xs sm:text-sm max-w-lg">
               {role === "admin" && "Review and approve AI-generated content for your clinics"}
               {role === "concierge" && "View generated content and mark your preference for clients"}
               {role === "client" && "Review and select the perfect content for your clinic"}

@@ -183,14 +183,14 @@ export function ContentVersionCard({
 
   return (
     <div className={cn(
-      "glass-card rounded-xl p-6 space-y-5 transition-all duration-300",
+      "glass-card rounded-xl p-4 sm:p-6 space-y-4 sm:space-y-5 transition-all duration-300",
       version.client_selected && "ring-2 ring-primary/30 border-primary/40 bg-primary/5",
       version.admin_approved && !version.client_selected && "ring-1 ring-success/30 border-success/30",
       version.concierge_preferred && !version.admin_approved && !version.client_selected && "ring-1 ring-[hsl(280,65%,60%)]/30 border-[hsl(280,65%,60%)]/30",
       !isHighlighted && "hover:border-primary/20"
     )}>
       {/* Header */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
         <Badge className="bg-gradient-to-r from-primary to-[hsl(280,65%,60%)] text-primary-foreground text-[10px] font-bold border-0 shadow-sm">
           {version.model_name}
         </Badge>
@@ -215,7 +215,7 @@ export function ContentVersionCard({
       {renderContentBlock(version.generated_content)}
 
       {/* Actions */}
-      <div className="flex gap-2 pt-3 border-t border-border/40">
+      <div className="flex flex-wrap gap-2 pt-3 border-t border-border/40">
         {role === "concierge" && requestStatus === "generated" && !version.concierge_preferred && (
           <Button size="sm" variant="outline" className="text-xs hover:bg-[hsl(280,65%,60%)]/10 hover:text-[hsl(280,65%,60%)] hover:border-[hsl(280,65%,60%)]/30" onClick={() => onConciergePrefer(requestId, version.id)}>
             <Star className="h-3.5 w-3.5 mr-1" /> Mark Preferred

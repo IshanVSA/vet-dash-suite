@@ -35,7 +35,7 @@ export function ContentPostCard({ post, index, defaultOpen = false, isLast = fal
       {/* Collapsed row */}
       <button
         onClick={() => setOpen(v => !v)}
-        className="w-full flex items-center gap-2 py-3 px-1 text-left cursor-pointer group hover:bg-accent/30 transition-colors rounded-md flex-wrap"
+        className="w-full flex items-center gap-1.5 sm:gap-2 py-2.5 sm:py-3 px-1 text-left cursor-pointer group hover:bg-accent/30 transition-colors rounded-md flex-wrap"
       >
         <ChevronRight className={cn(
           "h-3.5 w-3.5 text-muted-foreground/60 shrink-0 transition-transform duration-200",
@@ -46,27 +46,27 @@ export function ContentPostCard({ post, index, defaultOpen = false, isLast = fal
           W{weekNum}
         </Badge>
         {post.suggested_date && (
-          <span className="text-[10px] text-muted-foreground/50 shrink-0">{post.suggested_date}</span>
+          <span className="text-[10px] text-muted-foreground/50 shrink-0 hidden sm:inline">{post.suggested_date}</span>
         )}
         {post.platform && (
           <Badge variant="secondary" className="text-[10px] shrink-0 py-0">{post.platform}</Badge>
         )}
         {post.content_type && (
-          <Badge variant="secondary" className="text-[10px] shrink-0 py-0">{post.content_type}</Badge>
+          <Badge variant="secondary" className="text-[10px] shrink-0 py-0 hidden sm:inline-flex">{post.content_type}</Badge>
         )}
         {post.goal_type && (
-          <Badge className={cn("text-[10px] shrink-0 py-0 border", GOAL_TYPE_COLORS[post.goal_type] || "bg-muted text-muted-foreground")}>
+          <Badge className={cn("text-[10px] shrink-0 py-0 border hidden sm:inline-flex", GOAL_TYPE_COLORS[post.goal_type] || "bg-muted text-muted-foreground")}>
             {post.goal_type}
           </Badge>
         )}
         {!open && previewText && (
-          <span className="text-xs text-muted-foreground/60 truncate">{previewText}</span>
+          <span className="text-xs text-muted-foreground/60 truncate hidden md:inline">{previewText}</span>
         )}
       </button>
 
       {/* Expanded content */}
       {open && (
-        <div className="pl-10 pr-2 pb-4 space-y-3 animate-fade-in">
+        <div className="pl-6 sm:pl-10 pr-2 pb-4 space-y-3 animate-fade-in">
           {/* Meta badges row */}
           <div className="flex items-center gap-2 flex-wrap">
             {post.funnel_stage && (
