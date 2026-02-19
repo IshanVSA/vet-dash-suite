@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { ArrowLeft, Sparkles, FileText } from "lucide-react";
+import { ArrowLeft, Sparkles, FileText, ClipboardList } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -140,12 +140,15 @@ export default function IntakeForms() {
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-3xl">
-        <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-card to-card p-8">
+        <div className="hero-section">
           <div className="relative z-10">
-            <h1 className="text-3xl font-bold text-foreground tracking-tight">Monthly Client Intake</h1>
-            <p className="text-muted-foreground mt-1 text-[15px]">Fill in the details below to generate a monthly content plan.</p>
+            <div className="flex items-center gap-2 mb-1">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Workflow</span>
+            </div>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Monthly Client Intake</h1>
+            <p className="text-muted-foreground mt-0.5 text-sm">Fill in the details below to generate a monthly content plan.</p>
           </div>
-          <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
         </div>
 
         <div className="animate-fade-in" style={{ animationDelay: "100ms", animationFillMode: "both" }}>
