@@ -133,17 +133,20 @@ export default function IntakeForms() {
   };
 
   const sectionHeader = (step: number, title: string, description: string) => (
-    <CardHeader>
+    <CardHeader className="border-b border-border/40 bg-muted/20">
       <div className="flex items-center gap-3">
-        <div className="h-7 w-7 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-xs font-bold flex items-center justify-center shadow-sm">{step}</div>
-        <div><CardTitle className="text-base">{title}</CardTitle><CardDescription>{description}</CardDescription></div>
+        <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-xs font-bold flex items-center justify-center shadow-sm">{step}</div>
+        <div>
+          <CardTitle className="text-base">{title}</CardTitle>
+          <CardDescription className="text-xs mt-0.5">{description}</CardDescription>
+        </div>
       </div>
     </CardHeader>
   );
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-3xl">
+      <div className="space-y-6 max-w-4xl">
         <div className="hero-section">
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-1">
@@ -167,13 +170,13 @@ export default function IntakeForms() {
           {/* Section 1 */}
           <Card className="animate-fade-in hover-lift" style={{ animationDelay: "150ms", animationFillMode: "both" }}>
             {sectionHeader(1, "Client Information", "Select the client and calendar month.")}
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                   <Label>Select Clinic *</Label>
+            <CardContent className="space-y-5 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Select Clinic *</Label>
                    <Popover open={clinicPopoverOpen} onOpenChange={setClinicPopoverOpen}>
                      <PopoverTrigger asChild>
-                       <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                       <Button variant="outline" role="combobox" className="w-full h-10 justify-between font-normal text-sm">
                          {selectedClinicId ? clinics.find(c => c.id === selectedClinicId)?.clinic_name : "Choose a clinic..."}
                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                        </Button>
@@ -195,18 +198,21 @@ export default function IntakeForms() {
                      </PopoverContent>
                    </Popover>
                 </div>
-                <div className="space-y-2">
-                  <Label>Calendar Month *</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Calendar Month *</Label>
                   <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>{allMonthOptions.map(m => (<SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>))}</SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2"><Label>Ad Budget</Label><Input value={adBudget} onChange={e => setAdBudget(e.target.value)} placeholder="$1,500" className="input-glow" /></div>
-                <div className="space-y-2">
-                  <Label>Tone of Voice *</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Ad Budget</Label>
+                  <Input value={adBudget} onChange={e => setAdBudget(e.target.value)} placeholder="$1,500" className="h-10 input-glow" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Tone of Voice *</Label>
                   <Select value={tone} onValueChange={setTone}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="professional">Professional</SelectItem>
                       <SelectItem value="friendly">Friendly</SelectItem>
@@ -215,10 +221,10 @@ export default function IntakeForms() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Country</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Country</Label>
                   <Select value={country} onValueChange={setCountry}>
-                    <SelectTrigger><SelectValue placeholder="Select country..." /></SelectTrigger>
+                    <SelectTrigger className="h-10"><SelectValue placeholder="Select country..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="US">United States</SelectItem>
                       <SelectItem value="CA">Canada</SelectItem>
@@ -243,10 +249,10 @@ export default function IntakeForms() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Language</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Language</Label>
                   <Select value={language} onValueChange={setLanguage}>
-                    <SelectTrigger><SelectValue placeholder="Select language..." /></SelectTrigger>
+                    <SelectTrigger className="h-10"><SelectValue placeholder="Select language..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="en">English</SelectItem>
                       <SelectItem value="es">Spanish</SelectItem>
@@ -273,15 +279,24 @@ export default function IntakeForms() {
           {/* Section 2 */}
           <Card className="animate-fade-in hover-lift" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
             {sectionHeader(2, "Past Performance", "Share last month's key metrics and insights.")}
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Top Performing Post</Label><Input value={topPost} onChange={e => setTopPost(e.target.value)} placeholder="e.g., Dental cleaning before/after" className="input-glow" /></div>
-                <div className="space-y-2"><Label>Avg. Engagement Rate</Label><Input value={avgEngagement} onChange={e => setAvgEngagement(e.target.value)} placeholder="e.g., 4.2%" className="input-glow" /></div>
-                <div className="space-y-2"><Label>Follower Growth</Label><Input value={followerGrowth} onChange={e => setFollowerGrowth(e.target.value)} placeholder="e.g., +120" className="input-glow" /></div>
-                <div className="space-y-2">
-                  <Label>Top Content Type</Label>
+            <CardContent className="space-y-5 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Top Performing Post</Label>
+                  <Input value={topPost} onChange={e => setTopPost(e.target.value)} placeholder="e.g., Dental cleaning before/after" className="h-10 input-glow" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Avg. Engagement Rate</Label>
+                  <Input value={avgEngagement} onChange={e => setAvgEngagement(e.target.value)} placeholder="e.g., 4.2%" className="h-10 input-glow" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Follower Growth</Label>
+                  <Input value={followerGrowth} onChange={e => setFollowerGrowth(e.target.value)} placeholder="e.g., +120" className="h-10 input-glow" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Top Content Type</Label>
                   <Select value={topContentType} onValueChange={setTopContentType}>
-                    <SelectTrigger><SelectValue placeholder="Select type..." /></SelectTrigger>
+                    <SelectTrigger className="h-10"><SelectValue placeholder="Select type..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="reels">Reels / Video</SelectItem>
                       <SelectItem value="carousel">Carousel</SelectItem>
@@ -291,19 +306,22 @@ export default function IntakeForms() {
                   </Select>
                 </div>
               </div>
-              <div className="space-y-2"><Label>Performance Notes</Label><Textarea value={performanceNotes} onChange={e => setPerformanceNotes(e.target.value)} placeholder="Any insights from last month..." rows={2} className="input-glow" /></div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Performance Notes</Label>
+                <Textarea value={performanceNotes} onChange={e => setPerformanceNotes(e.target.value)} placeholder="Any insights from last month..." rows={2} className="input-glow" />
+              </div>
             </CardContent>
           </Card>
 
           {/* Section 3 */}
           <Card className="animate-fade-in hover-lift" style={{ animationDelay: "250ms", animationFillMode: "both" }}>
             {sectionHeader(3, "Client Goals This Month", "Define primary objectives and promotions.")}
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Primary Goal *</Label>
+            <CardContent className="space-y-5 pt-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Primary Goal *</Label>
                   <Select value={goal} onValueChange={setGoal}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="brand_awareness">Brand Awareness</SelectItem>
                       <SelectItem value="leads">Lead Generation</SelectItem>
@@ -312,16 +330,32 @@ export default function IntakeForms() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2"><Label>Secondary Goals</Label><Input value={secondaryGoals} onChange={e => setSecondaryGoals(e.target.value)} placeholder="e.g., Increase dental bookings" className="input-glow" /></div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Secondary Goals</Label>
+                  <Input value={secondaryGoals} onChange={e => setSecondaryGoals(e.target.value)} placeholder="e.g., Increase dental bookings" className="h-10 input-glow" />
+                </div>
               </div>
-              <div className="space-y-2"><Label>Promotions to Feature</Label><Textarea value={promotions} onChange={e => setPromotions(e.target.value)} placeholder="Any special promotions..." rows={2} className="input-glow" /></div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Upcoming Events</Label><Input value={specialEvents} onChange={e => setSpecialEvents(e.target.value)} placeholder="Grand opening, adoption day" className="input-glow" /></div>
-                <div className="space-y-2"><Label>Target Audience</Label><Input value={targetAudience} onChange={e => setTargetAudience(e.target.value)} placeholder="Pet owners, age 25-55" className="input-glow" /></div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Promotions to Feature</Label>
+                <Textarea value={promotions} onChange={e => setPromotions(e.target.value)} placeholder="Any special promotions..." rows={2} className="input-glow" />
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Services to Highlight</Label><Input value={services} onChange={e => setServices(e.target.value)} placeholder="Dental cleanings, wellness exams" className="input-glow" /></div>
-                <div className="space-y-2"><Label>Competitors</Label><Input value={competitors} onChange={e => setCompetitors(e.target.value)} placeholder="List any local competitors" className="input-glow" /></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Upcoming Events</Label>
+                  <Input value={specialEvents} onChange={e => setSpecialEvents(e.target.value)} placeholder="Grand opening, adoption day" className="h-10 input-glow" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Target Audience</Label>
+                  <Input value={targetAudience} onChange={e => setTargetAudience(e.target.value)} placeholder="Pet owners, age 25-55" className="h-10 input-glow" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Services to Highlight</Label>
+                  <Input value={services} onChange={e => setServices(e.target.value)} placeholder="Dental cleanings, wellness exams" className="h-10 input-glow" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Competitors</Label>
+                  <Input value={competitors} onChange={e => setCompetitors(e.target.value)} placeholder="List any local competitors" className="h-10 input-glow" />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -329,28 +363,28 @@ export default function IntakeForms() {
           {/* Section 4 */}
           <Card className="animate-fade-in hover-lift" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
             {sectionHeader(4, "Monthly Themes & Content Preferences", "Select themes and platform preferences.")}
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5 pt-6">
               <div className="space-y-2">
-                <Label>Select Themes</Label>
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Select Themes</Label>
                 <div className="flex flex-wrap gap-2">
                   {themeOptions.map(theme => (
                     <button key={theme} type="button" onClick={() => toggleTheme(theme)}
                       className={cn(
-                        "px-3 py-1.5 rounded-full text-xs font-medium border transition-all duration-200",
+                        "px-3.5 py-2 rounded-lg text-xs font-medium border transition-all duration-200",
                         selectedThemes.includes(theme)
-                          ? "bg-primary text-primary-foreground border-primary scale-105 shadow-sm"
-                          : "bg-secondary text-secondary-foreground border-border hover:bg-accent hover:scale-[1.02]"
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : "bg-secondary text-secondary-foreground border-border hover:bg-accent"
                       )}>
                       {theme}
                     </button>
                   ))}
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Preferred Platforms</Label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Preferred Platforms</Label>
                   <Select value={preferredPlatforms} onValueChange={setPreferredPlatforms}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="instagram_facebook">Instagram + Facebook</SelectItem>
                       <SelectItem value="instagram_tiktok">Instagram + TikTok</SelectItem>
@@ -360,10 +394,10 @@ export default function IntakeForms() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-2">
-                  <Label>Posts Per Week</Label>
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Posts Per Week</Label>
                   <Select value={postsPerWeek} onValueChange={setPostsPerWeek}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="h-10"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="2">2 per week</SelectItem>
                       <SelectItem value="3">3 per week</SelectItem>
@@ -374,7 +408,10 @@ export default function IntakeForms() {
                   </Select>
                 </div>
               </div>
-              <div className="space-y-2"><Label>Additional Notes</Label><Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any additional notes..." rows={3} className="input-glow" /></div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Additional Notes</Label>
+                <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="Any additional notes..." rows={3} className="input-glow" />
+              </div>
             </CardContent>
           </Card>
 
