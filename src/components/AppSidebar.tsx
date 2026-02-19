@@ -22,7 +22,7 @@ const navItems: NavItem[] = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard, roles: ["admin", "concierge", "client"] },
   { title: "Clinics", url: "/clinics", icon: Building2, roles: ["admin"] },
   { title: "Content", url: "/content", icon: CalendarDays, roles: ["admin", "concierge"] },
-  { title: "AI Content", url: "/ai-content", icon: Sparkles, roles: ["admin", "concierge"] },
+  
   { title: "Content Requests", url: "/content-requests", icon: FileCheck, roles: ["admin", "concierge", "client"] },
   { title: "Analytics", url: "/analytics", icon: BarChart3, roles: ["admin", "concierge", "client"] },
   { title: "Intake Forms", url: "/intake-forms", icon: ClipboardList, roles: ["admin", "concierge", "client"] },

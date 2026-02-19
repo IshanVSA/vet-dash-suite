@@ -5,7 +5,7 @@ import { useUserRole, type AppRole } from "@/hooks/useUserRole";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
-  CalendarDays, ShieldCheck, ClipboardList, Sparkles, LayoutDashboard, MessageSquare, UserCheck, FileCheck
+  CalendarDays, ShieldCheck, ClipboardList, LayoutDashboard, UserCheck, FileCheck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -28,7 +28,6 @@ const adminSections: NavSection[] = [
     items: [
       { label: "Content Calendar", icon: CalendarDays, path: "/content" },
       { label: "Admin Review", icon: ShieldCheck, path: "/review" },
-      { label: "AI Content Engine", icon: Sparkles, path: "/ai-content" },
       { label: "Client Intake", icon: ClipboardList, path: "/intake-forms" },
       { label: "Content Requests", icon: FileCheck, path: "/content-requests" },
     ],
@@ -54,7 +53,6 @@ const conciergeSections: NavSection[] = [
     title: "MAIN",
     items: [
       { label: "Content Calendar", icon: CalendarDays, path: "/content" },
-      { label: "AI Content Engine", icon: Sparkles, path: "/ai-content" },
       { label: "Client Intake", icon: ClipboardList, path: "/intake-forms" },
       { label: "Content Requests", icon: FileCheck, path: "/content-requests" },
     ],
