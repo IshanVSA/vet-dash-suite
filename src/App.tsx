@@ -2,14 +2,14 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Clinics from "./pages/Clinics";
 import ClinicDetail from "./pages/ClinicDetail";
 import ContentCalendar from "./pages/ContentCalendar";
-import AIContent from "./pages/AIContent";
+
 import Analytics from "./pages/Analytics";
 import IntakeForms from "./pages/IntakeForms";
 import Employees from "./pages/Employees";
@@ -33,7 +33,7 @@ const App = () => (
           <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Clinics /></ProtectedRoute>} />
           <Route path="/clinics/:id" element={<ProtectedRoute><ClinicDetail /></ProtectedRoute>} />
           <Route path="/content" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><ContentCalendar /></ProtectedRoute>} />
-          <Route path="/ai-content" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><AIContent /></ProtectedRoute>} />
+          <Route path="/ai-content" element={<Navigate to="/content-requests" replace />} />
           <Route path="/content-requests" element={<ProtectedRoute><ContentRequests /></ProtectedRoute>} />
           <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="/intake-forms" element={<ProtectedRoute><IntakeForms /></ProtectedRoute>} />

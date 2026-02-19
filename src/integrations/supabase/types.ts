@@ -14,53 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      ai_content: {
-        Row: {
-          clinic_id: string | null
-          created_at: string
-          created_by: string | null
-          generated_content: string | null
-          id: string
-          intake_data: Json | null
-          month: string | null
-          prompt: string
-          status: string
-          version_number: number
-        }
-        Insert: {
-          clinic_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          generated_content?: string | null
-          id?: string
-          intake_data?: Json | null
-          month?: string | null
-          prompt: string
-          status?: string
-          version_number?: number
-        }
-        Update: {
-          clinic_id?: string | null
-          created_at?: string
-          created_by?: string | null
-          generated_content?: string | null
-          id?: string
-          intake_data?: Json | null
-          month?: string | null
-          prompt?: string
-          status?: string
-          version_number?: number
-        }
-        Relationships: [
-          {
-            foreignKeyName: "ai_content_clinic_id_fkey"
-            columns: ["clinic_id"]
-            isOneToOne: false
-            referencedRelation: "clinics"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       analytics: {
         Row: {
           clinic_id: string | null
