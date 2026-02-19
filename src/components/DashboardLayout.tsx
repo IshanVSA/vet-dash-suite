@@ -26,6 +26,7 @@ const adminSections: NavSection[] = [
   {
     title: "MAIN",
     items: [
+      { label: "Dashboard", icon: LayoutDashboard, path: "/" },
       { label: "Content Calendar", icon: CalendarDays, path: "/content" },
       { label: "Admin Review", icon: ShieldCheck, path: "/review" },
       { label: "Client Intake", icon: ClipboardList, path: "/intake-forms" },
@@ -52,6 +53,7 @@ const conciergeSections: NavSection[] = [
   {
     title: "MAIN",
     items: [
+      { label: "Dashboard", icon: LayoutDashboard, path: "/" },
       { label: "Content Calendar", icon: CalendarDays, path: "/content" },
       { label: "Client Intake", icon: ClipboardList, path: "/intake-forms" },
       { label: "Content Requests", icon: FileCheck, path: "/content-requests" },
