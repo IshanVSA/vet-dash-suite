@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Check, Calendar, FileText } from "lucide-react";
@@ -41,6 +42,77 @@ interface ContentRequestCardProps {
   onConciergePrefer: (requestId: string, versionId: string) => void;
   onAdminApprove: (requestId: string, versionId: string) => void;
   onClientSelect: (requestId: string, versionId: string, clinicId: string) => void;
+}
+
+function ModelToggleView({
+  versions,
+  requestId,
+  requestStatus,
+  clinicId,
+  role,
+  onConciergePrefer,
+  onAdminApprove,
+  onClientSelect,
+}: {
+  versions: ContentVersion[];
+  requestId: string;
+  requestStatus: string;
+  clinicId: string;
+  role: string | null;
+  onConciergePrefer: (requestId: string, versionId: string) => void;
+  onAdminApprove: (requestId: string, versionId: string) => void;
+  onClientSelect: (requestId: string, versionId: string, clinicId: string) => void;
+}) {
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  // Derive labels from model names
+  const labels = versions.map(v => {
+    const name = v.model_name.toLowerCase();
+    if (name.includes("openai") || name.includes("gpt")) return "OpenAI";
+    if (name.includes("claude") || name.includes("anthropic")) return "Claude";
+    return v.model_name;
+  });
+
+  const activeVersion = versions[activeIndex];
+  if (!activeVersion) return null;
+
+  return (
+    <div className="space-y-4">
+      {/* Toggle switch */}
+      {versions.length > 1 && (
+        <div className="flex items-center justify-center">
+          <div className="inline-flex items-center rounded-lg bg-muted/60 p-1 border border-border/40">
+            {versions.map((_, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setActiveIndex(i)}
+                className={cn(
+                  "px-4 py-1.5 rounded-md text-xs font-semibold transition-all duration-200",
+                  activeIndex === i
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {labels[i]}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <ContentVersionCard
+        version={activeVersion}
+        requestId={requestId}
+        requestStatus={requestStatus}
+        clinicId={clinicId}
+        role={role}
+        onConciergePrefer={onConciergePrefer}
+        onAdminApprove={onAdminApprove}
+        onClientSelect={onClientSelect}
+      />
+    </div>
+  );
 }
 
 export function ContentRequestCard({
@@ -126,21 +198,16 @@ export function ContentRequestCard({
             <p className="text-sm text-muted-foreground">No versions generated yet.</p>
           </div>
         ) : (
-          <div className="space-y-4">
-            {versions.map(version => (
-              <ContentVersionCard
-                key={version.id}
-                version={version}
-                requestId={request.id}
-                requestStatus={request.status}
-                clinicId={request.clinic_id}
-                role={role}
-                onConciergePrefer={onConciergePrefer}
-                onAdminApprove={onAdminApprove}
-                onClientSelect={onClientSelect}
-              />
-            ))}
-          </div>
+          <ModelToggleView
+            versions={versions}
+            requestId={request.id}
+            requestStatus={request.status}
+            clinicId={request.clinic_id}
+            role={role}
+            onConciergePrefer={onConciergePrefer}
+            onAdminApprove={onAdminApprove}
+            onClientSelect={onClientSelect}
+          />
         )}
       </CardContent>
     </Card>
