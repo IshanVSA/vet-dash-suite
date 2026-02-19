@@ -146,16 +146,16 @@ export default function IntakeForms() {
 
   return (
     <DashboardLayout>
-      <div className="min-h-full dot-grid rounded-xl p-6 md:p-8">
-      <div className="space-y-6 max-w-4xl mx-auto">
+      <div className="min-h-full dot-grid rounded-xl p-4 sm:p-6 md:p-8">
+      <div className="space-y-4 sm:space-y-6 max-w-4xl mx-auto">
         <div className="hero-section">
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-1">
               <ClipboardList className="h-5 w-5 text-primary" />
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Workflow</span>
             </div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Monthly Client Intake</h1>
-            <p className="text-muted-foreground mt-0.5 text-sm">Fill in the details below to generate a monthly content plan.</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Monthly Client Intake</h1>
+            <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">Fill in the details below to generate a monthly content plan.</p>
           </div>
         </div>
 
@@ -167,7 +167,7 @@ export default function IntakeForms() {
           <Progress value={progressPercent} className="h-1.5" />
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
           {/* Section 1 */}
           <Card className="animate-fade-in hover-lift" style={{ animationDelay: "150ms", animationFillMode: "both" }}>
             {sectionHeader(1, "Client Information", "Select the client and calendar month.")}
@@ -416,12 +416,12 @@ export default function IntakeForms() {
             </CardContent>
           </Card>
 
-          <div className="flex gap-3 animate-fade-in" style={{ animationDelay: "350ms", animationFillMode: "both" }}>
+          <div className="flex flex-col sm:flex-row gap-3 animate-fade-in" style={{ animationDelay: "350ms", animationFillMode: "both" }}>
             <Button type="submit" disabled={generating} className="flex-1 shadow-sm">
               <Sparkles className="h-4 w-4 mr-2" />
               {generating ? "Submitting..." : "Submit Intake & Generate"}
             </Button>
-            <Button type="button" variant="outline" onClick={() => toast.success("Draft saved locally!")}>
+            <Button type="button" variant="outline" onClick={() => toast.success("Draft saved locally!")} className="sm:flex-none">
               <FileText className="h-4 w-4 mr-2" /> Save Draft
             </Button>
           </div>

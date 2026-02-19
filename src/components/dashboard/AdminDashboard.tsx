@@ -90,7 +90,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Hero Section */}
       <div className="hero-section">
         <div className="relative z-10">
@@ -98,10 +98,10 @@ export default function AdminDashboard() {
             <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Live Overview</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
             Welcome back{userName ? `, ${userName.split(" ")[0]}` : ""} 👋
           </h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">{today} — Monitor clinic operations and content performance</p>
+          <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">{today} — Monitor clinic operations and content performance</p>
         </div>
       </div>
 
@@ -162,9 +162,9 @@ export default function AdminDashboard() {
 
       {/* Clinics Table */}
       <Card className="overflow-hidden border-border/60 animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
-        <div className="px-6 py-4 border-b border-border/40 bg-muted/30 flex items-center justify-between">
+        <div className="px-4 sm:px-6 py-4 border-b border-border/40 bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
               <Building2 className="h-4 w-4 text-primary" />
             </div>
             <div>
@@ -173,7 +173,7 @@ export default function AdminDashboard() {
             </div>
           </div>
           <Link to="/clinics">
-            <Button variant="outline" size="sm" className="rounded-lg">View All</Button>
+            <Button variant="outline" size="sm" className="rounded-lg w-full sm:w-auto">View All</Button>
           </Link>
         </div>
         {loading ? (
@@ -192,41 +192,48 @@ export default function AdminDashboard() {
             <Link to="/clinics"><Button size="sm" className="rounded-lg">Add Clinic</Button></Link>
           </div>
         ) : (
-          <Table className="data-table">
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead>Clinic Name</TableHead>
-                <TableHead>Assigned Concierge</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {clinics.slice(0, 10).map((clinic) => (
-                <TableRow key={clinic.id} className="hover:bg-muted/40 transition-colors">
-                  <TableCell className="font-medium">{clinic.clinic_name}</TableCell>
-                  <TableCell>
-                    <span className={clinic.assigned_concierge_id ? "text-foreground" : "text-muted-foreground italic"}>
-                      {getConciergeName(clinic.assigned_concierge_id)}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={clinic.status === "active" ? "default" : "secondary"}
-                      className="rounded-full px-2.5 text-[11px] font-semibold"
-                    >
-                      {clinic.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Link to={`/clinics/${clinic.id}`}>
-                      <Button variant="ghost" size="sm" className="rounded-lg text-muted-foreground hover:text-primary"><Eye className="h-4 w-4 mr-1" /> View</Button>
-                    </Link>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table className="data-table">
+              <TableHeader>
+                <TableRow className="hover:bg-transparent">
+                  <TableHead>Clinic Name</TableHead>
+                  <TableHead className="hidden sm:table-cell">Assigned Concierge</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {clinics.slice(0, 10).map((clinic) => (
+                  <TableRow key={clinic.id} className="hover:bg-muted/40 transition-colors">
+                    <TableCell className="font-medium">
+                      {clinic.clinic_name}
+                      <span className="sm:hidden block text-xs text-muted-foreground mt-0.5">
+                        {getConciergeName(clinic.assigned_concierge_id)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">
+                      <span className={clinic.assigned_concierge_id ? "text-foreground" : "text-muted-foreground italic"}>
+                        {getConciergeName(clinic.assigned_concierge_id)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={clinic.status === "active" ? "default" : "secondary"}
+                        className="rounded-full px-2.5 text-[11px] font-semibold"
+                      >
+                        {clinic.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Link to={`/clinics/${clinic.id}`}>
+                        <Button variant="ghost" size="sm" className="rounded-lg text-muted-foreground hover:text-primary"><Eye className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">View</span></Button>
+                      </Link>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         )}
       </Card>
     </div>

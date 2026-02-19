@@ -44,7 +44,7 @@ export default function ConciergeDashboard() {
   }, [user]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Hero */}
       <div className="hero-section">
         <div className="relative z-10">
@@ -52,10 +52,10 @@ export default function ConciergeDashboard() {
             <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Concierge View</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
             Welcome back{user?.user_metadata?.full_name ? `, ${(user.user_metadata.full_name as string).split(" ")[0]}` : ""} 👋
           </h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">
+          <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">
             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })} — Your assigned clinics and performance
           </p>
         </div>

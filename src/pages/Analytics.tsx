@@ -64,15 +64,15 @@ export default function Analytics() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div className="hero-section">
           <div className="relative z-10">
             <div className="flex items-center gap-2 mb-1">
               <BarChart3 className="h-5 w-5 text-primary" />
               <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Analytics</span>
             </div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">Performance</h1>
-            <p className="text-muted-foreground mt-0.5 text-sm">
+            <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Performance</h1>
+            <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">
               {role === "admin" ? "Agency-wide performance metrics" : "Your clinic performance"}
             </p>
           </div>
@@ -97,16 +97,16 @@ export default function Analytics() {
           </Card>
         ) : (
           <>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
               {summaryStats.map((stat, i) => (
                 <Card key={i} className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}>
-                  <CardContent className="p-4">
-                    <div className={`border-l-[3px] pl-3 ${stat.accent}`}>
-                      <p className="text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">{stat.label}</p>
+                  <CardContent className="p-3 sm:p-4">
+                    <div className={`border-l-[3px] pl-2.5 sm:pl-3 ${stat.accent}`}>
+                      <p className="text-[10px] sm:text-[11px] text-muted-foreground font-semibold uppercase tracking-wider">{stat.label}</p>
                       {stat.isText ? (
-                        <p className="text-sm font-medium text-foreground mt-1">{stat.value}</p>
+                        <p className="text-xs sm:text-sm font-medium text-foreground mt-1 break-all">{stat.value}</p>
                       ) : (
-                        <p className="text-2xl font-bold text-foreground mt-0.5 tabular-nums">{stat.value}</p>
+                        <p className="text-xl sm:text-2xl font-bold text-foreground mt-0.5 tabular-nums">{stat.value}</p>
                       )}
                     </div>
                   </CardContent>
@@ -114,7 +114,7 @@ export default function Analytics() {
               ))}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 gap-4 sm:gap-6 lg:grid-cols-2">
               <Card className="overflow-hidden border-border/60 hover-lift animate-fade-in" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
                 <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
                   <CardTitle className="text-base">Analytics Trend</CardTitle>
