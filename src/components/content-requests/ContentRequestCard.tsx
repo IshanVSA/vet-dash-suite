@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Calendar, FileText } from "lucide-react";
+import { Check, Calendar, FileText, Instagram, Facebook, Globe, Repeat, Target, Users } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ContentVersionCard } from "./ContentVersionCard";
@@ -167,6 +167,7 @@ export function ContentRequestCard({
               </Badge>
               {intake?.goal && (
                 <Badge variant="outline" className="text-[11px] px-3 py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70 capitalize">
+                  <Target className="h-3 w-3 mr-1.5 text-muted-foreground" />
                   {String(intake.goal).replace(/_/g, " ")}
                 </Badge>
               )}
@@ -175,9 +176,29 @@ export function ContentRequestCard({
                   {intake.tone}
                 </Badge>
               )}
+              {intake?.preferredPlatforms && (
+                <Badge variant="outline" className="text-[11px] px-3 py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70">
+                  {String(intake.preferredPlatforms).includes("instagram") && <Instagram className="h-3 w-3 mr-1 text-[hsl(330,70%,50%)]" />}
+                  {String(intake.preferredPlatforms).includes("facebook") && <Facebook className="h-3 w-3 mr-1 text-primary" />}
+                  {!String(intake.preferredPlatforms).includes("instagram") && !String(intake.preferredPlatforms).includes("facebook") && <Globe className="h-3 w-3 mr-1 text-muted-foreground" />}
+                  {String(intake.preferredPlatforms).replace(/_/g, " + ").replace("instagram", "IG").replace("facebook", "FB")}
+                </Badge>
+              )}
+              {intake?.postsPerWeek && (
+                <Badge variant="outline" className="text-[11px] px-3 py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70">
+                  <Repeat className="h-3 w-3 mr-1.5 text-muted-foreground" />
+                  {intake.postsPerWeek}/week
+                </Badge>
+              )}
               {intake?.selectedMonth && (
                 <Badge variant="outline" className="text-[11px] px-3 py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70">
                   <Calendar className="h-3 w-3 mr-1.5 text-muted-foreground" /> {intake.selectedMonth}
+                </Badge>
+              )}
+              {intake?.targetAudience && (
+                <Badge variant="outline" className="text-[11px] px-3 py-1 rounded-full border-border/50 bg-muted/40 text-foreground/70">
+                  <Users className="h-3 w-3 mr-1.5 text-muted-foreground" />
+                  {String(intake.targetAudience).length > 20 ? String(intake.targetAudience).slice(0, 20) + "…" : intake.targetAudience}
                 </Badge>
               )}
             </div>
