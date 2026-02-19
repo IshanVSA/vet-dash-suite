@@ -11,6 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import vsaLogo from "@/assets/vsa-logo.jpg";
 
 interface NavItem {
   label: string;
@@ -147,9 +148,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       )}>
         {/* Logo */}
         <div className="flex items-center gap-3 px-5 h-16 border-b border-[hsl(var(--sidebar-border))]">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-[hsl(var(--sidebar-primary))] to-[hsl(280,65%,55%)] flex items-center justify-center shadow-lg shadow-[hsl(var(--sidebar-primary))]/20">
-            <span className="text-white font-bold text-sm tracking-tight">V</span>
-          </div>
+          <img src={vsaLogo} alt="VSA Vet Media" className="h-9 w-9 rounded-xl object-cover shadow-lg" />
           <div className="flex-1 min-w-0">
             <h1 className="font-bold text-sm tracking-tight">
               <span className="text-[hsl(var(--sidebar-primary))]">VSA</span> Vetmedia
