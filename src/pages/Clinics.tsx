@@ -178,24 +178,24 @@ export default function Clinics() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         {/* Hero */}
         <div className="hero-section">
-          <div className="relative z-10 flex items-center justify-between">
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Building2 className="h-5 w-5 text-primary" />
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Manage</span>
               </div>
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">Clinics</h1>
-              <p className="text-muted-foreground mt-0.5 text-sm">{clinics.length} total clinics registered</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">Clinics</h1>
+              <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">{clinics.length} total clinics registered</p>
             </div>
             {role === "admin" && (
               <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetAddForm(); }}>
                 <DialogTrigger asChild>
-                  <Button className="rounded-lg shadow-sm"><Plus className="h-4 w-4 mr-2" /> Add Clinic</Button>
+                  <Button className="rounded-lg shadow-sm w-full sm:w-auto"><Plus className="h-4 w-4 mr-2" /> Add Clinic</Button>
                 </DialogTrigger>
-                <DialogContent className="max-h-[85vh] overflow-y-auto">
+                <DialogContent className="max-h-[85vh] overflow-y-auto max-w-[95vw] sm:max-w-lg">
                   <DialogHeader><DialogTitle>Add New Clinic</DialogTitle></DialogHeader>
                   <div className="space-y-4 pt-2">
                     <div className="space-y-2"><Label>Clinic Name</Label><Input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Happy Paws Vet" className="input-glow" /></div>
@@ -264,23 +264,31 @@ export default function Clinics() {
               <p>No clinics found.</p>
             </div>
           ) : (
+          <div className="overflow-x-auto">
             <Table className="data-table">
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead>Clinic Name</TableHead>
-                  {role === "admin" && <TableHead>Assigned Concierge</TableHead>}
-                  {role === "admin" && <TableHead>Client Owner</TableHead>}
+                  {role === "admin" && <TableHead className="hidden md:table-cell">Assigned Concierge</TableHead>}
+                  {role === "admin" && <TableHead className="hidden lg:table-cell">Client Owner</TableHead>}
                   <TableHead>Status</TableHead>
-                  <TableHead>Phone</TableHead>
+                  <TableHead className="hidden sm:table-cell">Phone</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filtered.map((clinic) => (
                   <TableRow key={clinic.id}>
-                    <TableCell className="font-medium">{clinic.clinic_name}</TableCell>
+                    <TableCell className="font-medium">
+                      {clinic.clinic_name}
+                      {role === "admin" && (
+                        <span className="md:hidden block text-xs text-muted-foreground mt-0.5">
+                          {getConciergeName(clinic.assigned_concierge_id) || "Unassigned"}
+                        </span>
+                      )}
+                    </TableCell>
                     {role === "admin" && (
-                      <TableCell>
+                      <TableCell className="hidden md:table-cell">
                         <Select value={clinic.assigned_concierge_id || "none"} onValueChange={v => assignConcierge(clinic.id, v)}>
                           <SelectTrigger className="w-[180px] h-8 text-xs"><SelectValue placeholder="Assign..." /></SelectTrigger>
                           <SelectContent>
@@ -291,7 +299,7 @@ export default function Clinics() {
                       </TableCell>
                     )}
                     {role === "admin" && (
-                      <TableCell>
+                      <TableCell className="hidden lg:table-cell">
                         <span className={clinic.owner_user_id ? "text-foreground" : "text-muted-foreground italic text-xs"}>
                           {getClientName(clinic.owner_user_id) || "No owner"}
                         </span>
@@ -306,26 +314,29 @@ export default function Clinics() {
                         {clinic.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{clinic.phone || "—"}</TableCell>
-                    <TableCell className="text-right space-x-1">
-                      {role === "admin" && (
-                        <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => openEditDialog(clinic)}>
-                          <Pencil className="h-3.5 w-3.5 mr-1" /> Edit
-                        </Button>
-                      )}
-                      <Link to={`/clinics/${clinic.id}`}>
-                        <Button variant="ghost" size="sm" className="h-8 text-xs"><Eye className="h-3.5 w-3.5 mr-1" /> View</Button>
-                      </Link>
-                      {role === "admin" && (
-                        <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => deleteClinic(clinic.id)}>
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      )}
+                    <TableCell className="text-muted-foreground text-sm hidden sm:table-cell">{clinic.phone || "—"}</TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        {role === "admin" && (
+                          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => openEditDialog(clinic)}>
+                            <Pencil className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">Edit</span>
+                          </Button>
+                        )}
+                        <Link to={`/clinics/${clinic.id}`}>
+                          <Button variant="ghost" size="sm" className="h-8 text-xs"><Eye className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">View</span></Button>
+                        </Link>
+                        {role === "admin" && (
+                          <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => deleteClinic(clinic.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
+          </div>
           )}
         </Card>
 

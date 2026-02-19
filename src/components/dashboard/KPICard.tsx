@@ -48,7 +48,7 @@ export default function KPICard({ label, value, change, changeType = "neutral", 
   return (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border border-border/60 bg-card p-5 hover-lift animate-fade-in group",
+        "relative overflow-hidden rounded-xl border border-border/60 bg-card p-4 sm:p-5 hover-lift animate-fade-in group",
         g.bg
       )}
       style={{ animationDelay: `${index * 80}ms`, animationFillMode: "both" }}
@@ -57,9 +57,9 @@ export default function KPICard({ label, value, change, changeType = "neutral", 
       <div className={cn("absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r opacity-60", g.accentBar)} />
       
       <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <p className="text-[12px] text-muted-foreground font-semibold tracking-wider uppercase">{label}</p>
-          <p className="text-3xl font-bold text-foreground tracking-tight tabular-nums">{value}</p>
+        <div className="space-y-1.5 sm:space-y-2 min-w-0">
+          <p className="text-[11px] sm:text-[12px] text-muted-foreground font-semibold tracking-wider uppercase">{label}</p>
+          <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">{value}</p>
           {change && (
             <p className={cn(
               "text-xs font-medium",
@@ -72,11 +72,11 @@ export default function KPICard({ label, value, change, changeType = "neutral", 
           )}
         </div>
         <div className={cn(
-          "h-11 w-11 rounded-xl flex items-center justify-center ring-1 transition-transform duration-300 group-hover:scale-110",
+          "h-10 w-10 sm:h-11 sm:w-11 rounded-xl flex items-center justify-center ring-1 transition-transform duration-300 group-hover:scale-110 shrink-0",
           g.iconBg,
           g.ring
         )}>
-          <Icon className={cn("h-5 w-5", g.iconColor)} />
+          <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5", g.iconColor)} />
         </div>
       </div>
     </div>

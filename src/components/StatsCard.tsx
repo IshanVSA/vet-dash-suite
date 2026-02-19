@@ -14,13 +14,13 @@ interface StatsCardProps {
 export function StatsCard({ title, value, icon: Icon, description, change, changeType = "neutral", index = 0 }: StatsCardProps) {
   return (
     <div
-      className="bg-card rounded-xl border border-border p-5 hover-lift animate-fade-in"
+      className="bg-card rounded-xl border border-border p-4 sm:p-5 hover-lift animate-fade-in"
       style={{ animationDelay: `${index * 80}ms`, animationFillMode: "both" }}
     >
       <div className="flex items-start justify-between">
-        <div className="space-y-2">
-          <p className="text-sm text-muted-foreground font-medium">{title}</p>
-          <p className="text-2xl font-bold text-foreground">{value}</p>
+        <div className="space-y-1.5 sm:space-y-2 min-w-0">
+          <p className="text-xs sm:text-sm text-muted-foreground font-medium">{title}</p>
+          <p className="text-xl sm:text-2xl font-bold text-foreground">{value}</p>
           {change && (
             <p className={cn(
               "text-xs font-medium",
@@ -33,8 +33,8 @@ export function StatsCard({ title, value, icon: Icon, description, change, chang
           )}
           {description && !change && <p className="text-xs text-muted-foreground">{description}</p>}
         </div>
-        <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center shadow-sm">
-          <Icon className="h-5 w-5 text-accent-foreground" />
+        <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center shadow-sm shrink-0">
+          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-accent-foreground" />
         </div>
       </div>
     </div>

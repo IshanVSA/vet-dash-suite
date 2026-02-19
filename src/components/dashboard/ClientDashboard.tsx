@@ -42,7 +42,7 @@ export default function ClientDashboard() {
   }, [user]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Hero */}
       <div className="hero-section">
         <div className="relative z-10">
@@ -50,10 +50,10 @@ export default function ClientDashboard() {
             <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Client Portal</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
             Welcome back{user?.user_metadata?.full_name ? `, ${(user.user_metadata.full_name as string).split(" ")[0]}` : ""} 👋
           </h1>
-          <p className="text-muted-foreground mt-0.5 text-sm">
+          <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">
             {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })} — Your clinic overview
           </p>
         </div>
@@ -85,15 +85,15 @@ export default function ClientDashboard() {
         <div className="space-y-3">
           {clinics.map((clinic, i) => (
             <Card key={clinic.id} className="group border-border/60 hover-lift animate-fade-in overflow-hidden" style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}>
-              <CardContent className="py-4 flex items-center justify-between">
+              <CardContent className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                     <Building2 className="h-4 w-4 text-primary" />
                   </div>
                   <span className="font-medium text-foreground">{clinic.clinic_name}</span>
                 </div>
-                <Link to={`/clinics/${clinic.id}`}>
-                  <Button size="sm" className="rounded-lg group-hover:shadow-md transition-shadow">
+                <Link to={`/clinics/${clinic.id}`} className="w-full sm:w-auto">
+                  <Button size="sm" className="rounded-lg group-hover:shadow-md transition-shadow w-full sm:w-auto">
                     View Clinic <ArrowRight className="h-3.5 w-3.5 ml-1 group-hover:translate-x-0.5 transition-transform" />
                   </Button>
                 </Link>
