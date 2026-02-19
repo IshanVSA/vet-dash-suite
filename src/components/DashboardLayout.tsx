@@ -217,7 +217,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </button>
           <div className="flex-1" />
         </header>
-        <div className="p-4 lg:p-8 max-w-7xl page-enter">
+        <div className="p-4 lg:p-8 page-enter">
           {children}
         </div>
       </main>
