@@ -6,6 +6,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { EditPostDialog } from "@/components/content-calendar/EditPostDialog";
+import { NewPostDialog } from "@/components/content-calendar/NewPostDialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   ChevronLeft, ChevronRight, Download, Plus, Pencil, Check, Flag, Clock,
@@ -86,6 +87,7 @@ export default function ContentCalendar() {
   const [activeFilter, setActiveFilter] = useState("All");
   const [loading, setLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<ContentPost | null>(null);
+  const [newPostOpen, setNewPostOpen] = useState(false);
 
   useEffect(() => {
     const fetchClinics = async () => {
@@ -152,7 +154,7 @@ export default function ContentCalendar() {
           </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" /> Export</Button>
-            <Button size="sm"><Plus className="h-4 w-4 mr-2" /> New Post</Button>
+            <Button size="sm" onClick={() => setNewPostOpen(true)}><Plus className="h-4 w-4 mr-2" /> New Post</Button>
           </div>
         </div>
 
@@ -192,7 +194,7 @@ export default function ContentCalendar() {
             </div>
             <p className="font-medium text-foreground mb-1">No content posts yet</p>
             <p className="text-sm mb-4">Create your first post to get started with this month's calendar.</p>
-            <Button size="sm" className="shadow-sm"><Plus className="h-4 w-4 mr-2" /> Create First Post</Button>
+            <Button size="sm" className="shadow-sm" onClick={() => setNewPostOpen(true)}><Plus className="h-4 w-4 mr-2" /> Create First Post</Button>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -250,6 +252,12 @@ export default function ContentCalendar() {
         open={!!editingPost}
         onOpenChange={(open) => { if (!open) setEditingPost(null); }}
         onSaved={(updated) => setPosts(prev => prev.map(p => p.id === updated.id ? updated : p))}
+      />
+      <NewPostDialog
+        clinicId={selectedClinicId}
+        open={newPostOpen}
+        onOpenChange={setNewPostOpen}
+        onCreated={(post) => setPosts(prev => [...prev, post])}
       />
     </DashboardLayout>
   );
