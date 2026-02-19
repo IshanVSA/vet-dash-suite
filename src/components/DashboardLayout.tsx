@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
   CalendarDays, ShieldCheck, ClipboardList, LayoutDashboard, UserCheck, FileCheck,
-  Search, Bell,
+  Search, Bell, Sun, Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -257,6 +257,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               className="w-56 h-9 pl-9 text-sm bg-muted/50 border-transparent focus:border-border focus:bg-card rounded-lg"
             />
           </div>
+
+          {/* Dark mode toggle */}
+          <button
+            className="relative p-2 rounded-lg hover:bg-muted transition-colors"
+            onClick={() => {
+              document.documentElement.classList.toggle("dark");
+              localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
+            }}
+          >
+            <Sun className="h-4 w-4 text-muted-foreground dark:hidden" />
+            <Moon className="h-4 w-4 text-muted-foreground hidden dark:block" />
+          </button>
 
           {/* Notification bell */}
           <button className="relative p-2 rounded-lg hover:bg-muted transition-colors">
