@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import KPICard from "./KPICard";
-import { Building2, FileText, BarChart3, UserCheck, UserCircle, Eye } from "lucide-react";
+import { Building2, FileText, BarChart3, UserCheck, UserCircle, Eye, TrendingUp, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 
 interface Clinic {
   id: string;
@@ -80,68 +80,119 @@ export default function AdminDashboard() {
 
   return (
     <div className="space-y-8">
-      <div className="bg-gradient-hero rounded-xl p-6 -m-2">
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Overview of all clinic operations</p>
+      {/* Hero Section */}
+      <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-card to-card p-8">
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Live Overview</span>
+          </div>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Dashboard</h1>
+          <p className="text-muted-foreground mt-1 text-[15px]">Monitor clinic operations and content performance</p>
+        </div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+        <div className="absolute bottom-0 left-1/2 w-48 h-48 bg-[hsl(280,65%,60%)]/5 rounded-full blur-3xl translate-y-1/2 pointer-events-none" />
       </div>
 
+      {/* KPI Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard label="Active Clinics" value={clinics.filter(c => c.status === "active").length} change={`${clinics.length} total`} changeType="neutral" icon={Building2} index={0} />
-        <KPICard label="Total Posts" value={totalPosts} icon={FileText} index={1} />
-        <KPICard label="Total Concierges" value={roleCounts.concierges} icon={UserCheck} index={2} />
-        <KPICard label="Total Clients" value={roleCounts.clients} icon={UserCircle} index={3} />
+        <KPICard label="Active Clinics" value={clinics.filter(c => c.status === "active").length} change={`${clinics.length} total`} changeType="neutral" icon={Building2} index={0} gradient="blue" />
+        <KPICard label="Total Posts" value={totalPosts} icon={FileText} index={1} gradient="purple" />
+        <KPICard label="Total Concierges" value={roleCounts.concierges} icon={UserCheck} index={2} gradient="green" />
+        <KPICard label="Total Clients" value={roleCounts.clients} icon={UserCircle} index={3} gradient="amber" />
       </div>
 
+      {/* Secondary KPI */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <KPICard label="Pending Review" value={pendingPosts} icon={BarChart3} index={4} />
+        <KPICard label="Pending Review" value={pendingPosts} icon={Clock} index={4} gradient="amber" />
       </div>
 
+      {/* Chart */}
       {trendData.length > 0 && (
-        <Card className="hover-lift animate-fade-in" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
-          <CardHeader className="bg-gradient-hero rounded-t-lg">
-            <CardTitle className="text-base">Content Posts by Month</CardTitle>
+        <Card className="overflow-hidden border-border/60 animate-fade-in" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
+          <CardHeader className="border-b border-border/40 bg-muted/30 pb-4">
+            <div className="flex items-center gap-2">
+              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                <TrendingUp className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <CardTitle className="text-base font-semibold">Content Trend</CardTitle>
+                <p className="text-xs text-muted-foreground">Posts by month — last 6 months</p>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="pt-4">
-            <ResponsiveContainer width="100%" height={250}>
-              <LineChart data={trendData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <Tooltip />
-                <Line type="monotone" dataKey="posts" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4, fill: "hsl(var(--primary))" }} />
-              </LineChart>
+          <CardContent className="pt-6 pb-4">
+            <ResponsiveContainer width="100%" height={260}>
+              <AreaChart data={trendData}>
+                <defs>
+                  <linearGradient id="colorPosts" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15}/>
+                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "0.75rem",
+                    boxShadow: "0 8px 24px -4px hsl(var(--foreground) / 0.1)",
+                    fontSize: "13px",
+                  }}
+                />
+                <Area type="monotone" dataKey="posts" stroke="hsl(var(--primary))" strokeWidth={2.5} fill="url(#colorPosts)" dot={{ r: 4, fill: "hsl(var(--card))", stroke: "hsl(var(--primary))", strokeWidth: 2 }} activeDot={{ r: 6 }} />
+              </AreaChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       )}
 
-      <div className="bg-card rounded-xl border border-border animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
-        <div className="px-6 py-4 border-b border-border flex items-center justify-between">
-          <h2 className="font-semibold text-foreground">All Clinics</h2>
+      {/* Clinics Table */}
+      <Card className="overflow-hidden border-border/60 animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
+        <div className="px-6 py-4 border-b border-border/40 bg-muted/30 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Building2 className="h-4 w-4 text-primary" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-foreground">All Clinics</h2>
+              <p className="text-xs text-muted-foreground">{clinics.length} clinics registered</p>
+            </div>
+          </div>
           <Link to="/clinics">
-            <Button variant="outline" size="sm">View All</Button>
+            <Button variant="outline" size="sm" className="rounded-lg">View All</Button>
           </Link>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-muted-foreground">Loading...</div>
+          <div className="p-12 text-center text-muted-foreground">
+            <div className="inline-flex items-center gap-2">
+              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              Loading clinics...
+            </div>
+          </div>
         ) : clinics.length === 0 ? (
-          <div className="p-8 text-center text-muted-foreground">
-            <p>No clinics yet. Add your first clinic to get started.</p>
-            <Link to="/clinics"><Button className="mt-4" size="sm">Add Clinic</Button></Link>
+          <div className="p-12 text-center">
+            <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+              <Building2 className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground mb-3">No clinics yet. Add your first clinic to get started.</p>
+            <Link to="/clinics"><Button size="sm" className="rounded-lg">Add Clinic</Button></Link>
           </div>
         ) : (
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Clinic Name</TableHead>
-                <TableHead>Assigned Concierge</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Clinic Name</TableHead>
+                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Assigned Concierge</TableHead>
+                <TableHead className="text-xs uppercase tracking-wider text-muted-foreground font-semibold">Status</TableHead>
+                <TableHead className="text-right text-xs uppercase tracking-wider text-muted-foreground font-semibold">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {clinics.slice(0, 10).map((clinic) => (
-                <TableRow key={clinic.id} className="hover:bg-muted/50 transition-colors">
+                <TableRow key={clinic.id} className="hover:bg-muted/40 transition-colors">
                   <TableCell className="font-medium">{clinic.clinic_name}</TableCell>
                   <TableCell>
                     <span className={clinic.assigned_concierge_id ? "text-foreground" : "text-muted-foreground italic"}>
@@ -149,13 +200,16 @@ export default function AdminDashboard() {
                     </span>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={clinic.status === "active" ? "default" : "secondary"}>
+                    <Badge
+                      variant={clinic.status === "active" ? "default" : "secondary"}
+                      className="rounded-full px-2.5 text-[11px] font-semibold"
+                    >
                       {clinic.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
                     <Link to={`/clinics/${clinic.id}`}>
-                      <Button variant="ghost" size="sm"><Eye className="h-4 w-4 mr-1" /> View</Button>
+                      <Button variant="ghost" size="sm" className="rounded-lg text-muted-foreground hover:text-primary"><Eye className="h-4 w-4 mr-1" /> View</Button>
                     </Link>
                   </TableCell>
                 </TableRow>
@@ -163,7 +217,7 @@ export default function AdminDashboard() {
             </TableBody>
           </Table>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

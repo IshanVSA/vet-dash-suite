@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import KPICard from "./KPICard";
-import { Building2, FileText, BarChart3 } from "lucide-react";
+import { Building2, FileText, BarChart3, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 
@@ -43,27 +43,56 @@ export default function ClientDashboard() {
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Your Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Overview of your clinic</p>
+      {/* Hero */}
+      <div className="relative overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-primary/5 via-card to-card p-8">
+        <div className="relative z-10">
+          <div className="flex items-center gap-2 mb-1">
+            <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Client Portal</span>
+          </div>
+          <h1 className="text-3xl font-bold text-foreground tracking-tight">Your Dashboard</h1>
+          <p className="text-muted-foreground mt-1 text-[15px]">Overview of your clinic and content performance</p>
+        </div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3 pointer-events-none" />
       </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <KPICard label="Your Clinics" value={clinics.length} icon={Building2} />
-        <KPICard label="Content Posts" value={postCount} icon={FileText} />
-        <KPICard label="Analytics Records" value={analyticsCount} icon={BarChart3} />
+        <KPICard label="Your Clinics" value={clinics.length} icon={Building2} index={0} gradient="blue" />
+        <KPICard label="Content Posts" value={postCount} icon={FileText} index={1} gradient="purple" />
+        <KPICard label="Analytics Records" value={analyticsCount} icon={BarChart3} index={2} gradient="green" />
       </div>
+
       {loading ? (
-        <p className="text-muted-foreground">Loading...</p>
+        <div className="text-center py-12 text-muted-foreground">
+          <div className="inline-flex items-center gap-2">
+            <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            Loading...
+          </div>
+        </div>
       ) : clinics.length === 0 ? (
-        <Card><CardContent className="py-8 text-center text-muted-foreground">No clinics linked to your account yet. Contact your account manager.</CardContent></Card>
+        <Card className="border-border/60">
+          <CardContent className="py-12 text-center">
+            <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
+              <Building2 className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <p className="text-muted-foreground">No clinics linked to your account yet. Contact your account manager.</p>
+          </CardContent>
+        </Card>
       ) : (
-        <div className="space-y-4">
-          {clinics.map((clinic) => (
-            <Card key={clinic.id} className="hover:shadow-md transition-shadow">
+        <div className="space-y-3">
+          {clinics.map((clinic, i) => (
+            <Card key={clinic.id} className="group border-border/60 hover-lift animate-fade-in overflow-hidden" style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}>
               <CardContent className="py-4 flex items-center justify-between">
-                <span className="font-medium text-foreground">{clinic.clinic_name}</span>
+                <div className="flex items-center gap-3">
+                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <Building2 className="h-4 w-4 text-primary" />
+                  </div>
+                  <span className="font-medium text-foreground">{clinic.clinic_name}</span>
+                </div>
                 <Link to={`/clinics/${clinic.id}`}>
-                  <Button size="sm">View Clinic</Button>
+                  <Button size="sm" className="rounded-lg group-hover:shadow-md transition-shadow">
+                    View Clinic <ArrowRight className="h-3.5 w-3.5 ml-1 group-hover:translate-x-0.5 transition-transform" />
+                  </Button>
                 </Link>
               </CardContent>
             </Card>
