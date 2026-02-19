@@ -198,9 +198,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    const { clinic_id, intake_data } = await req.json();
+    const body = await req.json();
+    const clinic_id = typeof body.clinic_id === "string" ? body.clinic_id.trim() : "";
+    const intake_data = body.intake_data && typeof body.intake_data === "object" && !Array.isArray(body.intake_data) ? body.intake_data : null;
+
     if (!clinic_id || !intake_data) {
       return new Response(JSON.stringify({ error: "Missing clinic_id or intake_data" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Validate payload size (limit intake_data to ~50KB)
+    const intakeStr = JSON.stringify(intake_data);
+    if (intakeStr.length > 50000) {
+      return new Response(JSON.stringify({ error: "Intake data is too large" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -222,7 +233,8 @@ Deno.serve(async (req) => {
       .single();
 
     if (reqError) {
-      return new Response(JSON.stringify({ error: reqError.message }), {
+      console.error("Content request insert error:", reqError.message);
+      return new Response(JSON.stringify({ error: "Failed to create content request" }), {
         status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
@@ -287,7 +299,7 @@ Deno.serve(async (req) => {
     });
   } catch (err) {
     console.error("generate-content error:", err);
-    return new Response(JSON.stringify({ error: err.message }), {
+    return new Response(JSON.stringify({ error: "Content generation failed. Please try again." }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
