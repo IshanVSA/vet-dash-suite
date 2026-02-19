@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
+import { toast } from "sonner";
 
 interface Clinic { id: string; clinic_name: string; }
 interface ContentPost {
@@ -127,6 +128,41 @@ export default function ContentCalendar() {
     setPosts(prev => prev.map(p => p.id === postId ? { ...p, status } : p));
   };
 
+  const handleExport = () => {
+    try {
+      const dataToExport = activeFilter === "All" ? posts : posts.filter(p => p.status === activeFilter.toLowerCase());
+      if (dataToExport.length === 0) {
+        toast.error("No posts to export.");
+        return;
+      }
+      const headers = ["Title", "Platform", "Content Type", "Scheduled Date", "Time", "Status", "Tags", "Caption", "Content", "Compliance Note"];
+      const rows = dataToExport.map(p => [
+        p.title,
+        p.platform,
+        p.content_type,
+        p.scheduled_date || "",
+        p.scheduled_time?.slice(0, 5) || "",
+        p.status,
+        (p.tags || []).join("; "),
+        (p.caption || "").replace(/"/g, '""'),
+        (p.content || "").replace(/"/g, '""'),
+        (p.compliance_note || "").replace(/"/g, '""'),
+      ]);
+      const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `content-calendar-${format(currentMonth, "yyyy-MM")}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${dataToExport.length} posts.`);
+    } catch (error) {
+      console.error("Export failed:", error);
+      toast.error("Export failed. Please try again.");
+    }
+  };
+
   const filtered = activeFilter === "All" ? posts : posts.filter(p => p.status === activeFilter.toLowerCase());
 
   const kpis = [
@@ -178,7 +214,7 @@ export default function ContentCalendar() {
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="text-xs sm:text-sm"><Download className="h-4 w-4 mr-1 sm:mr-2" /> Export</Button>
+            <Button variant="outline" size="sm" className="text-xs sm:text-sm" onClick={handleExport}><Download className="h-4 w-4 mr-1 sm:mr-2" /> Export</Button>
             <Button size="sm" className="text-xs sm:text-sm" onClick={() => setNewPostOpen(true)}><Plus className="h-4 w-4 mr-1 sm:mr-2" /> New Post</Button>
           </div>
         </div>
