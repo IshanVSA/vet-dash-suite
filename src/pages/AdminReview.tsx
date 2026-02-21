@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { ChevronLeft, ChevronRight, Download, Plus, Check, Pencil, RotateCcw, Instagram, Facebook, ShieldCheck, ChevronDown, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { format, addMonths, subMonths } from "date-fns";
+import { format, addMonths, subMonths, endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { PostInspector } from "@/components/content-calendar/PostInspector";
 import type { ContentPost } from "@/components/content-calendar/PostChip";
@@ -90,7 +90,7 @@ export default function AdminReview() {
       setSubmissions((subs as any as Submission[]) || []);
 
       const startDate = `${monthStr}-01`;
-      const endDate = `${monthStr}-31`;
+      const endDate = format(endOfMonth(currentMonth), "yyyy-MM-dd");
       let postQuery = supabase.from("content_posts").select("*")
         .gte("scheduled_date", startDate).lte("scheduled_date", endDate);
       if (selectedClinicId !== "all") postQuery = postQuery.eq("clinic_id", selectedClinicId);
