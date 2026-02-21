@@ -4,7 +4,8 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Download, Plus, Check, Pencil, RotateCcw, Instagram, Facebook, ShieldCheck } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { ChevronLeft, ChevronRight, Download, Plus, Check, Pencil, RotateCcw, Instagram, Facebook, ShieldCheck, ChevronDown, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addMonths, subMonths } from "date-fns";
 import { toast } from "sonner";
@@ -26,14 +27,17 @@ interface ContentPost {
   caption: string | null;
   platform: string;
   content_type: string;
+  scheduled_date: string | null;
+  scheduled_time: string | null;
+  status: string;
 }
 interface Profile { id: string; full_name: string | null; }
 
 const platformIcon = (platform: string) => {
   switch (platform) {
-    case "instagram": return <div className="h-6 w-6 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0"><Instagram className="h-3.5 w-3.5 text-white" /></div>;
-    case "facebook": return <div className="h-6 w-6 rounded-full bg-blue-600 flex items-center justify-center shrink-0"><Facebook className="h-3.5 w-3.5 text-white" /></div>;
-    default: return <div className="h-6 w-6 rounded-full bg-muted flex items-center justify-center shrink-0 text-muted-foreground text-[10px] font-bold">{platform[0]?.toUpperCase()}</div>;
+    case "instagram": return <div className="h-5 w-5 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0"><Instagram className="h-3 w-3 text-white" /></div>;
+    case "facebook": return <div className="h-5 w-5 rounded-full bg-blue-600 flex items-center justify-center shrink-0"><Facebook className="h-3 w-3 text-white" /></div>;
+    default: return <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center shrink-0 text-muted-foreground text-[9px] font-bold">{platform[0]?.toUpperCase()}</div>;
   }
 };
 
@@ -45,6 +49,20 @@ const statusAccent: Record<string, string> = {
   no_submission: "border-l-border",
 };
 
+const postStatusBadge: Record<string, string> = {
+  scheduled: "bg-blue-100 text-blue-700",
+  posted: "bg-green-100 text-green-700",
+  failed: "bg-red-100 text-red-700",
+  draft: "bg-muted text-muted-foreground",
+};
+
+const postStatusBorder: Record<string, string> = {
+  scheduled: "border-l-blue-500",
+  posted: "border-l-green-500",
+  failed: "border-l-red-500",
+  draft: "border-l-muted",
+};
+
 export default function AdminReview() {
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [selectedClinicId, setSelectedClinicId] = useState("all");
@@ -53,8 +71,13 @@ export default function AdminReview() {
   const [postsByClinic, setPostsByClinic] = useState<Record<string, ContentPost[]>>({});
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [openClinics, setOpenClinics] = useState<Record<string, boolean>>({});
 
   const monthStr = format(currentMonth, "yyyy-MM");
+
+  const toggleClinic = (clinicId: string) => {
+    setOpenClinics(prev => ({ ...prev, [clinicId]: !prev[clinicId] }));
+  };
 
   useEffect(() => {
     Promise.all([
@@ -76,7 +99,7 @@ export default function AdminReview() {
 
       const startDate = `${monthStr}-01`;
       const endDate = `${monthStr}-31`;
-      let postQuery = supabase.from("content_posts").select("id, clinic_id, title, caption, platform, content_type")
+      let postQuery = supabase.from("content_posts").select("id, clinic_id, title, caption, platform, content_type, scheduled_date, scheduled_time, status")
         .gte("scheduled_date", startDate).lte("scheduled_date", endDate);
       if (selectedClinicId !== "all") postQuery = postQuery.eq("clinic_id", selectedClinicId);
       const { data: posts } = await postQuery;
@@ -119,7 +142,7 @@ export default function AdminReview() {
           <div className="flex items-center gap-3">
             <Select value={selectedClinicId} onValueChange={setSelectedClinicId}>
               <SelectTrigger className="w-[260px]"><SelectValue placeholder="All Clinics" /></SelectTrigger>
-              <SelectContent>
+              <SelectContent className="z-50 bg-popover">
                 <SelectItem value="all">🐾 All Clinics</SelectItem>
                 {clinics.map(c => (<SelectItem key={c.id} value={c.id}>🐾 {c.clinic_name}</SelectItem>))}
               </SelectContent>
@@ -158,78 +181,133 @@ export default function AdminReview() {
             <p className="text-sm">No calendar submissions for this month yet.</p>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4">
             {relevantClinicIds.map((clinicId, idx) => {
               const submission = submissions.find(s => s.clinic_id === clinicId);
-              const posts = postsByClinic[clinicId] || [];
+              const posts = (postsByClinic[clinicId] || []).sort((a, b) => (a.scheduled_date || "").localeCompare(b.scheduled_date || ""));
               const clinicName = getClinicName(clinicId);
               const submitterName = submission ? getProfileName(submission.submitted_by) : null;
               const status = submission?.status || "no_submission";
+              const isOpen = openClinics[clinicId] ?? false;
 
               return (
-                <div
+                <Collapsible
                   key={clinicId}
-                  className={cn(
-                    "bg-card rounded-xl border border-border overflow-hidden border-l-4 hover-lift animate-fade-in",
-                    statusAccent[status] || "border-l-border"
-                  )}
-                  style={{ animationDelay: `${idx * 80}ms`, animationFillMode: "both" }}
+                  open={isOpen}
+                  onOpenChange={() => toggleClinic(clinicId)}
                 >
-                  <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <div>
-                      <h2 className="text-lg font-bold text-foreground">{clinicName}</h2>
-                      <p className="text-sm text-muted-foreground">
-                        {format(currentMonth, "MMMM yyyy")}
-                        {submitterName && <> · Submitted by <span className="font-medium text-foreground">{submitterName}</span></>}
-                        {submission?.submitted_at && <> on {format(new Date(submission.submitted_at), "MMM d, yyyy")}</>}
-                      </p>
-                      <div className="mt-2">
-                        {(status === "needs_review" || status === "pending") && (
-                          <Badge className="bg-warning/20 text-warning font-semibold text-xs">⏳ NEEDS REVIEW</Badge>
-                        )}
-                        {status === "approved" && (
-                          <Badge className="bg-success/20 text-success font-semibold text-xs">✅ ADMIN APPROVED</Badge>
-                        )}
-                        {status === "sent_back" && (
-                          <Badge className="bg-destructive/20 text-destructive font-semibold text-xs">↩ SENT BACK</Badge>
-                        )}
-                        {status === "no_submission" && (
-                          <Badge variant="secondary" className="text-xs">No submission</Badge>
-                        )}
-                      </div>
-                    </div>
-                    {submission && (
-                      <div className="flex flex-col gap-2 shrink-0">
-                        <Button size="sm" className="bg-gradient-to-r from-success to-success/90 hover:from-success/90 hover:to-success/80 text-success-foreground shadow-sm shimmer"
-                          onClick={() => updateSubmissionStatus(submission.id, "approved")}>
-                          <Check className="h-4 w-4 mr-1.5" /> Approve Calendar
-                        </Button>
-                        <Button variant="outline" size="sm" className="border-border" onClick={() => updateSubmissionStatus(submission.id, "needs_review")}>
-                          <Pencil className="h-4 w-4 mr-1.5" /> Tweak & Edit
-                        </Button>
-                        <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                          onClick={() => updateSubmissionStatus(submission.id, "sent_back")}>
-                          <RotateCcw className="h-4 w-4 mr-1.5" /> Send Back
-                        </Button>
-                      </div>
+                  <div
+                    className={cn(
+                      "bg-card rounded-xl border border-border overflow-hidden border-l-4 animate-fade-in",
+                      statusAccent[status] || "border-l-border"
                     )}
-                  </div>
-                  {posts.length > 0 && (
-                    <div className="px-6 pb-5">
-                      <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
-                        {posts.map(post => (
-                          <div key={post.id} className="bg-secondary/50 rounded-lg border border-border p-3 hover:shadow-md transition-shadow">
-                            <div className="flex items-center gap-2 mb-2">
-                              {platformIcon(post.platform)}
-                              <h4 className="text-sm font-semibold text-foreground line-clamp-2 leading-tight">{post.title}</h4>
-                            </div>
-                            {post.caption && <p className="text-xs text-muted-foreground line-clamp-2">{post.caption}</p>}
-                          </div>
-                        ))}
+                    style={{ animationDelay: `${idx * 60}ms`, animationFillMode: "both" }}
+                  >
+                    {/* Header */}
+                    <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div className="flex-1">
+                        <h2 className="text-lg font-bold text-foreground">{clinicName}</h2>
+                        <p className="text-sm text-muted-foreground">
+                          {format(currentMonth, "MMMM yyyy")}
+                          {submitterName && <> · Submitted by <span className="font-medium text-foreground">{submitterName}</span></>}
+                          {submission?.submitted_at && <> on {format(new Date(submission.submitted_at), "MMM d, yyyy")}</>}
+                        </p>
+                        <div className="flex items-center gap-3 mt-2">
+                          {(status === "needs_review" || status === "pending") && (
+                            <Badge className="bg-warning/20 text-warning font-semibold text-xs">⏳ NEEDS REVIEW</Badge>
+                          )}
+                          {status === "approved" && (
+                            <Badge className="bg-success/20 text-success font-semibold text-xs">✅ ADMIN APPROVED</Badge>
+                          )}
+                          {status === "sent_back" && (
+                            <Badge className="bg-destructive/20 text-destructive font-semibold text-xs">↩ SENT BACK</Badge>
+                          )}
+                          {status === "no_submission" && (
+                            <Badge variant="secondary" className="text-xs">No submission</Badge>
+                          )}
+                          {posts.length > 0 && (
+                            <span className="text-xs text-muted-foreground">{posts.length} post{posts.length !== 1 ? "s" : ""}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {posts.length > 0 && (
+                          <CollapsibleTrigger asChild>
+                            <Button variant="outline" size="sm" className="gap-1.5">
+                              <Eye className="h-3.5 w-3.5" />
+                              {isOpen ? "Hide" : "View"} Content
+                              <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")} />
+                            </Button>
+                          </CollapsibleTrigger>
+                        )}
+                        {submission && (
+                          <>
+                            <Button size="sm" className="bg-gradient-to-r from-success to-success/90 hover:from-success/90 hover:to-success/80 text-success-foreground shadow-sm"
+                              onClick={() => updateSubmissionStatus(submission.id, "approved")}>
+                              <Check className="h-4 w-4 mr-1.5" /> Approve
+                            </Button>
+                            <Button variant="outline" size="sm" onClick={() => updateSubmissionStatus(submission.id, "needs_review")}>
+                              <Pencil className="h-4 w-4 mr-1.5" /> Edit
+                            </Button>
+                            <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10"
+                              onClick={() => updateSubmissionStatus(submission.id, "sent_back")}>
+                              <RotateCcw className="h-4 w-4 mr-1.5" /> Send Back
+                            </Button>
+                          </>
+                        )}
                       </div>
                     </div>
-                  )}
-                </div>
+
+                    {/* Collapsible content list */}
+                    <CollapsibleContent>
+                      {posts.length > 0 && (
+                        <div className="border-t border-border">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="bg-muted/40 text-muted-foreground text-[11px] uppercase tracking-wider">
+                                <th className="text-left py-2.5 px-5 font-semibold">Title</th>
+                                <th className="text-left py-2.5 px-3 font-semibold">Type</th>
+                                <th className="text-left py-2.5 px-3 font-semibold">Date & Time</th>
+                                <th className="text-left py-2.5 px-3 font-semibold">Platform</th>
+                                <th className="text-left py-2.5 px-3 font-semibold">Status</th>
+                                <th className="text-left py-2.5 px-3 font-semibold">Caption</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {posts.map(post => (
+                                <tr
+                                  key={post.id}
+                                  className={cn(
+                                    "border-t border-border/60 hover:bg-accent/30 transition-colors border-l-[3px]",
+                                    postStatusBorder[post.status] || "border-l-muted"
+                                  )}
+                                >
+                                  <td className="py-3 px-5 font-medium text-foreground">{post.title}</td>
+                                  <td className="py-3 px-3">
+                                    <Badge variant="outline" className="text-[10px] uppercase">{post.content_type}</Badge>
+                                  </td>
+                                  <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">
+                                    {post.scheduled_date ? format(new Date(post.scheduled_date + "T00:00:00"), "MMM d, yyyy") : "—"}
+                                    {post.scheduled_time && <span className="ml-1.5 text-foreground">{post.scheduled_time.slice(0, 5)}</span>}
+                                  </td>
+                                  <td className="py-3 px-3">{platformIcon(post.platform)}</td>
+                                  <td className="py-3 px-3">
+                                    <Badge className={cn("text-[10px] uppercase border-0", postStatusBadge[post.status] || "bg-muted text-muted-foreground")}>
+                                      {post.status}
+                                    </Badge>
+                                  </td>
+                                  <td className="py-3 px-3 text-muted-foreground text-xs max-w-[250px] truncate">
+                                    {post.caption || "—"}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </CollapsibleContent>
+                  </div>
+                </Collapsible>
               );
             })}
           </div>
