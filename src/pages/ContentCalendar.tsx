@@ -80,7 +80,8 @@ const platformGradient: Record<string, string> = {
   tiktok: "from-foreground to-foreground",
 };
 
-const filterTabs = ["All", "Scheduled", "Pending", "Flagged", "Posted", "Draft"];
+const filterTabs = ["All", "Scheduled", "Flagged", "Posted"];
+const contentTypes = ["All Types", "Reel", "Carousel", "Static", "Story", "Video"];
 
 export default function ContentCalendar() {
   const { role } = useUserRole();
@@ -90,6 +91,7 @@ export default function ContentCalendar() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [posts, setPosts] = useState<ContentPost[]>([]);
   const [activeFilter, setActiveFilter] = useState("All");
+  const [activeContentType, setActiveContentType] = useState("All Types");
   const [loading, setLoading] = useState(true);
   const [editingPost, setEditingPost] = useState<ContentPost | null>(null);
   const [clinicPopoverOpen, setClinicPopoverOpen] = useState(false);
@@ -204,7 +206,11 @@ export default function ContentCalendar() {
     }
   };
 
-  const filtered = activeFilter === "All" ? posts : posts.filter(p => p.status === activeFilter.toLowerCase());
+  const filtered = posts.filter(p => {
+    const statusMatch = activeFilter === "All" || p.status === activeFilter.toLowerCase();
+    const typeMatch = activeContentType === "All Types" || p.content_type.toLowerCase() === activeContentType.toLowerCase();
+    return statusMatch && typeMatch;
+  });
 
   const kpis = [
     { icon: <LayoutGrid className="h-4 w-4" />, iconBg: "bg-purple-100 text-purple-600", value: posts.length, label: "Total Posts" },
@@ -285,13 +291,31 @@ export default function ContentCalendar() {
             <CalendarDays className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
             Content Cards — {format(currentMonth, "MMMM yyyy")}
           </h2>
-          <div className="flex gap-1 sm:gap-1.5 flex-wrap">
-            {filterTabs.map(tab => (
-              <Button key={tab} variant={activeFilter === tab ? "default" : "outline"} size="sm"
-                className={cn("text-[10px] sm:text-xs rounded-full px-2.5 sm:px-4 h-7 sm:h-8", activeFilter === tab && "shadow-sm")}
-                onClick={() => setActiveFilter(tab)}
-              >{tab}</Button>
-            ))}
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+            <div className="flex gap-1 sm:gap-1.5 flex-wrap">
+              {filterTabs.map(tab => (
+                <Button key={tab} variant={activeFilter === tab ? "default" : "outline"} size="sm"
+                  className={cn("text-[10px] sm:text-xs rounded-full px-2.5 sm:px-4 h-7 sm:h-8", activeFilter === tab && "shadow-sm")}
+                  onClick={() => setActiveFilter(tab)}
+                >{tab}</Button>
+              ))}
+            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="text-[10px] sm:text-xs rounded-full px-2.5 sm:px-4 h-7 sm:h-8 gap-1">
+                  <Film className="h-3 w-3" />
+                  {activeContentType}
+                  <ChevronsUpDown className="h-3 w-3 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="z-50 bg-popover">
+                {contentTypes.map(type => (
+                  <DropdownMenuItem key={type} onClick={() => setActiveContentType(type)} className={cn(activeContentType === type && "font-semibold")}>
+                    {type}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
