@@ -1,206 +1,128 @@
 
-# Advanced Content Calendar + Workflow System - Phase 1
 
-## Overview
-Transform the Content Calendar from a simple list into a full Content Operations System with multi-view layout, split-screen inspector, workflow tracking, collaboration (comments), and auto-approval automation.
+# Content Calendar Rebuild -- Execution Board
 
-## Phase 1 Scope
-- Split-screen layout (70/30) with persistent inspector panel
-- 3 view modes: List (default), Monthly Calendar Grid, Weekly Planning
-- Multi-stage workflow tracker on cards + inspector
-- Activity timeline log
-- Comments system (Admin, Client, Internal Concierge layers)
-- 5-day auto-approval countdown with cron job
-- Enhanced status colors and UI polish
-- Strategy dashboard panel
-- Hover quick actions on cards
+A complete rebuild of the Content Calendar page into a minimal, execution-focused scheduling tool with two views, drag-and-drop rescheduling, and a right-side inspector panel.
 
 ---
 
-## Database Changes
+## What Changes
 
-### New Tables
+### 1. Two-View Toggle (Monthly + List)
 
-**1. `post_comments`** - Role-layered commenting system
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid (PK) | default gen_random_uuid() |
-| post_id | uuid (FK -> content_posts) | NOT NULL |
-| user_id | uuid | NOT NULL |
-| content | text | NOT NULL |
-| visibility | text | 'all', 'internal', 'concierge_only' |
-| created_at | timestamptz | default now() |
+**Monthly View (default)**
+- Traditional 7-column grid calendar (Sun-Sat) showing all days of the current month.
+- Each date cell displays compact post chips (title, type badge, status dot).
+- Posts are draggable to other date cells for rescheduling.
 
-RLS: Admins see all; Concierges see 'all' + 'internal' + 'concierge_only'; Clients see 'all' only.
+**List View**
+- Chronological vertical list sorted by scheduled date ascending.
+- Each row shows: title, post type, date/time, platform icon, status badge.
+- Clicking a row opens the inspector panel.
 
-**2. `post_activity_log`** - Chronological event tracking
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid (PK) | default gen_random_uuid() |
-| post_id | uuid (FK -> content_posts) | NOT NULL |
-| action | text | e.g. 'generated', 'approved', 'flagged', 'auto_approved' |
-| actor_id | uuid | nullable (null for system events) |
-| metadata | jsonb | default '{}' |
-| created_at | timestamptz | default now() |
+A simple toggle (CalendarDays / List icon buttons) sits in the top-right toolbar area.
 
-RLS: Authenticated users can SELECT; Admin/Concierge can INSERT.
+### 2. Simplified Post Cards
 
-**3. `post_workflow`** - Tracks workflow stage per post
-| Column | Type | Notes |
-|--------|------|-------|
-| id | uuid (PK) | default gen_random_uuid() |
-| post_id | uuid (FK -> content_posts, UNIQUE) | NOT NULL |
-| stage | text | 'generated', 'concierge_preferred', 'sent_to_admin', 'admin_approved', 'sent_to_client', 'client_approved', 'auto_approved' |
-| sent_to_client_at | timestamptz | nullable, for countdown |
-| auto_approve_at | timestamptz | nullable, computed = sent_to_client_at + 5 days |
-| updated_at | timestamptz | default now() |
+Each post displays only:
+- **Title**
+- **Post Type** (Reel / Carousel / Static / Story / Video)
+- **Scheduled Date and Time**
+- **Publishing Status** (Scheduled / Posted / Failed)
 
-RLS: Authenticated can SELECT; Admin/Concierge can INSERT/UPDATE.
+Removed from cards:
+- Caption preview, Main Copy preview, compliance notes, tags, approval badges, workflow stages
 
-### Schema Modifications
+### 3. Status Color System
 
-**`content_posts`** - Add columns:
-- `workflow_stage` text default 'draft' - denormalized for fast filtering
-- `flag_reason` text nullable - reason when post is flagged
+| Status    | Color  | Badge Class                        |
+|-----------|--------|------------------------------------|
+| Scheduled | Blue   | `bg-blue-100 text-blue-700`        |
+| Posted    | Green  | `bg-green-100 text-green-700`      |
+| Failed    | Red    | `bg-red-100 text-red-700`          |
+
+Each card gets a 3px left border in the matching status color.
+
+### 4. Drag-and-Drop Rescheduling (Monthly View)
+
+- Uses native HTML5 drag-and-drop (no extra library needed).
+- Cards with `status !== "posted"` are draggable.
+- Dropping on a new date cell updates `scheduled_date` in Supabase and shows toast: "Post rescheduled to [New Date]".
+- Posted cards have `draggable={false}` and a `cursor-default`.
+
+### 5. Right-Side Inspector Panel
+
+- When a post is clicked, a slide-in panel appears on the right side (using CSS transition, not a modal).
+- The main content area shrinks to accommodate the panel (flex layout).
+
+**Inspector contents:**
+- Full Caption (read-only if posted)
+- Hashtags extracted from tags
+- Scheduled Date and Time (editable if not posted)
+- Publishing Status (read-only display)
+- Platform
+- Post Type
+- Edit button (saves inline changes)
+- Delete button (with confirmation)
+
+**Rules:**
+- Posted: all fields read-only, no delete
+- Scheduled: fully editable
+- Failed: fully editable
+
+### 6. Removed Elements
+
+- KPI summary cards row (Total Posts, Videos, Posted, Pending)
+- "Content Cards" section header
+- Status filter tabs (All, Scheduled, Flagged, Posted)
+- Content type dropdown filter
+- Tag badges and compliance note display
+- "Mark Posted" confirmation dialog (moved into inspector)
+- Export dropdown (kept but simplified)
+
+### 7. Simplified Toolbar
+
+Top bar contains only:
+- Clinic selector (existing popover)
+- Month navigation (existing arrows)
+- View toggle (Monthly / List)
+- Export button
+- New Post button
 
 ---
 
-## New Edge Function
+## Technical Details
 
-### `auto-approve-posts`
-- Triggered by pg_cron every hour
-- Queries `post_workflow` for posts where `stage = 'sent_to_client'` AND `auto_approve_at <= now()`
-- Updates stage to 'auto_approved', content_posts status to 'approved'
-- Logs event in `post_activity_log`
-- Requires `pg_cron` and `pg_net` extensions
+### New Files
+1. **`src/components/content-calendar/MonthlyView.tsx`** -- Grid calendar component with drag-and-drop date cells
+2. **`src/components/content-calendar/ListView.tsx`** -- Chronological list table
+3. **`src/components/content-calendar/PostInspector.tsx`** -- Right-side slide-in panel with edit/delete
+4. **`src/components/content-calendar/PostChip.tsx`** -- Minimal draggable post card used in both views
 
----
+### Modified Files
+1. **`src/pages/ContentCalendar.tsx`** -- Complete rewrite: remove KPIs, filters, card grid; add view toggle state, inspector state, drag handler, delete handler; layout uses flex with conditional inspector panel
+2. **`src/components/content-calendar/EditPostDialog.tsx`** -- Remove tags, compliance note, and approval-related status options; simplify to execution fields only
+3. **`src/components/content-calendar/NewPostDialog.tsx`** -- Remove tags, compliance note, status selector; default status to "scheduled"
 
-## Frontend Architecture
+### Drag-and-Drop Implementation
+- Uses `onDragStart`, `onDragOver`, `onDrop` native events
+- Each date cell has a `data-date` attribute
+- On drop: call `supabase.from("content_posts").update({ scheduled_date: newDate })` and update local state
+- Toast confirmation via `sonner`
 
-### New Components
-
-```
-src/components/content-calendar/
-  ContentCalendarPage.tsx      -- Main orchestrator (replaces current page logic)
-  CalendarHeader.tsx           -- Clinic selector, month nav, view toggle, export
-  ViewToggle.tsx               -- List / Calendar / Weekly toggle buttons
-  StrategyDashboard.tsx        -- Content mix, funnel, pillar charts
-  MonthlyProgressBar.tsx       -- "X / Y Fully Approved" progress bar
-  
-  views/
-    ListView.tsx               -- Current card grid (enhanced)
-    CalendarGridView.tsx       -- Monthly grid with day cells
-    WeeklyPlanningView.tsx     -- Weekly column layout
-  
-  inspector/
-    ContentInspector.tsx       -- Right panel orchestrator
-    InspectorPreview.tsx       -- Full post content preview
-    WorkflowTracker.tsx        -- Horizontal stage tracker with nodes
-    ActivityTimeline.tsx       -- Chronological event list
-    CommentsPanel.tsx          -- Role-layered comments
-    InspectorActions.tsx       -- Approve/Flag/Duplicate/Regenerate buttons
-  
-  cards/
-    CompactPostCard.tsx        -- 2-line preview card with status border
-    WorkflowMiniTracker.tsx    -- Mini horizontal stage indicator on cards
-    CountdownBadge.tsx         -- "X Days Remaining" badge
-    AutoApprovedBadge.tsx      -- Purple "AUTO APPROVED" badge
-  
-  QuickActions.tsx             -- Hover overlay: Edit, Approve, Flag, Duplicate, Regenerate
-  FlagReasonDialog.tsx         -- Modal for flag reason input
-```
-
-### Layout Structure
-
+### Inspector Panel Layout
 ```text
-+----------------------------------------------------------+
-| CalendarHeader (clinic, month, view toggle, export, +new) |
-+----------------------------------------------------------+
-| StrategyDashboard (content mix, funnel, pillar charts)    |
-+----------------------------------------------------------+
-| MonthlyProgressBar ("12/20 Approved")                     |
-+----------------------------------------------------------+
-| Filter Tabs                                               |
-+-----------------------------------+----------------------+
-|                                   |                      |
-|  ListView / CalendarGrid /        |  ContentInspector    |
-|  WeeklyPlanning (70%)             |  Panel (30%)         |
-|                                   |                      |
-|  - Click card to select           |  - Post preview      |
-|  - Hover for quick actions        |  - Workflow tracker  |
-|                                   |  - Activity timeline |
-|                                   |  - Comments          |
-|                                   |  - Action buttons    |
-+-----------------------------------+----------------------+
++---------------------------+----------------+
+|                           |                |
+|   Monthly/List View       |   Inspector    |
+|   (flex-1)                |   (w-[360px])  |
+|                           |                |
++---------------------------+----------------+
 ```
+- Panel slides in with `transition-all duration-200`
+- Close button at top-right of panel
 
-The split uses `react-resizable-panels` (already installed) for the 70/30 layout.
+### Data Query
+- Keep existing query but only fetch posts with status in `('scheduled', 'posted', 'failed')` since all posts here are approved
+- Add delete functionality: `supabase.from("content_posts").delete().eq("id", postId)`
 
-### Workflow Stages and Colors
-| Stage | Color | Badge |
-|-------|-------|-------|
-| Generated | Gray | -- |
-| Concierge Preferred | Indigo | -- |
-| Sent to Admin | Yellow/Amber | -- |
-| Admin Approved | Emerald | -- |
-| Sent to Client | Blue | + countdown timer |
-| Client Approved | Green | -- |
-| Auto Approved | Purple | "AUTO APPROVED" |
-| Flagged | Red | -- |
-
-### Card Enhancements
-- Colored left border matching workflow stage
-- Mini horizontal stage tracker (5 dots/nodes)
-- Hover overlay with quick action buttons
-- Soft glow on active stage
-- Micro-animations on status changes (CSS transitions)
-
-### Strategy Dashboard
-- Compact bar charts for Content Mix (Reels/Carousels/Static/Promo/Educational)
-- TOFU/MOFU/BOFU funnel distribution
-- Content pillar distribution
-- Promo vs Education ratio with warning if promo > 40%
-- Built with recharts (already installed)
-
-### Comments Implementation
-- Three visibility layers: 'all' (everyone), 'internal' (admin + concierge), 'concierge_only'
-- Role-based filtering in the UI
-- @mention support with simple text parsing (@Admin, @Concierge, @Client)
-- Comments displayed in the inspector panel with role badges
-
----
-
-## Implementation Steps
-
-1. **Database migration**: Create `post_comments`, `post_activity_log`, `post_workflow` tables with RLS policies. Add `workflow_stage` and `flag_reason` columns to `content_posts`.
-
-2. **Auto-approve edge function**: Create `supabase/functions/auto-approve-posts/index.ts`. Enable `pg_cron` and `pg_net` extensions. Schedule hourly cron job.
-
-3. **Build inspector components**: `ContentInspector`, `WorkflowTracker`, `ActivityTimeline`, `CommentsPanel`, `InspectorActions`.
-
-4. **Build view components**: `ListView` (enhanced from current), `CalendarGridView`, `WeeklyPlanningView`.
-
-5. **Build card components**: `CompactPostCard` with colored border, `WorkflowMiniTracker`, `CountdownBadge`, hover quick actions.
-
-6. **Build strategy dashboard**: `StrategyDashboard` with recharts bar charts derived from current month's post data.
-
-7. **Build main page**: Refactor `ContentCalendar.tsx` to use split-screen layout with `ResizablePanelGroup`, view toggle state, and inspector panel.
-
-8. **Wire up workflow logic**: Update status change functions to also update `post_workflow` and insert `post_activity_log` entries.
-
-9. **Flag reason dialog**: `FlagReasonDialog` component that captures reason text before flagging.
-
-10. **Monthly progress bar**: Calculate approved/total ratio and render progress indicator.
-
----
-
-## Technical Notes
-
-- The split-screen uses `react-resizable-panels` which is already a project dependency
-- Strategy charts use `recharts` which is already installed
-- All workflow state changes log to `post_activity_log` for full audit trail
-- The auto-approve cron uses `pg_cron` + `pg_net` to call the edge function hourly
-- Comments RLS uses the existing `has_role()` security definer function
-- Dark theme compatibility maintained via Tailwind `text-foreground` / `bg-card` patterns
-- Responsive: inspector panel collapses to bottom sheet on mobile
