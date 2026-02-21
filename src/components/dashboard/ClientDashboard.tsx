@@ -6,6 +6,7 @@ import KPICard from "./KPICard";
 import { Building2, FileText, BarChart3, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 
 interface Clinic {
   id: string;
@@ -66,12 +67,7 @@ export default function ClientDashboard() {
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <div className="inline-flex items-center gap-2">
-            <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            Loading...
-          </div>
-        </div>
+        <DashboardSkeleton />
       ) : clinics.length === 0 ? (
         <Card className="border-border/60">
           <CardContent className="py-12 text-center">
