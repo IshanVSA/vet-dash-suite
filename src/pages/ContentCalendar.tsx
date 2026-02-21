@@ -347,13 +347,10 @@ export default function ContentCalendar() {
                     </span>
                   )}
                 </div>
-                <div className="border-t border-border grid grid-cols-3 bg-muted/50">
+                <div className="border-t border-border grid grid-cols-2 bg-muted/50">
                   <Button variant="ghost" size="sm" className="rounded-none text-xs h-10" onClick={() => setEditingPost(post)}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
-                  <Button variant="ghost" size="sm" className="rounded-none text-xs h-10 text-success hover:text-success" onClick={() => updatePostStatus(post.id, "approved")}>
-                    <Check className="h-3.5 w-3.5 mr-1" /> Approve
-                  </Button>
-                  <Button variant="ghost" size="sm" className="rounded-none text-xs h-10 text-destructive hover:text-destructive" onClick={() => updatePostStatus(post.id, "flagged")}>
-                    <Flag className="h-3.5 w-3.5 mr-1" /> Flag
+                  <Button variant="ghost" size="sm" className="rounded-none text-xs h-10 text-success hover:text-success" onClick={() => updatePostStatus(post.id, "posted")}>
+                    <Check className="h-3.5 w-3.5 mr-1" /> Posted
                   </Button>
                 </div>
               </div>
