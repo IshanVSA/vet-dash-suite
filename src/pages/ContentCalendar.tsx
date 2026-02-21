@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react"; 
+import { useEffect, useState } from "react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
@@ -93,6 +94,7 @@ export default function ContentCalendar() {
   const [editingPost, setEditingPost] = useState<ContentPost | null>(null);
   const [clinicPopoverOpen, setClinicPopoverOpen] = useState(false);
   const [newPostOpen, setNewPostOpen] = useState(false);
+  const [postToMarkPosted, setPostToMarkPosted] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchClinics = async () => {
@@ -349,7 +351,7 @@ export default function ContentCalendar() {
                 </div>
                 <div className="border-t border-border grid grid-cols-2 bg-muted/50">
                   <Button variant="ghost" size="sm" className="rounded-none text-xs h-10" onClick={() => setEditingPost(post)}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
-                  <Button variant="ghost" size="sm" className="rounded-none text-xs h-10 text-success hover:text-success" onClick={() => updatePostStatus(post.id, "posted")}>
+                  <Button variant="ghost" size="sm" className="rounded-none text-xs h-10 text-success hover:text-success" onClick={() => setPostToMarkPosted(post.id)}>
                     <Check className="h-3.5 w-3.5 mr-1" /> Posted
                   </Button>
                 </div>
@@ -370,6 +372,22 @@ export default function ContentCalendar() {
         onOpenChange={setNewPostOpen}
         onCreated={(post) => setPosts(prev => [...prev, post])}
       />
+      <AlertDialog open={!!postToMarkPosted} onOpenChange={(open) => { if (!open) setPostToMarkPosted(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mark as Posted?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will mark the post as published. This action indicates the content has been posted to the platform.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { if (postToMarkPosted) { updatePostStatus(postToMarkPosted, "posted"); setPostToMarkPosted(null); } }}>
+              Confirm Posted
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </DashboardLayout>
   );
 }
