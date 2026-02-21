@@ -11,7 +11,7 @@ import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, Command
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { ViewToggle } from "@/components/content-calendar/ViewToggle";
-import { MonthlyProgressBar } from "@/components/content-calendar/MonthlyProgressBar";
+import { MonthlyApprovalBar } from "@/components/content-calendar/MonthlyApprovalBar";
 import { StrategyDashboard } from "@/components/content-calendar/StrategyDashboard";
 import { ListView } from "@/components/content-calendar/views/ListView";
 import { CalendarGridView } from "@/components/content-calendar/views/CalendarGridView";
@@ -175,8 +175,8 @@ export default function ContentCalendar() {
         {/* Strategy Dashboard */}
         <StrategyDashboard posts={posts} />
 
-        {/* Monthly Progress */}
-        <MonthlyProgressBar posts={posts} />
+        {/* Monthly Approval */}
+        <MonthlyApprovalBar posts={posts} onPostsUpdated={setPosts} />
 
         {/* Filter Tabs */}
         <div className="flex gap-1 flex-wrap shrink-0">

@@ -225,15 +225,9 @@ export function ContentInspector({ post, onClose, onPostUpdated }: ContentInspec
         <InspectorActions
           workflowStage={currentStage}
           userRole={role}
-          onApprove={() => {
-            if (role === "admin") updateWorkflowStage("admin_approved");
-            else if (role === "client") updateWorkflowStage("client_approved");
-          }}
           onFlag={() => updateWorkflowStage("flagged")}
           onDuplicate={handleDuplicate}
           onRegenerate={handleRegenerate}
-          onSendToClient={() => updateWorkflowStage("sent_to_client")}
-          onSendToAdmin={() => updateWorkflowStage("sent_to_admin")}
           loading={actionLoading}
         />
 
