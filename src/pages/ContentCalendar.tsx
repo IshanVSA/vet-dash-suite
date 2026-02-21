@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
@@ -8,7 +8,8 @@ import { NewPostDialog } from "@/components/content-calendar/NewPostDialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { ChevronLeft, ChevronRight, Download, Plus, CalendarDays, List, ChevronsUpDown, FileText, FileSpreadsheet } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ChevronLeft, ChevronRight, Download, Plus, CalendarDays, List, ChevronsUpDown, FileText, FileSpreadsheet, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
 import { toast } from "sonner";
@@ -20,6 +21,10 @@ import type { ContentPost } from "@/components/content-calendar/PostChip";
 interface Clinic { id: string; clinic_name: string; }
 
 type ViewMode = "monthly" | "list";
+
+const STATUS_OPTIONS = ["all", "draft", "scheduled", "posted", "flagged", "failed"] as const;
+const PLATFORM_OPTIONS = ["all", "facebook", "instagram", "tiktok"] as const;
+const CONTENT_TYPE_OPTIONS = ["all", "IMAGE", "VIDEO", "REEL", "CAROUSEL", "STORY"] as const;
 
 export default function ContentCalendar() {
   const { role } = useUserRole();
@@ -33,6 +38,22 @@ export default function ContentCalendar() {
   const [newPostOpen, setNewPostOpen] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("monthly");
   const [selectedPost, setSelectedPost] = useState<ContentPost | null>(null);
+
+  // Filters
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterPlatform, setFilterPlatform] = useState("all");
+  const [filterContentType, setFilterContentType] = useState("all");
+
+  const filteredPosts = useMemo(() => {
+    return posts.filter(p => {
+      if (filterStatus !== "all" && p.status !== filterStatus) return false;
+      if (filterPlatform !== "all" && p.platform !== filterPlatform) return false;
+      if (filterContentType !== "all" && p.content_type !== filterContentType) return false;
+      return true;
+    });
+  }, [posts, filterStatus, filterPlatform, filterContentType]);
+
+  const hasActiveFilters = filterStatus !== "all" || filterPlatform !== "all" || filterContentType !== "all";
 
   useEffect(() => {
     const fetchClinics = async () => {
@@ -70,17 +91,17 @@ export default function ContentCalendar() {
   };
 
   const getExportData = () => {
-    if (posts.length === 0) {
+    if (filteredPosts.length === 0) {
       toast.error("No posts to export.");
       return null;
     }
     const headers = ["Title", "Platform", "Content Type", "Scheduled Date", "Time", "Status", "Caption"];
-    const rows = posts.map(p => [
+    const rows = filteredPosts.map(p => [
       p.title, p.platform, p.content_type,
       p.scheduled_date || "", p.scheduled_time?.slice(0, 5) || "",
       p.status, p.caption || "",
     ]);
-    return { headers, rows, count: posts.length };
+    return { headers, rows, count: filteredPosts.length };
   };
 
   const handleExportCSV = () => {
@@ -181,27 +202,68 @@ export default function ContentCalendar() {
             </div>
           </div>
 
+          {/* Filters row */}
+          <div className="flex flex-wrap items-center gap-2">
+            <Filter className="h-4 w-4 text-muted-foreground" />
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-[130px] h-8 text-xs">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                {STATUS_OPTIONS.map(s => (
+                  <SelectItem key={s} value={s} className="text-xs capitalize">{s === "all" ? "All Statuses" : s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterPlatform} onValueChange={setFilterPlatform}>
+              <SelectTrigger className="w-[130px] h-8 text-xs">
+                <SelectValue placeholder="Platform" />
+              </SelectTrigger>
+              <SelectContent>
+                {PLATFORM_OPTIONS.map(p => (
+                  <SelectItem key={p} value={p} className="text-xs capitalize">{p === "all" ? "All Platforms" : p}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={filterContentType} onValueChange={setFilterContentType}>
+              <SelectTrigger className="w-[140px] h-8 text-xs">
+                <SelectValue placeholder="Content Type" />
+              </SelectTrigger>
+              <SelectContent>
+                {CONTENT_TYPE_OPTIONS.map(t => (
+                  <SelectItem key={t} value={t} className="text-xs">{t === "all" ? "All Types" : t}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" className="h-8 text-xs text-muted-foreground" onClick={() => { setFilterStatus("all"); setFilterPlatform("all"); setFilterContentType("all"); }}>
+                Clear filters
+              </Button>
+            )}
+            <span className="text-xs text-muted-foreground ml-auto">{filteredPosts.length} post{filteredPosts.length !== 1 ? "s" : ""}</span>
+          </div>
+
           {/* Content */}
           {loading ? (
             <div className="text-center py-12 text-muted-foreground">Loading content...</div>
-          ) : posts.length === 0 ? (
+          ) : filteredPosts.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <div className="h-16 w-16 rounded-2xl bg-accent flex items-center justify-center mx-auto mb-4">
                 <CalendarDays className="h-8 w-8 text-accent-foreground" />
               </div>
-              <p className="font-medium text-foreground mb-1">No posts this month</p>
-              <p className="text-sm mb-4">Create your first post to get started.</p>
-              <Button size="sm" onClick={() => setNewPostOpen(true)}><Plus className="h-4 w-4 mr-2" /> Create Post</Button>
+              <p className="font-medium text-foreground mb-1">{hasActiveFilters ? "No posts match filters" : "No posts this month"}</p>
+              <p className="text-sm mb-4">{hasActiveFilters ? "Try adjusting your filters." : "Create your first post to get started."}</p>
+              {!hasActiveFilters && <Button size="sm" onClick={() => setNewPostOpen(true)}><Plus className="h-4 w-4 mr-2" /> Create Post</Button>}
             </div>
           ) : viewMode === "monthly" ? (
             <MonthlyView
               currentMonth={currentMonth}
-              posts={posts}
+              posts={filteredPosts}
               onPostClick={handlePostClick}
               onPostsChange={setPosts}
             />
           ) : (
-            <ListView posts={posts} onPostClick={handlePostClick} />
+            <ListView posts={filteredPosts} onPostClick={handlePostClick} />
           )}
         </div>
 
