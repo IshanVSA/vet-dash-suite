@@ -349,11 +349,19 @@ export default function ContentCalendar() {
                     </span>
                   )}
                 </div>
-                <div className="border-t border-border grid grid-cols-2 bg-muted/50">
-                  <Button variant="ghost" size="sm" className="rounded-none text-xs h-10" onClick={() => setEditingPost(post)}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
-                  <Button variant="ghost" size="sm" className="rounded-none text-xs h-10 text-success hover:text-success" onClick={() => setPostToMarkPosted(post.id)}>
-                    <Check className="h-3.5 w-3.5 mr-1" /> Posted
-                  </Button>
+                <div className="border-t border-border bg-muted/50">
+                  {post.status === "posted" ? (
+                    <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-success h-10">
+                      <Check className="h-3.5 w-3.5" /> Posted
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2">
+                      <Button variant="ghost" size="sm" className="rounded-none text-xs h-10" onClick={() => setEditingPost(post)}><Pencil className="h-3.5 w-3.5 mr-1" /> Edit</Button>
+                      <Button variant="ghost" size="sm" className="rounded-none text-xs h-10 text-success hover:text-success" onClick={() => setPostToMarkPosted(post.id)}>
+                        <Check className="h-3.5 w-3.5 mr-1" /> Mark Posted
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
