@@ -55,7 +55,7 @@ export default function ContentCalendar() {
     const end = format(endOfMonth(currentMonth), "yyyy-MM-dd");
     supabase.from("content_posts").select("*")
       .eq("clinic_id", selectedClinicId)
-      .in("status", ["scheduled", "posted", "failed"])
+      .in("status", ["scheduled", "posted", "failed", "flagged", "draft"])
       .gte("scheduled_date", start)
       .lte("scheduled_date", end)
       .order("scheduled_date", { ascending: true })
