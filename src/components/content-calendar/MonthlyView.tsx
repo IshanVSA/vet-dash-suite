@@ -91,7 +91,7 @@ export function MonthlyView({ currentMonth, posts, onPostClick, onPostsChange }:
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, dateStr)}
               className={cn(
-                "min-h-[130px] border-b border-r border-border/60 p-2 transition-colors relative group",
+                "min-h-[160px] border-b border-r border-border/60 p-2 transition-colors relative group",
                 !inMonth && "bg-muted/20",
                 inMonth && "bg-card",
                 today && "bg-accent/30",
