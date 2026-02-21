@@ -15,6 +15,8 @@ interface ContentPost {
   status: string;
   tags: string[];
   compliance_note: string | null;
+  workflow_stage: string | null;
+  flag_reason: string | null;
 }
 
 interface PostChipProps {

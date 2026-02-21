@@ -101,10 +101,26 @@ export function PostInspector({ post, onClose, onSaved, onDeleted }: PostInspect
         <div className="p-4 space-y-4 flex-1">
           <div>
             <h4 className="font-semibold text-foreground">{post.title}</h4>
-            <Badge className={cn("text-[10px] uppercase border-0 mt-1.5", statusBadge[post.status] || "bg-muted text-muted-foreground")}>
-              {post.status}
-            </Badge>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <Badge className={cn("text-[10px] uppercase border-0", statusBadge[post.status] || "bg-muted text-muted-foreground")}>
+                {post.status}
+              </Badge>
+              <Badge variant="outline" className="text-[10px] uppercase">{post.content_type}</Badge>
+              <Badge variant="outline" className="text-[10px] capitalize">{post.platform}</Badge>
+              {post.workflow_stage && (
+                <Badge variant="secondary" className="text-[10px] capitalize">{post.workflow_stage.replace(/_/g, " ")}</Badge>
+              )}
+            </div>
           </div>
+
+          {post.content && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Main Content</Label>
+              <div className="text-sm text-foreground bg-muted/50 rounded-md p-3 whitespace-pre-wrap max-h-[200px] overflow-y-auto">
+                {post.content}
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1.5">
             <Label className="text-xs">Caption</Label>
@@ -124,6 +140,24 @@ export function PostInspector({ post, onClose, onSaved, onDeleted }: PostInspect
                 {[...hashtags, ...otherTags].map((tag, i) => (
                   <Badge key={i} variant="outline" className="text-[10px]">{tag}</Badge>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {post.compliance_note && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Compliance Note</Label>
+              <div className="text-sm text-foreground bg-yellow-500/10 border border-yellow-500/20 rounded-md p-3 whitespace-pre-wrap">
+                {post.compliance_note}
+              </div>
+            </div>
+          )}
+
+          {post.flag_reason && (
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Flag Reason</Label>
+              <div className="text-sm text-foreground bg-destructive/10 border border-destructive/20 rounded-md p-3 whitespace-pre-wrap">
+                {post.flag_reason}
               </div>
             </div>
           )}
