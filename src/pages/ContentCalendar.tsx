@@ -215,9 +215,7 @@ export default function ContentCalendar() {
   const kpis = [
     { icon: <LayoutGrid className="h-4 w-4" />, iconBg: "bg-purple-100 text-purple-600", value: posts.length, label: "Total Posts" },
     { icon: <Film className="h-4 w-4" />, iconBg: "bg-blue-100 text-blue-600", value: posts.filter(p => ["REEL", "VIDEO"].includes(p.content_type)).length, label: "Videos / Reels" },
-    { icon: <Tag className="h-4 w-4" />, iconBg: "bg-amber-100 text-amber-600", value: [...new Set(posts.flatMap(p => p.tags || []))].length, label: "Themes" },
-    { icon: <AlertTriangle className="h-4 w-4" />, iconBg: "bg-red-100 text-red-600", value: posts.filter(p => p.compliance_note).length, label: "CVBC Flags" },
-    { icon: <CheckCircle2 className="h-4 w-4" />, iconBg: "bg-green-100 text-green-600", value: posts.filter(p => p.status === "approved" || p.status === "posted").length, label: "Approved" },
+    { icon: <CheckCircle2 className="h-4 w-4" />, iconBg: "bg-green-100 text-green-600", value: posts.filter(p => p.status === "posted").length, label: "Posted" },
     { icon: <Clock3 className="h-4 w-4" />, iconBg: "bg-teal-100 text-teal-600", value: posts.filter(p => p.status === "pending" || p.status === "scheduled").length, label: "Pending" },
   ];
 
