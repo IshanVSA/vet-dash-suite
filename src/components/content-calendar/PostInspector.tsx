@@ -179,6 +179,24 @@ export function PostInspector({ post, onClose, onSaved, onDeleted }: PostInspect
             </Button>
           )}
           {!isPosted && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full border-green-300 text-green-700 hover:bg-green-50"
+              disabled={saving}
+              onClick={async () => {
+                setSaving(true);
+                const { error } = await supabase.from("content_posts").update({ status: "posted", published_at: new Date().toISOString() }).eq("id", post.id);
+                setSaving(false);
+                if (error) { toast.error("Failed to mark as posted"); return; }
+                toast.success("Post marked as posted!");
+                onSaved({ ...post, status: "posted" } as ContentPost);
+              }}
+            >
+              ✓ Mark as Posted
+            </Button>
+          )}
+          {!isPosted && (
             <Button variant="destructive" size="sm" className="w-full" onClick={() => setDeleteOpen(true)}>
               <Trash2 className="h-3.5 w-3.5 mr-1.5" /> Delete Post
             </Button>
