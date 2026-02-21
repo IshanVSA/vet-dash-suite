@@ -18,7 +18,7 @@ export function ListView({ posts, selectedPostId, onSelectPost }: ListViewProps)
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <div className="grid grid-cols-1 gap-3">
       {posts.map((post) => (
         <CompactPostCard
           key={post.id}
