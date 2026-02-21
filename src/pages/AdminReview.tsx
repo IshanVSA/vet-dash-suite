@@ -214,7 +214,7 @@ export default function AdminReview() {
                   >
                     <div
                       className={cn(
-                        "bg-card rounded-xl border border-border overflow-hidden border-l-4 animate-fade-in",
+                        "bg-card rounded-xl border border-border border-l-4 animate-fade-in",
                         statusAccent[status] || "border-l-border"
                       )}
                       style={{ animationDelay: `${idx * 60}ms`, animationFillMode: "both" }}
