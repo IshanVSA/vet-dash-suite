@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { ChevronLeft, ChevronRight, Download, Plus, Check, Pencil, RotateCcw, Instagram, Facebook, ShieldCheck, ChevronDown, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addMonths, subMonths, endOfMonth } from "date-fns";
@@ -64,6 +66,8 @@ export default function AdminReview() {
   const [loading, setLoading] = useState(true);
   const [openClinics, setOpenClinics] = useState<Record<string, boolean>>({});
   const [selectedPost, setSelectedPost] = useState<ContentPost | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; submissionId: string; action: "needs_review" | "sent_back" }>({ open: false, submissionId: "", action: "needs_review" });
+  const [actionReason, setActionReason] = useState("");
 
   const monthStr = format(currentMonth, "yyyy-MM");
 
@@ -108,11 +112,24 @@ export default function AdminReview() {
     fetchData();
   }, [monthStr, selectedClinicId]);
 
-  const updateSubmissionStatus = async (id: string, status: string) => {
-    const { error } = await supabase.from("calendar_submissions").update({ status }).eq("id", id);
+  const updateSubmissionStatus = async (id: string, status: string, notes?: string) => {
+    const updateData: any = { status };
+    if (notes) updateData.admin_notes = notes;
+    const { error } = await supabase.from("calendar_submissions").update(updateData).eq("id", id);
     if (error) { toast.error(error.message); return; }
-    setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status } : s));
+    setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status, admin_notes: notes || s.admin_notes } : s));
     toast.success(`Calendar ${status === "approved" ? "approved" : status === "sent_back" ? "sent back" : "updated"}!`);
+  };
+
+  const openConfirmDialog = (submissionId: string, action: "needs_review" | "sent_back") => {
+    setConfirmDialog({ open: true, submissionId, action });
+    setActionReason("");
+  };
+
+  const handleConfirmAction = async () => {
+    await updateSubmissionStatus(confirmDialog.submissionId, confirmDialog.action, actionReason);
+    setConfirmDialog({ open: false, submissionId: "", action: "needs_review" });
+    setActionReason("");
   };
 
   const handlePostSaved = (updated: ContentPost) => {
@@ -262,11 +279,11 @@ export default function AdminReview() {
                                 onClick={() => updateSubmissionStatus(submission.id, "approved")}>
                                 <Check className="h-4 w-4 mr-1.5" /> Approve
                               </Button>
-                              <Button variant="outline" size="sm" onClick={() => updateSubmissionStatus(submission.id, "needs_review")}>
+                              <Button variant="outline" size="sm" onClick={() => openConfirmDialog(submission.id, "needs_review")}>
                                 <Pencil className="h-4 w-4 mr-1.5" /> Edit
                               </Button>
                               <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                                onClick={() => updateSubmissionStatus(submission.id, "sent_back")}>
+                                onClick={() => openConfirmDialog(submission.id, "sent_back")}>
                                 <RotateCcw className="h-4 w-4 mr-1.5" /> Send Back
                               </Button>
                             </>
@@ -342,6 +359,40 @@ export default function AdminReview() {
           />
         )}
       </div>
+
+      <Dialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog(prev => ({ ...prev, open: false }))}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>
+              {confirmDialog.action === "sent_back" ? "Send Back Calendar" : "Request Edits"}
+            </DialogTitle>
+            <DialogDescription>
+              {confirmDialog.action === "sent_back"
+                ? "Please provide a reason for sending this calendar back to the concierge."
+                : "Describe what edits are needed for this calendar."}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder={confirmDialog.action === "sent_back" ? "Reason for sending back..." : "What edits are needed..."}
+            value={actionReason}
+            onChange={(e) => setActionReason(e.target.value)}
+            className="min-h-[100px]"
+          />
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleConfirmAction}
+              className={cn(
+                confirmDialog.action === "sent_back" && "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              )}
+            >
+              {confirmDialog.action === "sent_back" ? "Send Back" : "Submit"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 }
