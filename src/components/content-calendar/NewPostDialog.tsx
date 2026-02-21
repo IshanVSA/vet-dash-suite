@@ -8,21 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { format } from "date-fns";
-
-interface ContentPost {
-  id: string;
-  clinic_id: string;
-  title: string;
-  caption: string | null;
-  content: string | null;
-  platform: string;
-  content_type: string;
-  scheduled_date: string;
-  scheduled_time: string | null;
-  status: string;
-  tags: string[];
-  compliance_note: string | null;
-}
+import { type ContentPost } from "@/types/content-calendar";
 
 interface NewPostDialogProps {
   clinicId: string;
