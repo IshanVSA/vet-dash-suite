@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { motion } from "framer-motion";
 
 interface Clinic {
   id: string;
@@ -89,8 +91,10 @@ export default function AdminDashboard() {
     return profiles.find(p => p.id === id)?.full_name || "Unknown";
   };
 
+  if (loading) return <DashboardSkeleton />;
+
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <motion.div className="space-y-6 sm:space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
       {/* Hero Section */}
       <div className="hero-section">
         <div className="relative z-10">
@@ -236,6 +240,6 @@ export default function AdminDashboard() {
           </div>
         )}
       </Card>
-    </div>
+    </motion.div>
   );
 }
