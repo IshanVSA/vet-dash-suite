@@ -7,6 +7,8 @@ import { Building2, FileText, Megaphone, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import { AnimatedListItem } from "@/components/AnimatedList";
 
 interface Clinic {
   id: string;
@@ -73,12 +75,7 @@ export default function ConciergeDashboard() {
           <Badge variant="secondary" className="rounded-full">{clinics.length} assigned</Badge>
         </div>
         {loading ? (
-          <div className="text-center py-12 text-muted-foreground">
-            <div className="inline-flex items-center gap-2">
-              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              Loading...
-            </div>
-          </div>
+          <DashboardSkeleton />
         ) : clinics.length === 0 ? (
           <Card className="border-border/60">
             <CardContent className="py-12 text-center">

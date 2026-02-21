@@ -6,12 +6,13 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
   CalendarDays, ShieldCheck, ClipboardList, LayoutDashboard, UserCheck, FileCheck,
-  Search, Bell, Sun, Moon,
+  Search, Sun, Moon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import vsaLogo from "@/assets/vsa-logo.jpg";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { PageTransition } from "@/components/PageTransition";
 
 interface NavItem {
   label: string;
@@ -262,10 +263,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <Moon className="h-4 w-4 text-muted-foreground hidden dark:block" />
           </button>
 
-          {/* Notification bell */}
-          <button className="relative p-2 rounded-lg hover:bg-muted transition-colors">
-            <Bell className="h-4.5 w-4.5 text-muted-foreground" />
-          </button>
+          <NotificationBell />
 
           {/* User avatar in header */}
           <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-1 ring-border">
@@ -275,8 +273,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         
-        <div className="flex-1 p-4 lg:p-8 page-enter">
-          {children}
+        <div className="flex-1 p-4 lg:p-8">
+          <PageTransition>
+            {children}
+          </PageTransition>
         </div>
       </main>
     </div>

@@ -11,6 +11,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Download, Plus, CalendarDays, List, ChevronsUpDown, FileText, FileSpreadsheet, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CalendarSkeleton } from "@/components/DashboardSkeleton";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths } from "date-fns";
 import { toast } from "sonner";
 import { MonthlyView } from "@/components/content-calendar/MonthlyView";
@@ -245,7 +246,7 @@ export default function ContentCalendar() {
 
           {/* Content */}
           {loading ? (
-            <div className="text-center py-12 text-muted-foreground">Loading content...</div>
+            <CalendarSkeleton />
           ) : filteredPosts.length === 0 ? (
             <div className="text-center py-16 text-muted-foreground">
               <div className="h-16 w-16 rounded-2xl bg-accent flex items-center justify-center mx-auto mb-4">

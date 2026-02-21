@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Textarea } from "@/components/ui/textarea";
 import { ChevronLeft, ChevronRight, Download, Plus, Check, Pencil, RotateCcw, Instagram, Facebook, ShieldCheck, ChevronDown, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ReviewSkeleton } from "@/components/DashboardSkeleton";
 import { format, addMonths, subMonths, endOfMonth } from "date-fns";
 import { toast } from "sonner";
 import { PostInspector } from "@/components/content-calendar/PostInspector";
@@ -204,7 +205,7 @@ export default function AdminReview() {
           </div>
 
           {loading ? (
-            <div className="text-center py-12 text-muted-foreground">Loading submissions...</div>
+            <ReviewSkeleton />
           ) : relevantClinicIds.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground animate-fade-in">
               <div className="h-16 w-16 rounded-2xl bg-accent flex items-center justify-center mx-auto mb-4">
