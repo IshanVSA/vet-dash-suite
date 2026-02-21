@@ -50,13 +50,16 @@ export function PostChip({ post, onClick, compact = false }: PostChipProps) {
         onDragStart={handleDragStart}
         onClick={() => onClick(post)}
         className={cn(
-          "px-2 py-1 rounded text-xs border-l-[3px] bg-card cursor-pointer truncate hover:bg-accent/50 transition-colors",
+          "px-2 py-1.5 rounded-md text-xs border-l-[3px] bg-background/80 cursor-pointer truncate hover:bg-accent/40 transition-all shadow-[0_1px_2px_hsl(var(--foreground)/0.04)]",
           statusBorder[post.status] || "border-l-muted",
-          !isDraggable && "cursor-default opacity-80"
+          !isDraggable && "cursor-default opacity-75"
         )}
         title={post.title}
       >
-        <span className="font-medium truncate">{post.title}</span>
+        <span className="font-medium truncate block text-foreground">{post.title}</span>
+        {post.scheduled_time && (
+          <span className="text-[10px] text-muted-foreground mt-0.5 block">{post.scheduled_time.slice(0, 5)}</span>
+        )}
       </div>
     );
   }

@@ -69,19 +69,20 @@ export function MonthlyView({ currentMonth, posts, onPostClick, onPostsChange }:
   };
 
   return (
-    <div className="border border-border rounded-lg overflow-hidden">
-      <div className="grid grid-cols-7 bg-muted/50">
+    <div className="border border-border rounded-xl overflow-hidden bg-card shadow-sm">
+      <div className="grid grid-cols-7 bg-muted/40 border-b border-border">
         {WEEKDAYS.map(d => (
-          <div key={d} className="text-center text-xs font-medium text-muted-foreground py-2 border-b border-border">
+          <div key={d} className="text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground py-3">
             {d}
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 auto-rows-fr">
+      <div className="grid grid-cols-7">
         {days.map((day, i) => {
           const dateStr = format(day, "yyyy-MM-dd");
           const dayPosts = postsByDate[dateStr] || [];
           const inMonth = isSameMonth(day, currentMonth);
+          const today = isToday(day);
 
           return (
             <div
@@ -90,15 +91,18 @@ export function MonthlyView({ currentMonth, posts, onPostClick, onPostsChange }:
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, dateStr)}
               className={cn(
-                "min-h-[100px] border-b border-r border-border p-1.5 transition-colors",
-                !inMonth && "bg-muted/30",
-                "hover:bg-accent/20"
+                "min-h-[130px] border-b border-r border-border/60 p-2 transition-colors relative group",
+                !inMonth && "bg-muted/20",
+                inMonth && "bg-card",
+                today && "bg-accent/30",
+                "hover:bg-accent/15"
               )}
             >
               <div className={cn(
-                "text-xs font-medium mb-1 w-6 h-6 flex items-center justify-center rounded-full",
-                isToday(day) && "bg-primary text-primary-foreground",
-                !inMonth && "text-muted-foreground/50"
+                "text-xs font-medium mb-2 w-7 h-7 flex items-center justify-center rounded-full transition-colors",
+                today && "bg-primary text-primary-foreground font-bold shadow-sm",
+                !today && inMonth && "text-foreground",
+                !inMonth && "text-muted-foreground/40"
               )}>
                 {format(day, "d")}
               </div>
