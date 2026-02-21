@@ -98,43 +98,97 @@ export default function ContentRequests() {
     await supabase.from("content_requests")
       .update({ status: "admin_approved" })
       .eq("id", requestId);
-    toast.success("Content approved! Client will be notified.");
-    fetchData();
-  };
 
-  const clientSelect = async (requestId: string, versionId: string, clinicId: string) => {
+    // Find the clinic_id for this request
+    const req = requests.find(r => r.id === requestId);
+    const clinicId = req?.clinic_id;
+
+    // Insert posts into content_posts at admin-approval stage (sent to client)
     const reqVersions = versions[requestId] || [];
-    for (const v of reqVersions) {
-      await supabase.from("content_versions")
-        .update({ client_selected: v.id === versionId })
-        .eq("id", v.id);
-    }
-    await supabase.from("content_requests")
-      .update({ status: "client_approved" })
-      .eq("id", requestId);
-
     const selectedVersion = reqVersions.find(v => v.id === versionId);
-    if (selectedVersion) {
+    if (selectedVersion && clinicId) {
       const content = selectedVersion.generated_content as any;
       const posts = content?.posts || [];
+      const sentToClientAt = new Date().toISOString();
+      const autoApproveAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
 
       for (const post of posts) {
-        await supabase.from("content_posts").insert({
+        const { data: insertedPost } = await supabase.from("content_posts").insert({
           clinic_id: clinicId,
           title: post.hook || post.theme || "Untitled Post",
           caption: post.caption || post.main_copy || null,
           platform: (post.platform || "instagram").toLowerCase(),
           content_type: (post.content_type || "IMAGE").toUpperCase(),
           scheduled_date: post.suggested_date || null,
-          status: "scheduled",
+          status: "pending",
+          workflow_stage: "sent_to_client",
           tags: [post.goal_type, post.funnel_stage, post.service_highlighted].filter(Boolean),
           compliance_note: null,
           content: post.main_copy || null,
-        });
+        }).select("id").single();
+
+        if (insertedPost) {
+          // Create workflow tracking row with 5-day auto-approve countdown
+          await supabase.from("post_workflow").insert({
+            post_id: insertedPost.id,
+            stage: "sent_to_client",
+            sent_to_client_at: sentToClientAt,
+            auto_approve_at: autoApproveAt,
+          });
+
+          // Log activity
+          await supabase.from("post_activity_log").insert({
+            post_id: insertedPost.id,
+            action: "sent_to_client",
+            actor_id: user?.id || null,
+            metadata: { version_id: versionId, request_id: requestId },
+          });
+        }
       }
     }
 
-    toast.success("Content selected and added to calendar!");
+    toast.success("Content approved and sent to client! Auto-approval in 5 days.");
+    fetchData();
+  };
+
+  const clientSelect = async (requestId: string, _versionId: string, clinicId: string) => {
+    // Client approves the whole month batch - update all pending posts for this clinic
+    // that were created from this content request flow
+    await supabase.from("content_requests")
+      .update({ status: "client_approved" })
+      .eq("id", requestId);
+
+    // Update all content_posts for this clinic that are in 'sent_to_client' stage
+    const { data: postsToApprove } = await supabase
+      .from("content_posts")
+      .select("id")
+      .eq("clinic_id", clinicId)
+      .eq("workflow_stage", "sent_to_client");
+
+    if (postsToApprove && postsToApprove.length > 0) {
+      const postIds = postsToApprove.map(p => p.id);
+
+      // Batch update posts
+      await supabase.from("content_posts")
+        .update({ status: "approved", workflow_stage: "client_approved" })
+        .in("id", postIds);
+
+      // Batch update workflow rows
+      await supabase.from("post_workflow")
+        .update({ stage: "client_approved", updated_at: new Date().toISOString() })
+        .in("post_id", postIds);
+
+      // Log activity for each
+      const logs = postIds.map(postId => ({
+        post_id: postId,
+        action: "client_approved",
+        actor_id: user?.id || null,
+        metadata: { request_id: requestId },
+      }));
+      await supabase.from("post_activity_log").insert(logs);
+    }
+
+    toast.success("Month approved! All posts are now scheduled.");
     fetchData();
   };
 
