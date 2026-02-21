@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.generate-content]
 verify_jwt = false
+
+[functions.auto-approve-posts]
+verify_jwt = false

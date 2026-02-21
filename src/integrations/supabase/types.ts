@@ -260,6 +260,7 @@ export type Database = {
           content_type: string
           created_at: string
           created_by: string | null
+          flag_reason: string | null
           id: string
           platform: string
           published_at: string | null
@@ -269,6 +270,7 @@ export type Database = {
           status: string
           tags: string[] | null
           title: string
+          workflow_stage: string
         }
         Insert: {
           caption?: string | null
@@ -278,6 +280,7 @@ export type Database = {
           content_type?: string
           created_at?: string
           created_by?: string | null
+          flag_reason?: string | null
           id?: string
           platform?: string
           published_at?: string | null
@@ -287,6 +290,7 @@ export type Database = {
           status?: string
           tags?: string[] | null
           title: string
+          workflow_stage?: string
         }
         Update: {
           caption?: string | null
@@ -296,6 +300,7 @@ export type Database = {
           content_type?: string
           created_at?: string
           created_by?: string | null
+          flag_reason?: string | null
           id?: string
           platform?: string
           published_at?: string | null
@@ -305,6 +310,7 @@ export type Database = {
           status?: string
           tags?: string[] | null
           title?: string
+          workflow_stage?: string
         }
         Relationships: [
           {
@@ -388,6 +394,111 @@ export type Database = {
             columns: ["content_request_id"]
             isOneToOne: false
             referencedRelation: "content_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_activity_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          metadata: Json
+          post_id: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          post_id: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          metadata?: Json
+          post_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_activity_log_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "content_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_comments: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          post_id: string
+          user_id: string
+          visibility: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          post_id: string
+          user_id: string
+          visibility?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          post_id?: string
+          user_id?: string
+          visibility?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_comments_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "content_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_workflow: {
+        Row: {
+          auto_approve_at: string | null
+          id: string
+          post_id: string
+          sent_to_client_at: string | null
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          auto_approve_at?: string | null
+          id?: string
+          post_id: string
+          sent_to_client_at?: string | null
+          stage?: string
+          updated_at?: string
+        }
+        Update: {
+          auto_approve_at?: string | null
+          id?: string
+          post_id?: string
+          sent_to_client_at?: string | null
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_workflow_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: true
+            referencedRelation: "content_posts"
             referencedColumns: ["id"]
           },
         ]
