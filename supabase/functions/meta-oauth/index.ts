@@ -20,8 +20,6 @@ const FRONTEND_URL = Deno.env.get("SITE_URL") || "https://vet-dash-suite.lovable
 const SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
-  "instagram_basic",
-  "instagram_manage_insights",
 ].join(",");
 
 Deno.serve(async (req) => {
