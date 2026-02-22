@@ -8,3 +8,9 @@ verify_jwt = false
 
 [functions.auto-approve-posts]
 verify_jwt = false
+
+[functions.meta-oauth]
+verify_jwt = false
+
+[functions.sync-meta-analytics]
+verify_jwt = false

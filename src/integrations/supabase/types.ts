@@ -124,6 +124,7 @@ export type Database = {
           meta_instagram_business_id: string | null
           meta_page_access_token: string | null
           meta_page_id: string | null
+          meta_page_name: string | null
         }
         Insert: {
           clinic_id: string
@@ -137,6 +138,7 @@ export type Database = {
           meta_instagram_business_id?: string | null
           meta_page_access_token?: string | null
           meta_page_id?: string | null
+          meta_page_name?: string | null
         }
         Update: {
           clinic_id?: string
@@ -150,6 +152,7 @@ export type Database = {
           meta_instagram_business_id?: string | null
           meta_page_access_token?: string | null
           meta_page_id?: string | null
+          meta_page_name?: string | null
         }
         Relationships: [
           {

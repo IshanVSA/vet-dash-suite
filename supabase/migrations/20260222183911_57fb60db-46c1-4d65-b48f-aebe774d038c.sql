@@ -1,0 +1,1 @@
+ALTER TABLE public.clinic_api_credentials ADD COLUMN meta_page_name text;
