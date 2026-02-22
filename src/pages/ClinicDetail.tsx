@@ -9,15 +9,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, RefreshCw, CheckCircle, XCircle, Loader2, Save } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { ArrowLeft, RefreshCw, Loader2, Save } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
+import { MetaConnectionCard } from "@/components/clinic-detail/MetaConnectionCard";
 
 interface ClinicData { clinic_name: string; }
 interface ClinicCredentials {
   meta_page_access_token: string | null;
   meta_page_id: string | null;
   meta_instagram_business_id: string | null;
+  meta_page_name: string | null;
   google_ads_refresh_token: string | null;
   google_ads_customer_id: string | null;
   google_ads_login_customer_id: string | null;
@@ -30,7 +32,7 @@ export default function ClinicDetail() {
   const { role } = useUserRole();
   const [clinic, setClinic] = useState<ClinicData | null>(null);
   const [creds, setCreds] = useState<ClinicCredentials>({
-    meta_page_access_token: null, meta_page_id: null, meta_instagram_business_id: null,
+    meta_page_access_token: null, meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null,
     google_ads_refresh_token: null, google_ads_customer_id: null, google_ads_login_customer_id: null,
     last_meta_sync_at: null, last_google_sync_at: null,
   });
@@ -49,7 +51,7 @@ export default function ClinicDetail() {
   const fetchCredentials = async () => {
     if (!id) return;
     const { data } = await supabase.from("clinic_api_credentials")
-      .select("meta_page_access_token, meta_page_id, meta_instagram_business_id, google_ads_refresh_token, google_ads_customer_id, google_ads_login_customer_id, last_meta_sync_at, last_google_sync_at")
+      .select("meta_page_access_token, meta_page_id, meta_instagram_business_id, meta_page_name, google_ads_refresh_token, google_ads_customer_id, google_ads_login_customer_id, last_meta_sync_at, last_google_sync_at")
       .eq("clinic_id", id).maybeSingle();
     if (data) setCreds(data);
   };
@@ -91,16 +93,7 @@ export default function ClinicDetail() {
     if (error) toast.error("Failed to save: " + error.message); else toast.success("Credentials saved!");
   };
 
-  const hasMetaCreds = !!(creds.meta_page_access_token && creds.meta_page_id);
   const hasGoogleCreds = !!(creds.google_ads_refresh_token && creds.google_ads_customer_id);
-
-  const ConnectionStatus = ({ connected, label }: { connected: boolean; label: string }) => (
-    <div className="flex items-center gap-2">
-      {connected ? <CheckCircle className="h-4 w-4 text-primary" /> : <XCircle className="h-4 w-4 text-muted-foreground" />}
-      <span className={connected ? "text-foreground text-sm" : "text-muted-foreground text-sm"}>{label}</span>
-      {connected && <Badge variant="secondary" className="text-xs">Connected</Badge>}
-    </div>
-  );
 
   const EmptyState = ({ message }: { message: string }) => (
     <Card><CardContent className="py-12 text-center"><p className="text-muted-foreground">{message}</p></CardContent></Card>
@@ -197,33 +190,26 @@ export default function ClinicDetail() {
 
           {role === "admin" && (
             <TabsContent value="connections" className="space-y-4 mt-4">
+              <MetaConnectionCard
+                clinicId={id!}
+                hasMetaCreds={!!(creds.meta_page_access_token && creds.meta_page_id)}
+                metaPageName={(creds as any).meta_page_name || null}
+                metaPageId={creds.meta_page_id}
+                metaInstagramBusinessId={creds.meta_instagram_business_id}
+                lastMetaSyncAt={creds.last_meta_sync_at}
+                onRefresh={() => { fetchCredentials(); fetchAnalytics(); }}
+              />
               <Card>
-                <CardHeader><CardTitle className="text-base">Account Connections</CardTitle></CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <ConnectionStatus connected={hasMetaCreds} label="Meta (Instagram + Facebook)" />
-                    {creds.last_meta_sync_at && <p className="text-xs text-muted-foreground ml-6">Last synced: {new Date(creds.last_meta_sync_at).toLocaleString()}</p>}
-                    <ConnectionStatus connected={hasGoogleCreds} label="Google Ads" />
-                    {creds.last_google_sync_at && <p className="text-xs text-muted-foreground ml-6">Last synced: {new Date(creds.last_google_sync_at).toLocaleString()}</p>}
-                  </div>
-                  <hr className="border-border" />
+                <CardHeader><CardTitle className="text-base">Google Ads</CardTitle></CardHeader>
+                <CardContent className="space-y-3">
                   <div className="space-y-3">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Meta / Instagram</p>
-                    <div className="space-y-2"><Label className="text-xs">Page Access Token</Label><Input type="password" value={creds.meta_page_access_token || ""} onChange={e => setCreds(p => ({ ...p, meta_page_access_token: e.target.value }))} placeholder="EAAGm..." /></div>
-                    <div className="space-y-2"><Label className="text-xs">Page ID</Label><Input value={creds.meta_page_id || ""} onChange={e => setCreds(p => ({ ...p, meta_page_id: e.target.value }))} placeholder="123456789" /></div>
-                    <div className="space-y-2"><Label className="text-xs">Instagram Business ID</Label><Input value={creds.meta_instagram_business_id || ""} onChange={e => setCreds(p => ({ ...p, meta_instagram_business_id: e.target.value }))} placeholder="17841..." /></div>
-                  </div>
-                  <hr className="border-border" />
-                  <div className="space-y-3">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Google Ads</p>
                     <div className="space-y-2"><Label className="text-xs">Refresh Token</Label><Input type="password" value={creds.google_ads_refresh_token || ""} onChange={e => setCreds(p => ({ ...p, google_ads_refresh_token: e.target.value }))} placeholder="1//0..." /></div>
                     <div className="space-y-2"><Label className="text-xs">Customer ID</Label><Input value={creds.google_ads_customer_id || ""} onChange={e => setCreds(p => ({ ...p, google_ads_customer_id: e.target.value }))} placeholder="123-456-7890" /></div>
                     <div className="space-y-2"><Label className="text-xs">Login Customer ID (MCC)</Label><Input value={creds.google_ads_login_customer_id || ""} onChange={e => setCreds(p => ({ ...p, google_ads_login_customer_id: e.target.value }))} placeholder="123-456-7890" /></div>
                   </div>
-                  <hr className="border-border" />
                   <Button onClick={saveCredentials} disabled={savingCreds} className="w-full">
                     {savingCreds ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                    Save Credentials
+                    Save Google Ads Credentials
                   </Button>
                 </CardContent>
               </Card>
