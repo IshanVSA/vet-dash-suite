@@ -115,17 +115,20 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Step 3: Get pages (page tokens are permanent for long-lived user tokens)
+      // Step 3: Get ALL pages (follow pagination)
       console.log("Fetching pages with long-lived token...");
-      console.log("Token type:", typeof longTokenData.access_token, "length:", longTokenData.access_token?.length);
-      const pagesRes = await fetch(
-        `https://graph.facebook.com/v21.0/me/accounts?access_token=${longTokenData.access_token}`
-      );
-      const pagesData = await pagesRes.json();
-      console.log("Pages API response:", JSON.stringify(pagesData));
+      let allPages: any[] = [];
+      let nextUrl: string | null = `https://graph.facebook.com/v21.0/me/accounts?limit=100&access_token=${longTokenData.access_token}`;
+      while (nextUrl) {
+        const pagesRes = await fetch(nextUrl);
+        const pagesData = await pagesRes.json();
+        if (pagesData.data) allPages = allPages.concat(pagesData.data);
+        nextUrl = pagesData.paging?.next || null;
+      }
+      console.log(`Fetched ${allPages.length} total pages`);
 
-      if (!pagesData.data || pagesData.data.length === 0) {
-        console.error("No pages found for user. Full response:", JSON.stringify(pagesData));
+      if (allPages.length === 0) {
+        console.error("No pages found for user.");
         return new Response(null, {
           status: 302,
           headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=no_pages` },
@@ -133,8 +136,8 @@ Deno.serve(async (req) => {
       }
 
       // If only one page, auto-select it (original behavior)
-      if (pagesData.data.length === 1) {
-        const page = pagesData.data[0];
+      if (allPages.length === 1) {
+        const page = allPages[0];
         const pageAccessToken = page.access_token;
         const pageId = page.id;
         const pageName = page.name;
@@ -194,14 +197,14 @@ Deno.serve(async (req) => {
       }
 
       // Multiple pages: encode pages data and redirect to frontend for selection
-      const pagesForSelection = pagesData.data.map((p: any) => ({
+      const pagesForSelection = allPages.map((p: any) => ({
         id: p.id,
         name: p.name,
         access_token: p.access_token,
         category: p.category || "",
       }));
       const encodedPages = btoa(JSON.stringify(pagesForSelection));
-      console.log(`Multiple pages found (${pagesData.data.length}), redirecting for selection`);
+      console.log(`Multiple pages found (${allPages.length}), redirecting for selection`);
       return new Response(null, {
         status: 302,
         headers: { Location: `${redirectBase}/clinics/${clinic_id}?meta_pages=${encodeURIComponent(encodedPages)}` },
