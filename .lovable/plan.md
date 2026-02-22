@@ -1,25 +1,51 @@
 
 
-# Fix: Admin Review Collapsible Content Not Visible
+# Meta OAuth + Analytics Sync Implementation
 
-## Problem
-The "View Content" collapsible dropdown on each clinic card in the Admin Review page is not visually expanding when clicked. The code structure, data, and Radix Collapsible wiring are all correct, but the content isn't appearing.
+## Step 1: Store Secrets
+Request the user to provide their **META_APP_ID** and **META_APP_SECRET** to be stored as Supabase secrets.
 
-## Root Cause
-The card wrapper `<div>` between `<Collapsible>` and `<CollapsibleContent>` has `overflow-hidden`, which can clip the collapsible content during Radix's internal height animation. Additionally, the `CollapsibleContent` component lacks transition styles that help ensure smooth rendering.
+## Step 2: Database Migration
+Add `meta_page_name` column to `clinic_api_credentials`:
+```sql
+ALTER TABLE clinic_api_credentials ADD COLUMN meta_page_name text;
+```
 
-## Fix (single file change)
+## Step 3: Create `meta-oauth` Edge Function
+**File**: `supabase/functions/meta-oauth/index.ts`
 
-**File: `src/pages/AdminReview.tsx`**
+Handles two actions via `?action=` query parameter:
 
-1. Remove `overflow-hidden` from the card wrapper div (line 217) -- this prevents the collapsible content from being clipped.
-2. Add a `forceMount` approach or ensure the `CollapsibleContent` renders correctly by keeping the structure clean.
-3. Add a subtle open/close transition using Tailwind's `data-[state=open]` and `data-[state=closed]` attribute selectors on `CollapsibleContent` for visual polish.
+- **authorize**: Receives `clinic_id`, builds Meta OAuth URL with permissions (`pages_show_list`, `pages_read_engagement`, `instagram_basic`, `instagram_manage_insights`), encodes `clinic_id` in `state`, redirects to Meta login.
+- **callback**: Exchanges authorization code for long-lived User Access Token, fetches Pages via `/me/accounts` (permanent Page Access Token), fetches Instagram Business Account ID, saves all credentials to `clinic_api_credentials`, redirects user back to the clinic detail page.
 
-The fix is minimal -- just removing `overflow-hidden` from the card div className to allow the collapsible content table to render and be visible when toggled open.
+## Step 4: Create `sync-meta-analytics` Edge Function
+**File**: `supabase/functions/sync-meta-analytics/index.ts`
 
-## Technical Details
+Authenticated endpoint (admin/concierge only). Accepts `{ clinic_id }` in body.
 
-- Line 217: Change `"bg-card rounded-xl border border-border overflow-hidden border-l-4 animate-fade-in"` to `"bg-card rounded-xl border border-border border-l-4 animate-fade-in"`
-- This single class removal should resolve the visibility issue since Radix Collapsible animates height from 0 and `overflow-hidden` on the parent clips the expanding content
+Fetches:
+- **Instagram**: followers count, reach, impressions, engagement from recent media
+- **Facebook**: fan count (page likes), page impressions, engaged users
+
+Writes rows to the `analytics` table with platform `instagram` / `facebook` and `metric_type: monthly_summary`. Updates `last_meta_sync_at` on credentials.
+
+## Step 5: Update `supabase/config.toml`
+Add function configs with `verify_jwt = false` for both new functions.
+
+## Step 6: Update Connections Tab UI
+**File**: `src/pages/ClinicDetail.tsx`
+
+Replace manual Meta token inputs with:
+- **Not connected**: "Connect with Facebook" button linking to the OAuth authorize URL
+- **Connected**: Show page name, read-only IDs, last synced timestamp, "Sync Now" button, and "Disconnect" button
+
+## Files Changed/Created
+| File | Action |
+|------|--------|
+| `supabase/functions/meta-oauth/index.ts` | Create |
+| `supabase/functions/sync-meta-analytics/index.ts` | Create |
+| `supabase/config.toml` | Update |
+| `src/pages/ClinicDetail.tsx` | Update |
+| Database migration | Add `meta_page_name` column |
 
