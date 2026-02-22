@@ -128,70 +128,79 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Use the first page
-      const page = pagesData.data[0];
-      const pageAccessToken = page.access_token;
-      const pageId = page.id;
-      const pageName = page.name;
+      // If only one page, auto-select it (original behavior)
+      if (pagesData.data.length === 1) {
+        const page = pagesData.data[0];
+        const pageAccessToken = page.access_token;
+        const pageId = page.id;
+        const pageName = page.name;
 
-      // Step 4: Get Instagram Business Account ID
-      const igRes = await fetch(
-        `https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${pageAccessToken}`
-      );
-      const igData = await igRes.json();
-      const igBusinessId = igData.instagram_business_account?.id || null;
+        // Get Instagram Business Account ID
+        const igRes = await fetch(
+          `https://graph.facebook.com/v21.0/${pageId}?fields=instagram_business_account&access_token=${pageAccessToken}`
+        );
+        const igData = await igRes.json();
+        const igBusinessId = igData.instagram_business_account?.id || null;
 
-      // Step 5: Save credentials - use update if row exists, insert if not
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-      
-      // Check if row already exists
-      const { data: existing } = await supabase
-        .from("clinic_api_credentials")
-        .select("id")
-        .eq("clinic_id", clinic_id)
-        .maybeSingle();
-
-      let upsertError;
-      if (existing) {
-        // Update existing row
-        const { error } = await supabase
+        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const { data: existing } = await supabase
           .from("clinic_api_credentials")
-          .update({
-            meta_page_access_token: pageAccessToken,
-            meta_page_id: pageId,
-            meta_instagram_business_id: igBusinessId,
-            meta_page_name: pageName,
-          })
-          .eq("clinic_id", clinic_id);
-        upsertError = error;
-        console.log("Update result:", error ? error.message : "success");
-      } else {
-        // Insert new row
-        const { error } = await supabase
-          .from("clinic_api_credentials")
-          .insert({
-            clinic_id,
-            meta_page_access_token: pageAccessToken,
-            meta_page_id: pageId,
-            meta_instagram_business_id: igBusinessId,
-            meta_page_name: pageName,
+          .select("id")
+          .eq("clinic_id", clinic_id)
+          .maybeSingle();
+
+        let upsertError;
+        if (existing) {
+          const { error } = await supabase
+            .from("clinic_api_credentials")
+            .update({
+              meta_page_access_token: pageAccessToken,
+              meta_page_id: pageId,
+              meta_instagram_business_id: igBusinessId,
+              meta_page_name: pageName,
+            })
+            .eq("clinic_id", clinic_id);
+          upsertError = error;
+        } else {
+          const { error } = await supabase
+            .from("clinic_api_credentials")
+            .insert({
+              clinic_id,
+              meta_page_access_token: pageAccessToken,
+              meta_page_id: pageId,
+              meta_instagram_business_id: igBusinessId,
+              meta_page_name: pageName,
+            });
+          upsertError = error;
+        }
+
+        if (upsertError) {
+          console.error("Failed to save credentials:", upsertError);
+          return new Response(null, {
+            status: 302,
+            headers: { Location: `${FRONTEND_URL}/clinics/${clinic_id}?error=save_failed` },
           });
-        upsertError = error;
-        console.log("Insert result:", error ? error.message : "success");
-      }
+        }
 
-      if (upsertError) {
-        console.error("Failed to save credentials:", upsertError);
+        console.log(`Meta OAuth complete for clinic ${clinic_id}, page: ${pageName}`);
         return new Response(null, {
           status: 302,
-          headers: { Location: `${FRONTEND_URL}/clinics/${clinic_id}?error=save_failed` },
+          headers: { Location: `${FRONTEND_URL}/clinics/${clinic_id}?meta=connected` },
         });
       }
 
-      console.log(`Meta OAuth complete for clinic ${clinic_id}, page: ${pageName}`);
+      // Multiple pages: encode pages data and redirect to frontend for selection
+      const pagesForSelection = pagesData.data.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        access_token: p.access_token,
+        category: p.category || "",
+      }));
+      const encodedPages = btoa(JSON.stringify(pagesForSelection));
+      console.log(`Multiple pages found (${pagesData.data.length}), redirecting for selection`);
       return new Response(null, {
         status: 302,
-        headers: { Location: `${FRONTEND_URL}/clinics/${clinic_id}?meta=connected` },
+        headers: { Location: `${FRONTEND_URL}/clinics/${clinic_id}?meta_pages=${encodeURIComponent(encodedPages)}` },
       });
     }
 
