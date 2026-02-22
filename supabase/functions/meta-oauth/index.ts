@@ -112,13 +112,16 @@ Deno.serve(async (req) => {
       }
 
       // Step 3: Get pages (page tokens are permanent for long-lived user tokens)
+      console.log("Fetching pages with long-lived token...");
+      console.log("Token type:", typeof longTokenData.access_token, "length:", longTokenData.access_token?.length);
       const pagesRes = await fetch(
         `https://graph.facebook.com/v21.0/me/accounts?access_token=${longTokenData.access_token}`
       );
       const pagesData = await pagesRes.json();
+      console.log("Pages API response:", JSON.stringify(pagesData));
 
       if (!pagesData.data || pagesData.data.length === 0) {
-        console.error("No pages found for user");
+        console.error("No pages found for user. Full response:", JSON.stringify(pagesData));
         return new Response(null, {
           status: 302,
           headers: { Location: `${FRONTEND_URL}/clinics/${clinic_id}?error=no_pages` },
