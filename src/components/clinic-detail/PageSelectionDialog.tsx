@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -25,6 +26,12 @@ interface PageSelectionDialogProps {
 export function PageSelectionDialog({ open, pages, clinicId, onClose, onConnected }: PageSelectionDialogProps) {
   const [selectedPageId, setSelectedPageId] = useState<string>("");
   const [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState("");
+
+  const filteredPages = pages.filter(p =>
+    p.name.toLowerCase().includes(search.toLowerCase()) ||
+    p.category.toLowerCase().includes(search.toLowerCase())
+  );
 
   const handleConnect = async () => {
     const page = pages.find(p => p.id === selectedPageId);
@@ -60,8 +67,18 @@ export function PageSelectionDialog({ open, pages, clinicId, onClose, onConnecte
           </p>
         </DialogHeader>
 
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search pages..."
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
         <RadioGroup value={selectedPageId} onValueChange={setSelectedPageId} className="space-y-2 my-4">
-          {pages.map((page) => (
+          {filteredPages.map((page) => (
             <label
               key={page.id}
               className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
