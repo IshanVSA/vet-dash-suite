@@ -89,7 +89,7 @@ export function MetaConnectionCard({
               <span className="text-muted-foreground text-sm">Not connected</span>
             </div>
             <Button asChild className="w-full">
-              <a href={oauthUrl}>Connect with Facebook</a>
+              <a href={oauthUrl} target="_blank" rel="noopener noreferrer">Connect with Facebook</a>
             </Button>
           </div>
         ) : (
