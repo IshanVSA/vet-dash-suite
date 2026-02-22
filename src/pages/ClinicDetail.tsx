@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { DashboardLayout } from "@/components/DashboardLayout";
@@ -13,6 +13,7 @@ import { ArrowLeft, RefreshCw, Loader2, Save } from "lucide-react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 import { MetaConnectionCard } from "@/components/clinic-detail/MetaConnectionCard";
+import { PageSelectionDialog } from "@/components/clinic-detail/PageSelectionDialog";
 
 interface ClinicData { clinic_name: string; }
 interface ClinicCredentials {
@@ -29,6 +30,7 @@ interface ClinicCredentials {
 
 export default function ClinicDetail() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { role } = useUserRole();
   const [clinic, setClinic] = useState<ClinicData | null>(null);
   const [creds, setCreds] = useState<ClinicCredentials>({
@@ -40,12 +42,23 @@ export default function ClinicDetail() {
   const [instaData, setInstaData] = useState<any[]>([]);
   const [fbData, setFbData] = useState<any[]>([]);
   const [googleAdsData, setGoogleAdsData] = useState<any[]>([]);
-
+  const [metaPages, setMetaPages] = useState<any[] | null>(null);
   useEffect(() => {
     if (!id) return;
     supabase.from("clinics").select("clinic_name").eq("id", id).maybeSingle().then(({ data }) => setClinic(data));
     fetchCredentials();
     fetchAnalytics();
+
+    // Check for meta_pages URL parameter (page selection after OAuth)
+    const metaPagesParam = searchParams.get("meta_pages");
+    if (metaPagesParam) {
+      try {
+        const decoded = JSON.parse(atob(decodeURIComponent(metaPagesParam)));
+        setMetaPages(decoded);
+      } catch (e) {
+        console.error("Failed to decode meta_pages param:", e);
+      }
+    }
   }, [id]);
 
   const fetchCredentials = async () => {
@@ -216,6 +229,24 @@ export default function ClinicDetail() {
             </TabsContent>
           )}
         </Tabs>
+
+        {metaPages && id && (
+          <PageSelectionDialog
+            open={!!metaPages}
+            pages={metaPages}
+            clinicId={id}
+            onClose={() => {
+              setMetaPages(null);
+              setSearchParams({}, { replace: true });
+            }}
+            onConnected={() => {
+              setMetaPages(null);
+              setSearchParams({}, { replace: true });
+              fetchCredentials();
+              fetchAnalytics();
+            }}
+          />
+        )}
       </div>
     </DashboardLayout>
   );

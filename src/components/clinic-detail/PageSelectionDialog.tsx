@@ -1,0 +1,94 @@
+import { useState } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+
+interface MetaPage {
+  id: string;
+  name: string;
+  access_token: string;
+  category: string;
+}
+
+interface PageSelectionDialogProps {
+  open: boolean;
+  pages: MetaPage[];
+  clinicId: string;
+  onClose: () => void;
+  onConnected: () => void;
+}
+
+export function PageSelectionDialog({ open, pages, clinicId, onClose, onConnected }: PageSelectionDialogProps) {
+  const [selectedPageId, setSelectedPageId] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+
+  const handleConnect = async () => {
+    const page = pages.find(p => p.id === selectedPageId);
+    if (!page) return;
+
+    setSaving(true);
+    const { error } = await supabase.functions.invoke("save-meta-page", {
+      body: {
+        clinic_id: clinicId,
+        page_id: page.id,
+        page_name: page.name,
+        page_access_token: page.access_token,
+      },
+    });
+    setSaving(false);
+
+    if (error) {
+      toast.error("Failed to save page connection: " + error.message);
+      return;
+    }
+
+    toast.success(`Connected to ${page.name}`);
+    onConnected();
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Select a Facebook Page</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            Choose which Facebook Page to connect to this clinic.
+          </p>
+        </DialogHeader>
+
+        <RadioGroup value={selectedPageId} onValueChange={setSelectedPageId} className="space-y-2 my-4">
+          {pages.map((page) => (
+            <label
+              key={page.id}
+              className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                selectedPageId === page.id
+                  ? "border-primary bg-primary/5"
+                  : "border-border hover:border-muted-foreground/30"
+              }`}
+            >
+              <RadioGroupItem value={page.id} />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm text-foreground truncate">{page.name}</p>
+                {page.category && (
+                  <p className="text-xs text-muted-foreground">{page.category}</p>
+                )}
+              </div>
+            </label>
+          ))}
+        </RadioGroup>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
+          <Button onClick={handleConnect} disabled={!selectedPageId || saving}>
+            {saving && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+            Connect Page
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
