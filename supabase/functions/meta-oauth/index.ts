@@ -138,20 +138,44 @@ Deno.serve(async (req) => {
       const igData = await igRes.json();
       const igBusinessId = igData.instagram_business_account?.id || null;
 
-      // Step 5: Save credentials
+      // Step 5: Save credentials - use update if row exists, insert if not
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-      const { error: upsertError } = await supabase
+      
+      // Check if row already exists
+      const { data: existing } = await supabase
         .from("clinic_api_credentials")
-        .upsert(
-          {
+        .select("id")
+        .eq("clinic_id", clinic_id)
+        .maybeSingle();
+
+      let upsertError;
+      if (existing) {
+        // Update existing row
+        const { error } = await supabase
+          .from("clinic_api_credentials")
+          .update({
+            meta_page_access_token: pageAccessToken,
+            meta_page_id: pageId,
+            meta_instagram_business_id: igBusinessId,
+            meta_page_name: pageName,
+          })
+          .eq("clinic_id", clinic_id);
+        upsertError = error;
+        console.log("Update result:", error ? error.message : "success");
+      } else {
+        // Insert new row
+        const { error } = await supabase
+          .from("clinic_api_credentials")
+          .insert({
             clinic_id,
             meta_page_access_token: pageAccessToken,
             meta_page_id: pageId,
             meta_instagram_business_id: igBusinessId,
             meta_page_name: pageName,
-          },
-          { onConflict: "clinic_id" }
-        );
+          });
+        upsertError = error;
+        console.log("Insert result:", error ? error.message : "success");
+      }
 
       if (upsertError) {
         console.error("Failed to save credentials:", upsertError);
