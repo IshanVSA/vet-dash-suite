@@ -29,7 +29,8 @@ export function MetaConnectionCard({
   const [disconnecting, setDisconnecting] = useState(false);
 
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const oauthUrl = `${supabaseUrl}/functions/v1/meta-oauth?action=authorize&clinic_id=${clinicId}`;
+  const origin = encodeURIComponent(window.location.origin);
+  const oauthUrl = `${supabaseUrl}/functions/v1/meta-oauth?action=authorize&clinic_id=${clinicId}&origin=${origin}`;
 
   const handleSync = async () => {
     setSyncing(true);

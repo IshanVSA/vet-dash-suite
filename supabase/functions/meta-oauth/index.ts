@@ -33,6 +33,7 @@ Deno.serve(async (req) => {
   try {
     if (action === "authorize") {
       const clinicId = url.searchParams.get("clinic_id");
+      const originUrl = url.searchParams.get("origin") || FRONTEND_URL;
       if (!clinicId) {
         return new Response(JSON.stringify({ error: "clinic_id is required" }), {
           status: 400,
@@ -40,7 +41,7 @@ Deno.serve(async (req) => {
         });
       }
 
-      const state = btoa(JSON.stringify({ clinic_id: clinicId }));
+      const state = btoa(JSON.stringify({ clinic_id: clinicId, origin: originUrl }));
       const authUrl =
         `https://www.facebook.com/v21.0/dialog/oauth?` +
         `client_id=${META_APP_ID}` +
@@ -62,9 +63,11 @@ Deno.serve(async (req) => {
 
       if (errorParam) {
         console.error("Meta OAuth error:", errorParam, url.searchParams.get("error_description"));
+        // Can't use redirectBase here since state may not be parseable on error
+        const fallbackUrl = stateParam ? (JSON.parse(atob(stateParam)).origin || FRONTEND_URL) : FRONTEND_URL;
         return new Response(null, {
           status: 302,
-          headers: { Location: `${FRONTEND_URL}/clinics?error=oauth_denied` },
+          headers: { Location: `${fallbackUrl}/clinics?error=oauth_denied` },
         });
       }
 
@@ -75,7 +78,8 @@ Deno.serve(async (req) => {
         });
       }
 
-      const { clinic_id } = JSON.parse(atob(stateParam));
+      const { clinic_id, origin } = JSON.parse(atob(stateParam));
+      const redirectBase = origin || FRONTEND_URL;
 
       // Step 1: Exchange code for short-lived user access token
       const tokenRes = await fetch(
@@ -90,7 +94,7 @@ Deno.serve(async (req) => {
         console.error("Token exchange error:", tokenData.error);
         return new Response(null, {
           status: 302,
-          headers: { Location: `${FRONTEND_URL}/clinics/${clinic_id}?error=token_exchange` },
+          headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=token_exchange` },
         });
       }
 
@@ -107,7 +111,7 @@ Deno.serve(async (req) => {
         console.error("Long-lived token error:", longTokenData.error);
         return new Response(null, {
           status: 302,
-          headers: { Location: `${FRONTEND_URL}/clinics/${clinic_id}?error=long_token` },
+          headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=long_token` },
         });
       }
 
@@ -124,7 +128,7 @@ Deno.serve(async (req) => {
         console.error("No pages found for user. Full response:", JSON.stringify(pagesData));
         return new Response(null, {
           status: 302,
-          headers: { Location: `${FRONTEND_URL}/clinics/${clinic_id}?error=no_pages` },
+          headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=no_pages` },
         });
       }
 
@@ -178,14 +182,14 @@ Deno.serve(async (req) => {
           console.error("Failed to save credentials:", upsertError);
           return new Response(null, {
             status: 302,
-            headers: { Location: `${FRONTEND_URL}/clinics/${clinic_id}?error=save_failed` },
+            headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=save_failed` },
           });
         }
 
         console.log(`Meta OAuth complete for clinic ${clinic_id}, page: ${pageName}`);
         return new Response(null, {
           status: 302,
-          headers: { Location: `${FRONTEND_URL}/clinics/${clinic_id}?meta=connected` },
+          headers: { Location: `${redirectBase}/clinics/${clinic_id}?meta=connected` },
         });
       }
 
@@ -200,7 +204,7 @@ Deno.serve(async (req) => {
       console.log(`Multiple pages found (${pagesData.data.length}), redirecting for selection`);
       return new Response(null, {
         status: 302,
-        headers: { Location: `${FRONTEND_URL}/clinics/${clinic_id}?meta_pages=${encodeURIComponent(encodedPages)}` },
+        headers: { Location: `${redirectBase}/clinics/${clinic_id}?meta_pages=${encodeURIComponent(encodedPages)}` },
       });
     }
 
