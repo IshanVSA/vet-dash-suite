@@ -1,63 +1,43 @@
 
 
-## Facebook Insights Dashboard for Clinic Detail
+## Fix: Facebook Insights Data Not Populating
 
-Build a Facebook Insights-style analytics section in the clinic detail page that mirrors the Meta Business Suite overview layout shown in the reference screenshot, using data already collected by the `sync-meta-analytics` edge function.
+The dashboard shows all zeros because the Facebook API is **rejecting the insights requests** -- the OAuth token was granted without the required `read_insights` permission scope.
 
-### What You'll Get
+### Root Cause
 
-A redesigned Facebook analytics tab with four main insight cards arranged in a 2x2 grid, each showing:
+The current OAuth flow requests only these scopes:
+- `pages_show_list` -- lists pages
+- `pages_read_engagement` -- basic engagement data
+- `business_management` -- business manager access
 
-- **Views** -- Total page impressions with a sparkline, follower vs non-follower breakdown
-- **Interactions** -- Content interactions (post engagements) with sparkline and breakdown
-- **Visits** -- Facebook page visits with sparkline and change indicator
-- **Follows** -- New follows, unfollows, net follows with sparkline
+But the `/{page_id}/insights` endpoint (which provides Views, Interactions, Visits, Fan changes, daily trends) requires the **`read_insights`** scope. Similarly, fetching recent posts with likes/comments requires **`pages_read_user_content`**.
 
-Below those, the existing daily trend charts and recent posts section remain.
+### Fix
 
-### Data Mapping
+**File: `supabase/functions/meta-oauth/index.ts`**
+- Add `read_insights` and `pages_read_user_content` to the SCOPES array
 
-All data is already being synced by the edge function -- no backend changes needed.
+**After deploying**, you will need to:
+1. Go to the Connections tab for the clinic
+2. Click **Disconnect** to remove the current Meta connection
+3. Click **Connect with Facebook** again -- this time the OAuth dialog will request the additional permissions
+4. Re-select the page and complete the flow
+5. Click **Sync Now** to fetch the full insights data
 
-| Card | API Metric (already in metrics_json) |
-|------|--------------------------------------|
-| Views | `reach` (page_impressions), `daily_trends[].impressions` for sparkline |
-| Interactions | `post_engagements`, `engagement` (engaged_users), `daily_trends[].engaged_users` |
-| Visits | `page_views`, `daily_trends[].page_views` for sparkline |
-| Follows | `fan_adds`, `fan_removes`, net = adds - removes, `followers` |
+### Why Re-connection Is Required
+
+OAuth tokens are scoped at the time of authorization. The existing token was granted without `read_insights`, so simply updating the code won't fix existing connections. The clinic must re-authorize to get a new token with the expanded permissions.
 
 ### Technical Details
 
-**New component: `src/components/clinic-detail/FacebookInsightCard.tsx`**
-- Reusable card matching the reference design: title, big number, optional sparkline (tiny Recharts LineChart), sub-metrics with change indicators
-- Props: `title`, `mainValue`, `mainLabel`, `sparklineData`, `subMetrics[]`
-
-**Modified file: `src/pages/ClinicDetail.tsx`**
-- Replace the current rows of plain KPI cards in the Facebook tab with a 2x2 grid of `FacebookInsightCard` components
-- Keep the daily trend AreaChart, BarChart, and recent posts sections below
-- Extract sparkline data from `daily_trends` array already stored in `metrics_json`
-
-**No backend or edge function changes required** -- all the necessary data (`page_impressions`, `page_engaged_users`, `page_views_total`, `page_fan_adds`, `page_fan_removes`, `daily_trends`) is already being synced and stored.
-
-### Layout
-
 ```text
-+---------------------------+---------------------------+
-|  Views                    |  Interactions             |
-|  254.4K  [sparkline]      |  21  [sparkline]          |
-|  From followers: 0.2%     |  From followers: 2        |
-|  From non-followers: 99.8%|  From non-followers: 19   |
-+---------------------------+---------------------------+
-|  Visits                   |  Follows                  |
-|  139  [sparkline]         |  6  [sparkline]           |
-|                           |  Unfollows: 1             |
-|                           |  Net follows: 5           |
-+---------------------------+---------------------------+
-|  Daily Impressions & Engagement (AreaChart)            |
-+-------------------------------------------------------+
-|  Daily Page Views (BarChart)                           |
-+-------------------------------------------------------+
-|  Recent Posts Performance                              |
-+-------------------------------------------------------+
+Current scopes:
+  pages_show_list, pages_read_engagement, business_management
+
+Updated scopes:
+  pages_show_list, pages_read_engagement, business_management,
+  read_insights, pages_read_user_content
 ```
 
+Also add better error logging in the sync function so that if the Facebook API returns an error response (like permission denied), it gets logged instead of silently falling back to zeros.
