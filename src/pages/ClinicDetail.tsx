@@ -10,7 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, RefreshCw, Loader2, Save } from "lucide-react";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import { MetaConnectionCard } from "@/components/clinic-detail/MetaConnectionCard";
 import { PageSelectionDialog } from "@/components/clinic-detail/PageSelectionDialog";
@@ -79,7 +80,15 @@ export default function ClinicDetail() {
     });
     const fb = data.filter(r => r.platform === "facebook").map(r => {
       const m = (r as any).metrics_json || {};
-      return { month: (r as any).date || r.recorded_at?.slice(0, 7), likes: m.likes, reach: m.reach, engagement: m.engagement };
+      return {
+        month: (r as any).date || r.recorded_at?.slice(0, 7),
+        likes: m.likes, followers: m.followers, reach: m.reach, reach_unique: m.reach_unique,
+        engagement: m.engagement, post_engagements: m.post_engagements,
+        page_views: m.page_views, fan_adds: m.fan_adds, fan_removes: m.fan_removes,
+        video_views: m.video_views, talking_about: m.talking_about,
+        daily_trends: m.daily_trends, recent_posts: m.recent_posts,
+        reactions: m.reactions,
+      };
     });
     const gAds = data.filter(r => r.platform === "google_ads").map(r => {
       const m = (r as any).metrics_json || {};
@@ -168,11 +177,87 @@ export default function ClinicDetail() {
               <EmptyState message="No Facebook data yet — connect your account and sync from the Connections tab." />
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Page Likes</p><p className="text-2xl font-bold text-foreground">{latestFb?.likes?.toLocaleString() ?? "—"}</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Post Reach</p><p className="text-2xl font-bold text-foreground">{latestFb?.reach?.toLocaleString() ?? "—"}</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Engagement</p><p className="text-2xl font-bold text-foreground">{latestFb?.engagement ? `${latestFb.engagement}%` : "—"}</p></CardContent></Card>
+                {/* KPI Cards Row 1 */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Page Likes</p><p className="text-2xl font-bold text-foreground">{latestFb?.likes?.toLocaleString() ?? "—"}</p></CardContent></Card>
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Followers</p><p className="text-2xl font-bold text-foreground">{latestFb?.followers?.toLocaleString() ?? "—"}</p></CardContent></Card>
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Reach (28d)</p><p className="text-2xl font-bold text-foreground">{latestFb?.reach?.toLocaleString() ?? "—"}</p></CardContent></Card>
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Unique Reach</p><p className="text-2xl font-bold text-foreground">{latestFb?.reach_unique?.toLocaleString() ?? "—"}</p></CardContent></Card>
                 </div>
+                {/* KPI Cards Row 2 */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Engaged Users</p><p className="text-2xl font-bold text-foreground">{latestFb?.engagement?.toLocaleString() ?? "—"}</p></CardContent></Card>
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Post Engagements</p><p className="text-2xl font-bold text-foreground">{latestFb?.post_engagements?.toLocaleString() ?? "—"}</p></CardContent></Card>
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Page Views</p><p className="text-2xl font-bold text-foreground">{latestFb?.page_views?.toLocaleString() ?? "—"}</p></CardContent></Card>
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Video Views</p><p className="text-2xl font-bold text-foreground">{latestFb?.video_views?.toLocaleString() ?? "—"}</p></CardContent></Card>
+                </div>
+                {/* Fan Growth */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">New Fans (28d)</p><p className="text-2xl font-bold text-primary">+{latestFb?.fan_adds?.toLocaleString() ?? "0"}</p></CardContent></Card>
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Lost Fans (28d)</p><p className="text-2xl font-bold text-destructive">-{latestFb?.fan_removes?.toLocaleString() ?? "0"}</p></CardContent></Card>
+                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Talking About</p><p className="text-2xl font-bold text-foreground">{latestFb?.talking_about?.toLocaleString() ?? "—"}</p></CardContent></Card>
+                </div>
+
+                {/* Daily Trends Chart */}
+                {latestFb?.daily_trends && latestFb.daily_trends.length > 0 && (
+                  <Card>
+                    <CardHeader><CardTitle className="text-base">Daily Impressions & Engagement (Last 30 Days)</CardTitle></CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                        <AreaChart data={latestFb.daily_trends}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v: string) => v ? format(new Date(v), "MMM d") : ""} />
+                          <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                          <Tooltip labelFormatter={(v: string) => v ? format(new Date(v), "MMM d, yyyy") : ""} />
+                          <Area type="monotone" dataKey="impressions" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.15)" strokeWidth={2} name="Impressions" />
+                          <Area type="monotone" dataKey="engaged_users" stroke="hsl(var(--accent-foreground))" fill="hsl(var(--accent) / 0.15)" strokeWidth={2} name="Engaged Users" />
+                        </AreaChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Page Views Trend */}
+                {latestFb?.daily_trends && latestFb.daily_trends.length > 0 && (
+                  <Card>
+                    <CardHeader><CardTitle className="text-base">Daily Page Views</CardTitle></CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <BarChart data={latestFb.daily_trends}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v: string) => v ? format(new Date(v), "MMM d") : ""} />
+                          <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                          <Tooltip labelFormatter={(v: string) => v ? format(new Date(v), "MMM d, yyyy") : ""} />
+                          <Bar dataKey="page_views" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Page Views" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Recent Posts */}
+                {latestFb?.recent_posts && latestFb.recent_posts.length > 0 && (
+                  <Card>
+                    <CardHeader><CardTitle className="text-base">Recent Posts Performance</CardTitle></CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {latestFb.recent_posts.map((post: any, i: number) => (
+                          <div key={post.id || i} className="flex items-start gap-4 p-3 rounded-lg border border-border">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm text-foreground truncate">{post.message || "(No text)"}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{post.created_time ? format(new Date(post.created_time), "MMM d, yyyy h:mm a") : ""}</p>
+                            </div>
+                            <div className="flex gap-4 text-xs text-muted-foreground shrink-0">
+                              <span>👍 {post.likes}</span>
+                              <span>💬 {post.comments}</span>
+                              <span>🔄 {post.shares}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
               </>
             )}
           </TabsContent>
