@@ -29,7 +29,11 @@ Deno.serve(async (req) => {
       `https://graph.facebook.com/v21.0/${page_id}?fields=instagram_business_account&access_token=${page_access_token}`
     );
     const igData = await igRes.json();
+    console.log(`Instagram Business Account lookup for page ${page_id}:`, JSON.stringify(igData));
     const igBusinessId = igData.instagram_business_account?.id || null;
+    if (!igBusinessId) {
+      console.warn(`No Instagram Business Account found for page ${page_id}. Ensure the page has a linked IG Business/Creator account and the token includes instagram_basic scope.`);
+    }
 
     // Save credentials
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
