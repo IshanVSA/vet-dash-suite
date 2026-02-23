@@ -1,50 +1,38 @@
 
 
-## Fix: Remove Invalid Meta OAuth Scopes
+## Fix: Instagram Business Account Not Detected
 
-### Problem
+### Root Cause
 
-Facebook is rejecting the OAuth flow because `read_insights` and `pages_read_user_content` require **Meta App Review** -- a formal approval process with Facebook. Your app is in Development mode, so these scopes are not available.
+Your Instagram account IS connected to the Facebook Page (confirmed in your screenshot). The problem is that the OAuth token was granted **without the `instagram_basic` scope**, which is required for the Graph API to return the `instagram_business_account` field on the Page object.
 
-### Solution
+Without this scope, the API call at line 28-29 of `save-meta-page/index.ts` returns an empty object for `instagram_business_account`, so the ID is stored as `null`.
 
-Remove the two invalid scopes from the OAuth request. The remaining approved scopes still provide useful data:
-
-| Approved Scope | What It Provides |
-|---|---|
-| `pages_show_list` | List of pages the user manages |
-| `pages_read_engagement` | Page likes, followers, basic engagement metrics |
-| `business_management` | Business Manager page access |
-
-### What Data Will Still Work
-
-With `pages_read_engagement`, the Graph API still returns:
-- `fan_count` (page likes), `followers_count`
-- Basic page info and fan/follower counts
-- Page posts (public data)
-
-What will return zeros without App Review:
-- `/insights` endpoint metrics (reach, impressions, page views, daily trends)
-- Detailed post engagement breakdowns
-
-### Technical Changes
+### Fix
 
 **File: `supabase/functions/meta-oauth/index.ts`**
-- Remove `read_insights` and `pages_read_user_content` from the SCOPES array
-- Keep only: `pages_show_list`, `pages_read_engagement`, `business_management`
+- Add `instagram_basic` to the SCOPES array
+- This scope is available in Development mode (no App Review needed) for test users
 
-**File: `supabase/functions/sync-meta-analytics/index.ts`**
-- Wrap the insights API calls in graceful error handling so they don't break the sync
-- Still attempt to fetch insights (they may work for some app configurations) but fall back to zeros without crashing
+Updated scopes:
+```text
+pages_show_list, pages_read_engagement, business_management, instagram_basic
+```
 
-After deploying, reconnect Facebook and the OAuth flow will work again. Some insight metrics will show zeros until the Meta App passes App Review for the advanced permissions.
+**File: `supabase/functions/save-meta-page/index.ts`**
+- Add logging of the full API response from the `instagram_business_account` lookup so we can debug if it still fails
+- Log a clear warning if the IG Business ID is null
 
-### About Meta App Review
+### After Deploying
 
-To get full insights data in the future, you would need to:
-1. Go to [developers.facebook.com](https://developers.facebook.com)
-2. Submit your app for review requesting `read_insights` and `pages_read_user_content`
-3. Provide a screencast demo and privacy policy
-4. Wait for Facebook's approval (can take days to weeks)
+1. Go to the clinic's Connections tab
+2. Click **Disconnect** to remove the current Meta connection
+3. Click **Connect with Facebook** again -- the OAuth dialog will now request Instagram access
+4. Re-select the page and complete the flow
+5. The Instagram Business ID should now be detected and saved
+6. Click **Sync Now** to fetch Instagram analytics
 
-This is a Facebook platform requirement, not something we can bypass in code.
+### Why Re-connection Is Required
+
+The existing token was granted without `instagram_basic`. OAuth tokens are scoped at authorization time, so the clinic must re-authorize to get a new token that includes this permission.
+
