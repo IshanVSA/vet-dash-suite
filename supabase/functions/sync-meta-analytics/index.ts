@@ -213,41 +213,64 @@ Deno.serve(async (req) => {
     // ---- Instagram Insights ----
     if (igId) {
       try {
-        // Get follower count
-        const igProfileRes = await fetch(
-          `https://graph.facebook.com/v21.0/${igId}?fields=followers_count,media_count&access_token=${token_str}`
-        );
-        const igProfile = await igProfileRes.json();
-
-        // Get insights (reach, impressions)
-        const igInsightsRes = await fetch(
-          `https://graph.facebook.com/v21.0/${igId}/insights?metric=reach,impressions&period=days_28&access_token=${token_str}`
-        );
-        const igInsights = await igInsightsRes.json();
-
+        let followers = 0;
+        let mediaCount = 0;
         const igMetrics: Record<string, number> = {};
-        if (igInsights.data) {
-          for (const metric of igInsights.data) {
-            const latest = metric.values?.[metric.values.length - 1];
-            if (latest) igMetrics[metric.name] = latest.value;
+        let engagementRate = 0;
+
+        // Get follower count (basic profile info)
+        try {
+          const igProfileRes = await fetch(
+            `https://graph.facebook.com/v21.0/${igId}?fields=followers_count,media_count&access_token=${token_str}`
+          );
+          const igProfile = await igProfileRes.json();
+          if (igProfile.error) {
+            console.warn("Instagram profile info error:", JSON.stringify(igProfile.error));
+          } else {
+            followers = igProfile.followers_count || 0;
+            mediaCount = igProfile.media_count || 0;
           }
+        } catch (profileErr) {
+          console.warn("Instagram profile fetch failed (non-fatal):", profileErr);
+        }
+
+        // Get insights - reach, impressions (may require additional permissions)
+        try {
+          const igInsightsRes = await fetch(
+            `https://graph.facebook.com/v21.0/${igId}/insights?metric=reach,impressions&period=days_28&access_token=${token_str}`
+          );
+          const igInsights = await igInsightsRes.json();
+          if (igInsights.error) {
+            console.warn("Instagram insights unavailable (may need App Review):", JSON.stringify(igInsights.error));
+          } else if (igInsights.data) {
+            for (const metric of igInsights.data) {
+              const latest = metric.values?.[metric.values.length - 1];
+              if (latest) igMetrics[metric.name] = latest.value;
+            }
+          }
+        } catch (insightsErr) {
+          console.warn("Instagram insights fetch failed (non-fatal):", insightsErr);
         }
 
         // Calculate engagement from recent media
-        let engagementRate = 0;
-        const followers = igProfile.followers_count || 0;
-        if (followers > 0) {
-          const mediaRes = await fetch(
-            `https://graph.facebook.com/v21.0/${igId}/media?fields=like_count,comments_count&limit=25&access_token=${token_str}`
-          );
-          const mediaData = await mediaRes.json();
-          if (mediaData.data && mediaData.data.length > 0) {
-            const totalEngagement = mediaData.data.reduce(
-              (sum: number, m: any) => sum + (m.like_count || 0) + (m.comments_count || 0),
-              0
+        try {
+          if (followers > 0) {
+            const mediaRes = await fetch(
+              `https://graph.facebook.com/v21.0/${igId}/media?fields=like_count,comments_count&limit=25&access_token=${token_str}`
             );
-            engagementRate = Math.round((totalEngagement / mediaData.data.length / followers) * 10000) / 100;
+            const mediaData = await mediaRes.json();
+            if (mediaData.error) {
+              console.warn("Instagram media fetch error:", JSON.stringify(mediaData.error));
+            } else if (mediaData.data && mediaData.data.length > 0) {
+              const totalEngagement = mediaData.data.reduce(
+                (sum: number, m: any) => sum + (m.like_count || 0) + (m.comments_count || 0),
+                0
+              );
+              engagementRate = Math.round((totalEngagement / mediaData.data.length / followers) * 10000) / 100;
+            }
           }
+        } catch (mediaErr) {
+          console.warn("Instagram media fetch failed (non-fatal):", mediaErr);
         }
 
         analyticsRows.push({
@@ -258,6 +281,7 @@ Deno.serve(async (req) => {
           value: followers,
           metrics_json: {
             followers,
+            media_count: mediaCount,
             reach: igMetrics.reach || 0,
             impressions: igMetrics.impressions || 0,
             engagement: engagementRate,
