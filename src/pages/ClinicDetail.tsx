@@ -77,7 +77,11 @@ export default function ClinicDetail() {
     if (!data) return;
     const insta = data.filter(r => r.platform === "instagram").map(r => {
       const m = (r as any).metrics_json || {};
-      return { month: (r as any).date || r.recorded_at?.slice(0, 7), followers: m.followers, reach: m.reach, engagement: m.engagement };
+      return {
+        month: (r as any).date || r.recorded_at?.slice(0, 7),
+        followers: m.followers, reach: m.reach, impressions: m.impressions,
+        engagement: m.engagement, media_count: m.media_count,
+      };
     });
     const fb = data.filter(r => r.platform === "facebook").map(r => {
       const m = (r as any).metrics_json || {};
@@ -150,25 +154,73 @@ export default function ClinicDetail() {
               <EmptyState message="No Instagram data yet — connect your account and sync from the Connections tab." />
             ) : (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Followers</p><p className="text-2xl font-bold text-foreground">{latestInsta?.followers?.toLocaleString() ?? "—"}</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Reach</p><p className="text-2xl font-bold text-foreground">{latestInsta?.reach?.toLocaleString() ?? "—"}</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-sm text-muted-foreground">Engagement</p><p className="text-2xl font-bold text-foreground">{latestInsta?.engagement ? `${latestInsta.engagement}%` : "—"}</p></CardContent></Card>
+                {/* Insight Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FacebookInsightCard
+                    title="Followers"
+                    mainValue={latestInsta?.followers?.toLocaleString() ?? "—"}
+                    mainLabel="Total followers"
+                    sparklineData={instaData.length > 1 ? instaData.map((d: any) => ({ value: d.followers ?? 0 })) : undefined}
+                    subMetrics={[
+                      { label: "Media posts", value: latestInsta?.media_count?.toLocaleString() ?? "—" },
+                    ]}
+                  />
+                  <FacebookInsightCard
+                    title="Reach"
+                    mainValue={latestInsta?.reach?.toLocaleString() ?? "—"}
+                    mainLabel="Accounts reached (28 days)"
+                    sparklineData={instaData.length > 1 ? instaData.map((d: any) => ({ value: d.reach ?? 0 })) : undefined}
+                    subMetrics={[
+                      { label: "Impressions", value: latestInsta?.impressions?.toLocaleString() ?? "—" },
+                    ]}
+                  />
+                  <FacebookInsightCard
+                    title="Engagement"
+                    mainValue={latestInsta?.engagement ? `${latestInsta.engagement}%` : "—"}
+                    mainLabel="Avg. engagement rate"
+                  />
+                  <FacebookInsightCard
+                    title="Impressions"
+                    mainValue={latestInsta?.impressions?.toLocaleString() ?? "—"}
+                    mainLabel="Total impressions (28 days)"
+                    sparklineData={instaData.length > 1 ? instaData.map((d: any) => ({ value: d.impressions ?? 0 })) : undefined}
+                  />
                 </div>
+
+                {/* Followers Growth Chart */}
                 <Card>
                   <CardHeader><CardTitle className="text-base">Followers Growth</CardTitle></CardHeader>
                   <CardContent>
                     <ResponsiveContainer width="100%" height={300}>
-                      <LineChart data={instaData}>
+                      <AreaChart data={instaData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                         <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                         <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
                         <Tooltip />
-                        <Line type="monotone" dataKey="followers" stroke="hsl(var(--primary))" strokeWidth={2} />
-                      </LineChart>
+                        <Area type="monotone" dataKey="followers" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.15)" strokeWidth={2} name="Followers" />
+                      </AreaChart>
                     </ResponsiveContainer>
                   </CardContent>
                 </Card>
+
+                {/* Reach & Impressions Chart */}
+                {instaData.length > 1 && (
+                  <Card>
+                    <CardHeader><CardTitle className="text-base">Reach & Impressions Over Time</CardTitle></CardHeader>
+                    <CardContent>
+                      <ResponsiveContainer width="100%" height={250}>
+                        <BarChart data={instaData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                          <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                          <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                          <Tooltip />
+                          <Bar dataKey="reach" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Reach" />
+                          <Bar dataKey="impressions" fill="hsl(var(--accent-foreground))" radius={[4, 4, 0, 0]} name="Impressions" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </CardContent>
+                  </Card>
+                )}
               </>
             )}
           </TabsContent>
