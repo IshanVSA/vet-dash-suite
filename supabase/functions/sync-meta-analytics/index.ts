@@ -89,6 +89,9 @@ Deno.serve(async (req) => {
         `https://graph.facebook.com/v21.0/${pageId}?fields=fan_count,name,followers_count,new_like_count,talking_about_count&access_token=${token_str}`
       );
       const fbPage = await fbRes.json();
+      if (fbPage.error) {
+        console.error("Facebook page info error:", JSON.stringify(fbPage.error));
+      }
 
       // Get page insights (last 28 days) - multiple metrics
       const fbMetrics = [
@@ -107,6 +110,9 @@ Deno.serve(async (req) => {
         `https://graph.facebook.com/v21.0/${pageId}/insights?metric=${fbMetrics}&period=days_28&access_token=${token_str}`
       );
       const insightsData = await insightsRes.json();
+      if (insightsData.error) {
+        console.error("Facebook insights error:", JSON.stringify(insightsData.error));
+      }
 
       const metricsMap: Record<string, any> = {};
       if (insightsData.data) {
@@ -126,6 +132,9 @@ Deno.serve(async (req) => {
         `https://graph.facebook.com/v21.0/${pageId}/insights?metric=page_impressions,page_engaged_users,page_views_total&period=day&since=${sinceStr}&until=${untilStr}&access_token=${token_str}`
       );
       const dailyInsights = await dailyInsightsRes.json();
+      if (dailyInsights.error) {
+        console.error("Facebook daily insights error:", JSON.stringify(dailyInsights.error));
+      }
 
       const dailyData: any[] = [];
       if (dailyInsights.data && dailyInsights.data.length > 0) {
