@@ -21,8 +21,6 @@ const SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
   "business_management",
-  "read_insights",
-  "pages_read_user_content",
 ].join(",");
 
 Deno.serve(async (req) => {
