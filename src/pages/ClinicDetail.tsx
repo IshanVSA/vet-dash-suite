@@ -15,6 +15,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { MetaConnectionCard } from "@/components/clinic-detail/MetaConnectionCard";
 import { PageSelectionDialog } from "@/components/clinic-detail/PageSelectionDialog";
+import { FacebookInsightCard } from "@/components/clinic-detail/FacebookInsightCard";
 
 interface ClinicData { clinic_name: string; }
 interface ClinicCredentials {
@@ -177,25 +178,45 @@ export default function ClinicDetail() {
               <EmptyState message="No Facebook data yet — connect your account and sync from the Connections tab." />
             ) : (
               <>
-                {/* KPI Cards Row 1 */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Page Likes</p><p className="text-2xl font-bold text-foreground">{latestFb?.likes?.toLocaleString() ?? "—"}</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Followers</p><p className="text-2xl font-bold text-foreground">{latestFb?.followers?.toLocaleString() ?? "—"}</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Reach (28d)</p><p className="text-2xl font-bold text-foreground">{latestFb?.reach?.toLocaleString() ?? "—"}</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Unique Reach</p><p className="text-2xl font-bold text-foreground">{latestFb?.reach_unique?.toLocaleString() ?? "—"}</p></CardContent></Card>
-                </div>
-                {/* KPI Cards Row 2 */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Engaged Users</p><p className="text-2xl font-bold text-foreground">{latestFb?.engagement?.toLocaleString() ?? "—"}</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Post Engagements</p><p className="text-2xl font-bold text-foreground">{latestFb?.post_engagements?.toLocaleString() ?? "—"}</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Page Views</p><p className="text-2xl font-bold text-foreground">{latestFb?.page_views?.toLocaleString() ?? "—"}</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Video Views</p><p className="text-2xl font-bold text-foreground">{latestFb?.video_views?.toLocaleString() ?? "—"}</p></CardContent></Card>
-                </div>
-                {/* Fan Growth */}
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">New Fans (28d)</p><p className="text-2xl font-bold text-primary">+{latestFb?.fan_adds?.toLocaleString() ?? "0"}</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Lost Fans (28d)</p><p className="text-2xl font-bold text-destructive">-{latestFb?.fan_removes?.toLocaleString() ?? "0"}</p></CardContent></Card>
-                  <Card><CardContent className="pt-6"><p className="text-xs text-muted-foreground">Talking About</p><p className="text-2xl font-bold text-foreground">{latestFb?.talking_about?.toLocaleString() ?? "—"}</p></CardContent></Card>
+                {/* Insight Cards Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FacebookInsightCard
+                    title="Views"
+                    mainValue={latestFb?.reach?.toLocaleString() ?? "—"}
+                    mainLabel="Page impressions (28 days)"
+                    sparklineData={latestFb?.daily_trends?.map((d: any) => ({ value: d.impressions ?? 0 }))}
+                    subMetrics={[
+                      { label: "Unique reach", value: latestFb?.reach_unique?.toLocaleString() ?? "—" },
+                      { label: "Video views", value: latestFb?.video_views?.toLocaleString() ?? "—" },
+                    ]}
+                  />
+                  <FacebookInsightCard
+                    title="Interactions"
+                    mainValue={latestFb?.post_engagements?.toLocaleString() ?? "—"}
+                    mainLabel="Post engagements (28 days)"
+                    sparklineData={latestFb?.daily_trends?.map((d: any) => ({ value: d.engaged_users ?? 0 }))}
+                    subMetrics={[
+                      { label: "Engaged users", value: latestFb?.engagement?.toLocaleString() ?? "—" },
+                      { label: "Talking about", value: latestFb?.talking_about?.toLocaleString() ?? "—" },
+                    ]}
+                  />
+                  <FacebookInsightCard
+                    title="Visits"
+                    mainValue={latestFb?.page_views?.toLocaleString() ?? "—"}
+                    mainLabel="Page views (28 days)"
+                    sparklineData={latestFb?.daily_trends?.map((d: any) => ({ value: d.page_views ?? 0 }))}
+                  />
+                  <FacebookInsightCard
+                    title="Follows"
+                    mainValue={`+${latestFb?.fan_adds?.toLocaleString() ?? "0"}`}
+                    mainLabel={`Total followers: ${latestFb?.followers?.toLocaleString() ?? "—"}`}
+                    sparklineData={latestFb?.daily_trends?.map((d: any) => ({ value: (d.fan_adds ?? 0) - (d.fan_removes ?? 0) }))}
+                    subMetrics={[
+                      { label: "New follows", value: `+${latestFb?.fan_adds ?? 0}`, color: "primary" },
+                      { label: "Unfollows", value: `-${latestFb?.fan_removes ?? 0}`, color: "destructive" },
+                      { label: "Net follows", value: (latestFb?.fan_adds ?? 0) - (latestFb?.fan_removes ?? 0), color: "primary" },
+                    ]}
+                  />
                 </div>
 
                 {/* Daily Trends Chart */}
