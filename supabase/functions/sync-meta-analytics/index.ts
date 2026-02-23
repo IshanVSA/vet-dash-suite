@@ -84,24 +84,81 @@ Deno.serve(async (req) => {
 
     // ---- Facebook Page Insights ----
     try {
+      // Basic page info
       const fbRes = await fetch(
-        `https://graph.facebook.com/v21.0/${pageId}?fields=fan_count,name&access_token=${token_str}`
+        `https://graph.facebook.com/v21.0/${pageId}?fields=fan_count,name,followers_count,new_like_count,talking_about_count&access_token=${token_str}`
       );
       const fbPage = await fbRes.json();
 
-      // Get page impressions (last 28 days)
+      // Get page insights (last 28 days) - multiple metrics
+      const fbMetrics = [
+        "page_impressions",
+        "page_impressions_unique",
+        "page_engaged_users",
+        "page_post_engagements",
+        "page_views_total",
+        "page_fan_adds",
+        "page_fan_removes",
+        "page_actions_post_reactions_total",
+        "page_video_views",
+      ].join(",");
+
       const insightsRes = await fetch(
-        `https://graph.facebook.com/v21.0/${pageId}/insights?metric=page_impressions,page_engaged_users&period=days_28&access_token=${token_str}`
+        `https://graph.facebook.com/v21.0/${pageId}/insights?metric=${fbMetrics}&period=days_28&access_token=${token_str}`
       );
       const insightsData = await insightsRes.json();
 
-      const metricsMap: Record<string, number> = {};
+      const metricsMap: Record<string, any> = {};
       if (insightsData.data) {
         for (const metric of insightsData.data) {
           const latest = metric.values?.[metric.values.length - 1];
           if (latest) metricsMap[metric.name] = latest.value;
         }
       }
+
+      // Get daily page impressions for trend chart (last 30 days)
+      const thirtyDaysAgo = new Date();
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+      const sinceStr = thirtyDaysAgo.toISOString().slice(0, 10);
+      const untilStr = today;
+
+      const dailyInsightsRes = await fetch(
+        `https://graph.facebook.com/v21.0/${pageId}/insights?metric=page_impressions,page_engaged_users,page_views_total&period=day&since=${sinceStr}&until=${untilStr}&access_token=${token_str}`
+      );
+      const dailyInsights = await dailyInsightsRes.json();
+
+      const dailyData: any[] = [];
+      if (dailyInsights.data && dailyInsights.data.length > 0) {
+        const impressionsMetric = dailyInsights.data.find((m: any) => m.name === "page_impressions");
+        const engagedMetric = dailyInsights.data.find((m: any) => m.name === "page_engaged_users");
+        const viewsMetric = dailyInsights.data.find((m: any) => m.name === "page_views_total");
+        const len = impressionsMetric?.values?.length || 0;
+        for (let i = 0; i < len; i++) {
+          dailyData.push({
+            date: impressionsMetric?.values[i]?.end_time?.slice(0, 10),
+            impressions: impressionsMetric?.values[i]?.value || 0,
+            engaged_users: engagedMetric?.values?.[i]?.value || 0,
+            page_views: viewsMetric?.values?.[i]?.value || 0,
+          });
+        }
+      }
+
+      // Get recent posts with engagement
+      const postsRes = await fetch(
+        `https://graph.facebook.com/v21.0/${pageId}/posts?fields=id,message,created_time,shares,likes.summary(true),comments.summary(true)&limit=10&access_token=${token_str}`
+      );
+      const postsData = await postsRes.json();
+      const recentPosts = (postsData.data || []).map((post: any) => ({
+        id: post.id,
+        message: (post.message || "").slice(0, 120),
+        created_time: post.created_time,
+        likes: post.likes?.summary?.total_count || 0,
+        comments: post.comments?.summary?.total_count || 0,
+        shares: post.shares?.count || 0,
+      }));
+
+      // Calculate reactions breakdown (if available as object)
+      const reactions = metricsMap.page_actions_post_reactions_total || {};
 
       analyticsRows.push({
         clinic_id,
@@ -111,8 +168,19 @@ Deno.serve(async (req) => {
         value: fbPage.fan_count || 0,
         metrics_json: {
           likes: fbPage.fan_count || 0,
+          followers: fbPage.followers_count || 0,
           reach: metricsMap.page_impressions || 0,
+          reach_unique: metricsMap.page_impressions_unique || 0,
           engagement: metricsMap.page_engaged_users || 0,
+          post_engagements: metricsMap.page_post_engagements || 0,
+          page_views: metricsMap.page_views_total || 0,
+          fan_adds: metricsMap.page_fan_adds || 0,
+          fan_removes: metricsMap.page_fan_removes || 0,
+          video_views: metricsMap.page_video_views || 0,
+          reactions,
+          talking_about: fbPage.talking_about_count || 0,
+          daily_trends: dailyData,
+          recent_posts: recentPosts,
         },
       });
     } catch (e) {
