@@ -84,7 +84,7 @@ Deno.serve(async (req) => {
 
     // ---- Facebook Page Insights ----
     try {
-      // Basic page info
+      // Basic page info (works with pages_read_engagement)
       const fbRes = await fetch(
         `https://graph.facebook.com/v21.0/${pageId}?fields=fan_count,name,followers_count,new_like_count,talking_about_count&access_token=${token_str}`
       );
@@ -93,81 +93,95 @@ Deno.serve(async (req) => {
         console.error("Facebook page info error:", JSON.stringify(fbPage.error));
       }
 
-      // Get page insights (last 28 days) - multiple metrics
-      const fbMetrics = [
-        "page_impressions",
-        "page_impressions_unique",
-        "page_engaged_users",
-        "page_post_engagements",
-        "page_views_total",
-        "page_fan_adds",
-        "page_fan_removes",
-        "page_actions_post_reactions_total",
-        "page_video_views",
-      ].join(",");
-
-      const insightsRes = await fetch(
-        `https://graph.facebook.com/v21.0/${pageId}/insights?metric=${fbMetrics}&period=days_28&access_token=${token_str}`
-      );
-      const insightsData = await insightsRes.json();
-      if (insightsData.error) {
-        console.error("Facebook insights error:", JSON.stringify(insightsData.error));
-      }
-
+      // Attempt page insights (requires read_insights - may fail without App Review)
       const metricsMap: Record<string, any> = {};
-      if (insightsData.data) {
-        for (const metric of insightsData.data) {
-          const latest = metric.values?.[metric.values.length - 1];
-          if (latest) metricsMap[metric.name] = latest.value;
-        }
-      }
-
-      // Get daily page impressions for trend chart (last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const sinceStr = thirtyDaysAgo.toISOString().slice(0, 10);
-      const untilStr = today;
-
-      const dailyInsightsRes = await fetch(
-        `https://graph.facebook.com/v21.0/${pageId}/insights?metric=page_impressions,page_engaged_users,page_views_total&period=day&since=${sinceStr}&until=${untilStr}&access_token=${token_str}`
-      );
-      const dailyInsights = await dailyInsightsRes.json();
-      if (dailyInsights.error) {
-        console.error("Facebook daily insights error:", JSON.stringify(dailyInsights.error));
-      }
-
       const dailyData: any[] = [];
-      if (dailyInsights.data && dailyInsights.data.length > 0) {
-        const impressionsMetric = dailyInsights.data.find((m: any) => m.name === "page_impressions");
-        const engagedMetric = dailyInsights.data.find((m: any) => m.name === "page_engaged_users");
-        const viewsMetric = dailyInsights.data.find((m: any) => m.name === "page_views_total");
-        const len = impressionsMetric?.values?.length || 0;
-        for (let i = 0; i < len; i++) {
-          dailyData.push({
-            date: impressionsMetric?.values[i]?.end_time?.slice(0, 10),
-            impressions: impressionsMetric?.values[i]?.value || 0,
-            engaged_users: engagedMetric?.values?.[i]?.value || 0,
-            page_views: viewsMetric?.values?.[i]?.value || 0,
-          });
+      let recentPosts: any[] = [];
+      let reactions: any = {};
+
+      try {
+        const fbMetrics = [
+          "page_impressions",
+          "page_impressions_unique",
+          "page_engaged_users",
+          "page_post_engagements",
+          "page_views_total",
+          "page_fan_adds",
+          "page_fan_removes",
+          "page_actions_post_reactions_total",
+          "page_video_views",
+        ].join(",");
+
+        const insightsRes = await fetch(
+          `https://graph.facebook.com/v21.0/${pageId}/insights?metric=${fbMetrics}&period=days_28&access_token=${token_str}`
+        );
+        const insightsData = await insightsRes.json();
+        if (insightsData.error) {
+          console.warn("Facebook insights unavailable (may need App Review):", JSON.stringify(insightsData.error));
+        } else if (insightsData.data) {
+          for (const metric of insightsData.data) {
+            const latest = metric.values?.[metric.values.length - 1];
+            if (latest) metricsMap[metric.name] = latest.value;
+          }
         }
+      } catch (insightsErr) {
+        console.warn("Insights fetch failed (non-fatal):", insightsErr);
       }
 
-      // Get recent posts with engagement
-      const postsRes = await fetch(
-        `https://graph.facebook.com/v21.0/${pageId}/posts?fields=id,message,created_time,shares,likes.summary(true),comments.summary(true)&limit=10&access_token=${token_str}`
-      );
-      const postsData = await postsRes.json();
-      const recentPosts = (postsData.data || []).map((post: any) => ({
-        id: post.id,
-        message: (post.message || "").slice(0, 120),
-        created_time: post.created_time,
-        likes: post.likes?.summary?.total_count || 0,
-        comments: post.comments?.summary?.total_count || 0,
-        shares: post.shares?.count || 0,
-      }));
+      // Attempt daily trends (requires read_insights)
+      try {
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        const sinceStr = thirtyDaysAgo.toISOString().slice(0, 10);
+        const untilStr = today;
 
-      // Calculate reactions breakdown (if available as object)
-      const reactions = metricsMap.page_actions_post_reactions_total || {};
+        const dailyInsightsRes = await fetch(
+          `https://graph.facebook.com/v21.0/${pageId}/insights?metric=page_impressions,page_engaged_users,page_views_total&period=day&since=${sinceStr}&until=${untilStr}&access_token=${token_str}`
+        );
+        const dailyInsights = await dailyInsightsRes.json();
+        if (dailyInsights.error) {
+          console.warn("Daily insights unavailable (may need App Review):", JSON.stringify(dailyInsights.error));
+        } else if (dailyInsights.data && dailyInsights.data.length > 0) {
+          const impressionsMetric = dailyInsights.data.find((m: any) => m.name === "page_impressions");
+          const engagedMetric = dailyInsights.data.find((m: any) => m.name === "page_engaged_users");
+          const viewsMetric = dailyInsights.data.find((m: any) => m.name === "page_views_total");
+          const len = impressionsMetric?.values?.length || 0;
+          for (let i = 0; i < len; i++) {
+            dailyData.push({
+              date: impressionsMetric?.values[i]?.end_time?.slice(0, 10),
+              impressions: impressionsMetric?.values[i]?.value || 0,
+              engaged_users: engagedMetric?.values?.[i]?.value || 0,
+              page_views: viewsMetric?.values?.[i]?.value || 0,
+            });
+          }
+        }
+      } catch (dailyErr) {
+        console.warn("Daily trends fetch failed (non-fatal):", dailyErr);
+      }
+
+      // Attempt recent posts (may require pages_read_user_content for full data)
+      try {
+        const postsRes = await fetch(
+          `https://graph.facebook.com/v21.0/${pageId}/posts?fields=id,message,created_time,shares,likes.summary(true),comments.summary(true)&limit=10&access_token=${token_str}`
+        );
+        const postsData = await postsRes.json();
+        if (postsData.error) {
+          console.warn("Posts fetch unavailable:", JSON.stringify(postsData.error));
+        } else {
+          recentPosts = (postsData.data || []).map((post: any) => ({
+            id: post.id,
+            message: (post.message || "").slice(0, 120),
+            created_time: post.created_time,
+            likes: post.likes?.summary?.total_count || 0,
+            comments: post.comments?.summary?.total_count || 0,
+            shares: post.shares?.count || 0,
+          }));
+        }
+      } catch (postsErr) {
+        console.warn("Posts fetch failed (non-fatal):", postsErr);
+      }
+
+      reactions = metricsMap.page_actions_post_reactions_total || {};
 
       analyticsRows.push({
         clinic_id,
