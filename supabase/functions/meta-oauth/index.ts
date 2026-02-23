@@ -20,6 +20,7 @@ const FRONTEND_URL = Deno.env.get("SITE_URL") || "https://vet-dash-suite.lovable
 const SCOPES = [
   "pages_show_list",
   "pages_read_engagement",
+  "business_management",
 ].join(",");
 
 Deno.serve(async (req) => {
@@ -115,17 +116,51 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Step 3: Get ALL pages (follow pagination)
+      // Step 3: Get ALL pages (follow pagination from me/accounts + Business Manager)
       console.log("Fetching pages with long-lived token...");
-      let allPages: any[] = [];
+      const pageMap = new Map<string, any>();
+
+      // 3a: Fetch from me/accounts
       let nextUrl: string | null = `https://graph.facebook.com/v21.0/me/accounts?limit=100&access_token=${longTokenData.access_token}`;
       while (nextUrl) {
         const pagesRes = await fetch(nextUrl);
         const pagesData = await pagesRes.json();
-        if (pagesData.data) allPages = allPages.concat(pagesData.data);
+        if (pagesData.data) {
+          for (const p of pagesData.data) pageMap.set(p.id, p);
+        }
         nextUrl = pagesData.paging?.next || null;
       }
-      console.log(`Fetched ${allPages.length} total pages`);
+      console.log(`me/accounts returned ${pageMap.size} pages`);
+
+      // 3b: Fetch from Business Manager owned_pages
+      try {
+        let bizUrl: string | null = `https://graph.facebook.com/v21.0/me/businesses?limit=100&access_token=${longTokenData.access_token}`;
+        while (bizUrl) {
+          const bizRes = await fetch(bizUrl);
+          const bizData = await bizRes.json();
+          if (bizData.data) {
+            for (const biz of bizData.data) {
+              let pagesUrl: string | null = `https://graph.facebook.com/v21.0/${biz.id}/owned_pages?limit=100&fields=id,name,access_token,category&access_token=${longTokenData.access_token}`;
+              while (pagesUrl) {
+                const pRes = await fetch(pagesUrl);
+                const pData = await pRes.json();
+                if (pData.data) {
+                  for (const p of pData.data) {
+                    if (!pageMap.has(p.id)) pageMap.set(p.id, p);
+                  }
+                }
+                pagesUrl = pData.paging?.next || null;
+              }
+            }
+          }
+          bizUrl = bizData.paging?.next || null;
+        }
+      } catch (bizErr) {
+        console.error("Business Manager fetch error (non-fatal):", bizErr);
+      }
+
+      const allPages = Array.from(pageMap.values());
+      console.log(`Fetched ${allPages.length} total unique pages`);
 
       if (allPages.length === 0) {
         console.error("No pages found for user.");
