@@ -1,69 +1,63 @@
 
 
-# Add Facebook Page Selection to Meta OAuth Flow
+## Facebook Insights Dashboard for Clinic Detail
 
-## Problem
-The Meta OAuth flow works correctly and returns all 13+ Facebook Pages that Vedant manages. However, the code blindly picks `pagesData.data[0]` (the first page in the list), so every clinic gets connected to "Glenn Mountain Animal Hospital" regardless of which clinic it actually is.
+Build a Facebook Insights-style analytics section in the clinic detail page that mirrors the Meta Business Suite overview layout shown in the reference screenshot, using data already collected by the `sync-meta-analytics` edge function.
 
-## Solution
-After the OAuth callback receives the list of pages, redirect the user to a **page selection screen** in the frontend instead of auto-saving the first page. The user picks the correct Facebook Page for that clinic, and then the app saves the selection.
+### What You'll Get
 
-## Implementation Steps
+A redesigned Facebook analytics tab with four main insight cards arranged in a 2x2 grid, each showing:
 
-### 1. Update the `meta-oauth` edge function callback
-Instead of auto-selecting the first page, redirect to the frontend with the pages data encoded in the URL. The long-lived user token and page tokens will be passed temporarily so the frontend can complete the connection.
+- **Views** -- Total page impressions with a sparkline, follower vs non-follower breakdown
+- **Interactions** -- Content interactions (post engagements) with sparkline and breakdown
+- **Visits** -- Facebook page visits with sparkline and change indicator
+- **Follows** -- New follows, unfollows, net follows with sparkline
 
-- After getting the pages list from `me/accounts`, redirect to:
-  `{FRONTEND_URL}/clinics/{clinic_id}?meta_pages={encoded_pages_data}`
-- The encoded data will include each page's `id`, `name`, `access_token`, and `category`
-- If there's only 1 page, auto-select it (current behavior)
+Below those, the existing daily trend charts and recent posts section remain.
 
-### 2. Create a new `PageSelectionDialog` component
-A modal dialog that shows when the `meta_pages` URL parameter is present:
-- Displays all available Facebook Pages in a list with name and category
-- Each page is a selectable card/radio button
-- A "Connect" button saves the selected page
+### Data Mapping
 
-### 3. Create a new `save-meta-page` edge function
-A simple endpoint that receives the selected page data and saves it to `clinic_api_credentials`:
-- Accepts: `clinic_id`, `page_id`, `page_name`, `page_access_token`
-- Also fetches the Instagram Business Account ID for the selected page
-- Saves everything to the database (same upsert logic currently in meta-oauth)
+All data is already being synced by the edge function -- no backend changes needed.
 
-### 4. Update `ClinicDetail` page
-- Read the `meta_pages` URL parameter on load
-- If present, open the `PageSelectionDialog` automatically
-- After successful save, clear the URL parameter and refresh the clinic data
+| Card | API Metric (already in metrics_json) |
+|------|--------------------------------------|
+| Views | `reach` (page_impressions), `daily_trends[].impressions` for sparkline |
+| Interactions | `post_engagements`, `engagement` (engaged_users), `daily_trends[].engaged_users` |
+| Visits | `page_views`, `daily_trends[].page_views` for sparkline |
+| Follows | `fan_adds`, `fan_removes`, net = adds - removes, `followers` |
 
----
+### Technical Details
 
-## Technical Details
+**New component: `src/components/clinic-detail/FacebookInsightCard.tsx`**
+- Reusable card matching the reference design: title, big number, optional sparkline (tiny Recharts LineChart), sub-metrics with change indicators
+- Props: `title`, `mainValue`, `mainLabel`, `sparklineData`, `subMetrics[]`
 
-### Edge Function Changes (`supabase/functions/meta-oauth/index.ts`)
-- In the callback action, after fetching pages, encode the pages list (id, name, category, access_token) as a base64 JSON string
-- Redirect to `{FRONTEND_URL}/clinics/{clinic_id}?meta_pages={base64_string}` instead of auto-saving
-- Keep the single-page auto-select as an optimization
+**Modified file: `src/pages/ClinicDetail.tsx`**
+- Replace the current rows of plain KPI cards in the Facebook tab with a 2x2 grid of `FacebookInsightCard` components
+- Keep the daily trend AreaChart, BarChart, and recent posts sections below
+- Extract sparkline data from `daily_trends` array already stored in `metrics_json`
 
-### New Edge Function (`supabase/functions/save-meta-page/index.ts`)
-- POST endpoint accepting `{ clinic_id, page_id, page_name, page_access_token }`
-- Fetches Instagram Business Account ID using the page token
-- Upserts into `clinic_api_credentials` (same logic as current meta-oauth callback)
-- Requires authentication
+**No backend or edge function changes required** -- all the necessary data (`page_impressions`, `page_engaged_users`, `page_views_total`, `page_fan_adds`, `page_fan_removes`, `daily_trends`) is already being synced and stored.
 
-### New Component (`src/components/clinic-detail/PageSelectionDialog.tsx`)
-- Radix Dialog showing available pages
-- Each page displayed as a card with name and category
-- Confirm button triggers the save-meta-page edge function
-- Shows loading state during save
-- Closes and triggers refresh on success
+### Layout
 
-### ClinicDetail Page Updates
-- Parse `meta_pages` URL parameter using `useSearchParams`
-- Decode and pass to `PageSelectionDialog`
-- Clean up URL after connection completes
+```text
++---------------------------+---------------------------+
+|  Views                    |  Interactions             |
+|  254.4K  [sparkline]      |  21  [sparkline]          |
+|  From followers: 0.2%     |  From followers: 2        |
+|  From non-followers: 99.8%|  From non-followers: 19   |
++---------------------------+---------------------------+
+|  Visits                   |  Follows                  |
+|  139  [sparkline]         |  6  [sparkline]           |
+|                           |  Unfollows: 1             |
+|                           |  Net follows: 5           |
++---------------------------+---------------------------+
+|  Daily Impressions & Engagement (AreaChart)            |
++-------------------------------------------------------+
+|  Daily Page Views (BarChart)                           |
++-------------------------------------------------------+
+|  Recent Posts Performance                              |
++-------------------------------------------------------+
+```
 
-## Security Note
-Page access tokens are passed through the URL temporarily. This is acceptable because:
-- They are passed via HTTPS
-- They are consumed immediately and cleared from the URL
-- The save endpoint validates authentication
