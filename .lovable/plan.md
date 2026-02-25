@@ -1,38 +1,81 @@
 
 
-## Fix: Instagram Business Account Not Detected
+## Google Ads Integration Plan
 
-### Root Cause
+Since you have a Google Ads Manager (MCC) account that manages all your clients' Google Ads accounts, we can build a flow similar to Meta -- OAuth login, pick the client account, and sync analytics automatically.
 
-Your Instagram account IS connected to the Facebook Page (confirmed in your screenshot). The problem is that the OAuth token was granted **without the `instagram_basic` scope**, which is required for the Graph API to return the `instagram_business_account` field on the Page object.
+### How It Works (Your Perspective)
 
-Without this scope, the API call at line 28-29 of `save-meta-page/index.ts` returns an empty object for `instagram_business_account`, so the ID is stored as `null`.
+1. Go to a clinic's **Connections** tab
+2. Click **"Connect Google Ads"** -- this opens Google's OAuth login
+3. After logging in, you see a list of all client accounts under your MCC
+4. Select the correct client account for that clinic
+5. Click **"Sync Now"** to pull campaign performance data (clicks, impressions, cost, conversions)
+6. View the data in the **Google Ads** tab with charts and KPI cards
 
-### Fix
+---
 
-**File: `supabase/functions/meta-oauth/index.ts`**
-- Add `instagram_basic` to the SCOPES array
-- This scope is available in Development mode (no App Review needed) for test users
+### Implementation Steps
 
-Updated scopes:
-```text
-pages_show_list, pages_read_engagement, business_management, instagram_basic
-```
+#### Step 1: Store Required Secrets
 
-**File: `supabase/functions/save-meta-page/index.ts`**
-- Add logging of the full API response from the `instagram_business_account` lookup so we can debug if it still fails
-- Log a clear warning if the IG Business ID is null
+Three new Supabase secrets are needed:
+- **GOOGLE_ADS_DEVELOPER_TOKEN** -- from your MCC's API Center
+- **GOOGLE_CLIENT_ID** -- from Google Cloud Console OAuth credentials
+- **GOOGLE_CLIENT_SECRET** -- from Google Cloud Console OAuth credentials
 
-### After Deploying
+#### Step 2: Create `google-oauth` Edge Function
 
-1. Go to the clinic's Connections tab
-2. Click **Disconnect** to remove the current Meta connection
-3. Click **Connect with Facebook** again -- the OAuth dialog will now request Instagram access
-4. Re-select the page and complete the flow
-5. The Instagram Business ID should now be detected and saved
-6. Click **Sync Now** to fetch Instagram analytics
+Mirrors the `meta-oauth` pattern:
+- **`?action=authorize`** -- Redirects to Google OAuth consent screen with `https://www.googleapis.com/auth/adwords` scope
+- **`?action=callback`** -- Exchanges auth code for refresh token, then fetches all accessible Google Ads customer accounts under the MCC using the Google Ads API `CustomerService.listAccessibleCustomers` endpoint. If one account, auto-select; if multiple, redirect to frontend with encoded account list for selection
+- **`?action=disconnect`** -- Clears Google Ads credentials from `clinic_api_credentials`
 
-### Why Re-connection Is Required
+#### Step 3: Create `sync-google-ads` Edge Function
 
-The existing token was granted without `instagram_basic`. OAuth tokens are scoped at authorization time, so the clinic must re-authorize to get a new token that includes this permission.
+Similar to `sync-meta-analytics`:
+- Reads `google_ads_refresh_token`, `google_ads_customer_id`, `google_ads_login_customer_id` from `clinic_api_credentials`
+- Exchanges refresh token for access token via Google OAuth
+- Calls Google Ads API (REST) with a GAQL query to fetch last 30 days of campaign metrics: clicks, impressions, cost, conversions, CTR, CPC
+- Inserts results into the `analytics` table with `platform: "google_ads"`
+- Updates `last_google_sync_at` timestamp
+
+#### Step 4: Create `GoogleAdsConnectionCard` Component
+
+New component in `src/components/clinic-detail/` matching `MetaConnectionCard`:
+- Shows "Connect Google Ads" button when not connected
+- After connection: shows linked account name/ID, last sync time, Sync Now and Disconnect buttons
+
+#### Step 5: Create `GoogleAccountSelectionDialog` Component
+
+Similar to `PageSelectionDialog` -- shows a list of accessible Google Ads accounts (name + customer ID) for the admin to pick which one maps to the clinic.
+
+#### Step 6: Update Google Ads Tab in `ClinicDetail.tsx`
+
+Replace the placeholder Google Ads tab content with:
+- KPI cards: Total Clicks, Total Impressions, Total Cost, Total Conversions
+- Campaign-level breakdown table
+- Clicks/Impressions trend chart (last 30 days)
+- Cost and CPC trend chart
+
+#### Step 7: Update Connections Tab
+
+Replace the manual Google Ads credential input fields with the new `GoogleAdsConnectionCard` component (OAuth-based, same UX as Meta).
+
+#### Step 8: Database Migration
+
+Add `google_ads_account_name` column to `clinic_api_credentials` to store the friendly name of the connected account.
+
+#### Step 9: Config Updates
+
+Add the new edge functions to `supabase/config.toml` with `verify_jwt = false`.
+
+---
+
+### Technical Notes
+
+- The Google Ads REST API endpoint is `https://googleads.googleapis.com/v18/customers/{customerId}/googleAds:searchStream` using GAQL queries
+- The MCC's Login Customer ID is sent as the `login-customer-id` header so sub-accounts are accessible
+- The Developer Token goes in the `developer-token` header on every API call
+- OAuth token refresh uses `https://oauth2.googleapis.com/token` with the stored refresh token
 
