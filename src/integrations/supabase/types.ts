@@ -115,6 +115,7 @@ export type Database = {
         Row: {
           clinic_id: string
           created_at: string
+          google_ads_account_name: string | null
           google_ads_customer_id: string | null
           google_ads_login_customer_id: string | null
           google_ads_refresh_token: string | null
@@ -129,6 +130,7 @@ export type Database = {
         Insert: {
           clinic_id: string
           created_at?: string
+          google_ads_account_name?: string | null
           google_ads_customer_id?: string | null
           google_ads_login_customer_id?: string | null
           google_ads_refresh_token?: string | null
@@ -143,6 +145,7 @@ export type Database = {
         Update: {
           clinic_id?: string
           created_at?: string
+          google_ads_account_name?: string | null
           google_ads_customer_id?: string | null
           google_ads_login_customer_id?: string | null
           google_ads_refresh_token?: string | null

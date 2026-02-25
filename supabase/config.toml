@@ -17,3 +17,12 @@ verify_jwt = false
 
 [functions.save-meta-page]
 verify_jwt = false
+
+[functions.google-oauth]
+verify_jwt = false
+
+[functions.save-google-account]
+verify_jwt = false
+
+[functions.sync-google-ads]
+verify_jwt = false
