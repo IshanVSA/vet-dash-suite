@@ -121,9 +121,26 @@ Deno.serve(async (req) => {
           },
         }
       );
-      const customersData = await customersRes.json();
+      const customersText = await customersRes.text();
+      if (!customersRes.ok) {
+        console.error("List customers HTTP error:", customersRes.status, customersText.substring(0, 1000));
+        return new Response(null, {
+          status: 302,
+          headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=list_customers` },
+        });
+      }
+      let customersData: { resourceNames?: string[]; error?: unknown };
+      try {
+        customersData = JSON.parse(customersText);
+      } catch {
+        console.error("List customers non-JSON response:", customersText.substring(0, 500));
+        return new Response(null, {
+          status: 302,
+          headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=list_customers` },
+        });
+      }
       if (customersData.error) {
-        console.error("List customers error:", JSON.stringify(customersData.error));
+        console.error("List customers API error:", JSON.stringify(customersData.error));
         return new Response(null, {
           status: 302,
           headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=list_customers` },
@@ -153,7 +170,13 @@ Deno.serve(async (req) => {
               },
             }
           );
-          const detail = await detailRes.json();
+          const detailText = await detailRes.text();
+          let detail: { descriptiveName?: string } = {};
+          try {
+            detail = JSON.parse(detailText);
+          } catch {
+            console.warn(`Non-JSON detail response for ${custId}:`, detailText.substring(0, 300));
+          }
           accounts.push({
             customer_id: custId,
             name: detail.descriptiveName || custId,
