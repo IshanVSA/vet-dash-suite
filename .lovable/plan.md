@@ -1,123 +1,64 @@
 
+## Fix: Google OAuth Callback Crash
 
-## Google Ads Integration -- Implementation Plan
+### Problem
+The `google-oauth` edge function crashes at the callback stage because the Google Ads API (`listAccessibleCustomers`) returns an HTML error page instead of JSON. Calling `.json()` on HTML throws `SyntaxError: Unexpected token '<'`.
 
-Now that you have the three credentials ready (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_ADS_DEVELOPER_TOKEN), here's the step-by-step build plan.
+This is likely caused by one of:
+1. The developer token having only "Test Account" access level (not approved for production use)
+2. The Google Ads API not being enabled in the Google Cloud project
 
----
+### Root Cause (line 124 in google-oauth/index.ts)
+The code does `await customersRes.json()` without first checking if the response is actually JSON.
 
-### Step 1: Store the Three Secrets
+### Solution
+Add defensive response handling throughout the `google-oauth` function to:
+1. Check response status and content-type before parsing JSON
+2. Log the actual response text when it's not JSON, so we can see the real error
+3. Redirect to the clinic page with a descriptive error instead of crashing
 
-Use the Lovable secrets tool to securely store:
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `GOOGLE_ADS_DEVELOPER_TOKEN`
+### Changes
 
-These will be accessible from edge functions via `Deno.env.get()`.
+**File: `supabase/functions/google-oauth/index.ts`**
 
----
+Wrap the two Google Ads API calls (listAccessibleCustomers and customer detail fetch) with proper error handling:
 
-### Step 2: Database Migration
+1. After the `listAccessibleCustomers` fetch (line 124), check `customersRes.ok` and response content-type before calling `.json()`. If not OK, log the response text and redirect with an error.
 
-Add a `google_ads_account_name` column to `clinic_api_credentials` to store the friendly name of the connected Google Ads account (e.g., "Parkview Vet Clinic").
+2. In the customer detail loop (around line 148), similarly guard the `.json()` call with a status check.
 
-```sql
-ALTER TABLE clinic_api_credentials
-ADD COLUMN google_ads_account_name text;
+This will:
+- Prevent the crash
+- Log the actual Google error message so we can diagnose the root cause (likely a developer token access level issue)
+- Give the user a clean redirect with an error parameter instead of a raw JSON error page
+
+### Technical Details
+
+```typescript
+// Before parsing, check response
+const customersText = await customersRes.text();
+if (!customersRes.ok) {
+  console.error("List customers HTTP error:", customersRes.status, customersText);
+  return new Response(null, {
+    status: 302,
+    headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=list_customers` },
+  });
+}
+let customersData;
+try {
+  customersData = JSON.parse(customersText);
+} catch {
+  console.error("List customers non-JSON response:", customersText.substring(0, 500));
+  return new Response(null, {
+    status: 302,
+    headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=list_customers` },
+  });
+}
 ```
 
----
+Same pattern for the detail fetch inside the loop.
 
-### Step 3: Create `google-oauth` Edge Function
-
-New file: `supabase/functions/google-oauth/index.ts`
-
-Mirrors the existing `meta-oauth` pattern with three actions:
-
-- **`?action=authorize`** -- Builds a Google OAuth URL with scope `https://www.googleapis.com/auth/adwords`, includes `clinic_id` and `origin` in the `state` parameter, and redirects the user to Google's consent screen. Uses `access_type=offline&prompt=consent` to ensure a refresh token is returned.
-
-- **`?action=callback`** -- Exchanges the authorization code for tokens (including refresh token), then calls `https://googleads.googleapis.com/v18/customers:listAccessibleCustomers` to get all accounts. For each account, fetches the descriptive name via `https://googleads.googleapis.com/v18/customers/{id}`. If one account found, auto-saves credentials to `clinic_api_credentials`. If multiple, encodes the list and redirects to the frontend with `?google_accounts=...` query parameter for selection.
-
-- **`?action=disconnect`** -- Clears `google_ads_refresh_token`, `google_ads_customer_id`, `google_ads_login_customer_id`, `google_ads_account_name`, and `last_google_sync_at` from `clinic_api_credentials`.
-
----
-
-### Step 4: Create `save-google-account` Edge Function
-
-New file: `supabase/functions/save-google-account/index.ts`
-
-Mirrors `save-meta-page`. Called from the frontend account selection dialog. Accepts `clinic_id`, `customer_id`, `account_name`, `refresh_token`, and `login_customer_id`, then upserts into `clinic_api_credentials`.
-
----
-
-### Step 5: Create `sync-google-ads` Edge Function
-
-New file: `supabase/functions/sync-google-ads/index.ts`
-
-Mirrors `sync-meta-analytics`:
-1. Reads `google_ads_refresh_token`, `google_ads_customer_id`, `google_ads_login_customer_id` from `clinic_api_credentials`
-2. Exchanges refresh token for access token via `https://oauth2.googleapis.com/token`
-3. Calls `https://googleads.googleapis.com/v18/customers/{customerId}/googleAds:searchStream` with GAQL query:
-   ```
-   SELECT campaign.name, metrics.clicks, metrics.impressions,
-          metrics.cost_micros, metrics.conversions,
-          segments.date
-   FROM campaign
-   WHERE segments.date DURING LAST_30_DAYS
-   ```
-4. Aggregates totals and daily breakdown, inserts into `analytics` table with `platform: "google_ads"`
-5. Updates `last_google_sync_at` timestamp
-
----
-
-### Step 6: Update `supabase/config.toml`
-
-Add entries for all three new edge functions:
-```toml
-[functions.google-oauth]
-verify_jwt = false
-
-[functions.save-google-account]
-verify_jwt = false
-
-[functions.sync-google-ads]
-verify_jwt = false
-```
-
----
-
-### Step 7: Create `GoogleAdsConnectionCard` Component
-
-New file: `src/components/clinic-detail/GoogleAdsConnectionCard.tsx`
-
-Matches `MetaConnectionCard` design:
-- **Not connected**: Shows "Connect Google Ads" button that opens the OAuth URL
-- **Connected**: Shows account name, customer ID, last sync time, "Sync Now" and "Disconnect" buttons
-
----
-
-### Step 8: Create `GoogleAccountSelectionDialog` Component
-
-New file: `src/components/clinic-detail/GoogleAccountSelectionDialog.tsx`
-
-Matches `PageSelectionDialog` design:
-- Radio group list of Google Ads accounts (name + customer ID)
-- Search filter
-- "Connect Account" button that calls `save-google-account` edge function
-
----
-
-### Step 9: Update `ClinicDetail.tsx`
-
-Three changes:
-
-**A. Connections tab** -- Replace the manual Google Ads credential input fields (lines 373-386) with the new `GoogleAdsConnectionCard` component.
-
-**B. Google Ads tab** -- Replace the placeholder (lines 338-344) with:
-- KPI cards: Total Clicks, Total Impressions, Total Cost (formatted as currency), Total Conversions
-- Campaign breakdown table
-- Clicks/Impressions daily trend chart (AreaChart)
-- Cost trend chart (BarChart)
-
-**C. Account selection dialog** -- Add URL parameter handling for `google_accounts` (same pattern as `meta_pages`), and render `GoogleAccountSelectionDialog` when accounts are available.
-
+### Post-Fix: Diagnosing the Real Issue
+Once deployed, the edge function logs will show the actual error from Google. Most likely next steps:
+- Enable the **Google Ads API** in Google Cloud Console (APIs and Services > Library > search "Google Ads API" > Enable)
+- Or upgrade the developer token from Test to Basic access level
