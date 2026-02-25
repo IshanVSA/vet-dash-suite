@@ -1,0 +1,1 @@
+ALTER TABLE clinic_api_credentials ADD COLUMN IF NOT EXISTS google_ads_account_name text;

@@ -7,15 +7,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ArrowLeft, RefreshCw, Loader2, Save } from "lucide-react";
-import { LineChart, Line, AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { ArrowLeft, RefreshCw, Loader2 } from "lucide-react";
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { MetaConnectionCard } from "@/components/clinic-detail/MetaConnectionCard";
 import { PageSelectionDialog } from "@/components/clinic-detail/PageSelectionDialog";
 import { FacebookInsightCard } from "@/components/clinic-detail/FacebookInsightCard";
+import { GoogleAdsConnectionCard } from "@/components/clinic-detail/GoogleAdsConnectionCard";
+import { GoogleAccountSelectionDialog } from "@/components/clinic-detail/GoogleAccountSelectionDialog";
 
 interface ClinicData { clinic_name: string; }
 interface ClinicCredentials {
@@ -26,6 +26,7 @@ interface ClinicCredentials {
   google_ads_refresh_token: string | null;
   google_ads_customer_id: string | null;
   google_ads_login_customer_id: string | null;
+  google_ads_account_name: string | null;
   last_meta_sync_at: string | null;
   last_google_sync_at: string | null;
 }
@@ -37,14 +38,15 @@ export default function ClinicDetail() {
   const [clinic, setClinic] = useState<ClinicData | null>(null);
   const [creds, setCreds] = useState<ClinicCredentials>({
     meta_page_access_token: null, meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null,
-    google_ads_refresh_token: null, google_ads_customer_id: null, google_ads_login_customer_id: null,
+    google_ads_refresh_token: null, google_ads_customer_id: null, google_ads_login_customer_id: null, google_ads_account_name: null,
     last_meta_sync_at: null, last_google_sync_at: null,
   });
-  const [savingCreds, setSavingCreds] = useState(false);
+  
   const [instaData, setInstaData] = useState<any[]>([]);
   const [fbData, setFbData] = useState<any[]>([]);
   const [googleAdsData, setGoogleAdsData] = useState<any[]>([]);
   const [metaPages, setMetaPages] = useState<any[] | null>(null);
+  const [googleAccounts, setGoogleAccounts] = useState<{ accounts: any[]; refresh_token: string } | null>(null);
   useEffect(() => {
     if (!id) return;
     supabase.from("clinics").select("clinic_name").eq("id", id).maybeSingle().then(({ data }) => setClinic(data));
@@ -61,12 +63,23 @@ export default function ClinicDetail() {
         console.error("Failed to decode meta_pages param:", e);
       }
     }
+
+    // Check for google_accounts URL parameter (account selection after OAuth)
+    const googleAccountsParam = searchParams.get("google_accounts");
+    if (googleAccountsParam) {
+      try {
+        const decoded = JSON.parse(atob(decodeURIComponent(googleAccountsParam)));
+        setGoogleAccounts(decoded);
+      } catch (e) {
+        console.error("Failed to decode google_accounts param:", e);
+      }
+    }
   }, [id]);
 
   const fetchCredentials = async () => {
     if (!id) return;
     const { data } = await supabase.from("clinic_api_credentials")
-      .select("meta_page_access_token, meta_page_id, meta_instagram_business_id, meta_page_name, google_ads_refresh_token, google_ads_customer_id, google_ads_login_customer_id, last_meta_sync_at, last_google_sync_at")
+      .select("meta_page_access_token, meta_page_id, meta_instagram_business_id, meta_page_name, google_ads_refresh_token, google_ads_customer_id, google_ads_login_customer_id, google_ads_account_name, last_meta_sync_at, last_google_sync_at")
       .eq("clinic_id", id).maybeSingle();
     if (data) setCreds(data);
   };
@@ -104,21 +117,8 @@ export default function ClinicDetail() {
     setGoogleAdsData(gAds);
   };
 
-  const saveCredentials = async () => {
-    if (!id) return;
-    setSavingCreds(true);
-    const { error } = await supabase.from("clinic_api_credentials").upsert({
-      clinic_id: id,
-      meta_page_access_token: creds.meta_page_access_token || null,
-      meta_page_id: creds.meta_page_id || null,
-      meta_instagram_business_id: creds.meta_instagram_business_id || null,
-      google_ads_refresh_token: creds.google_ads_refresh_token || null,
-      google_ads_customer_id: creds.google_ads_customer_id || null,
-      google_ads_login_customer_id: creds.google_ads_login_customer_id || null,
-    }, { onConflict: "clinic_id" });
-    setSavingCreds(false);
-    if (error) toast.error("Failed to save: " + error.message); else toast.success("Credentials saved!");
-  };
+
+
 
   const hasGoogleCreds = !!(creds.google_ads_refresh_token && creds.google_ads_customer_id);
 
@@ -339,7 +339,98 @@ export default function ClinicDetail() {
             {googleAdsData.length === 0 ? (
               <EmptyState message="No Google Ads data yet — connect your account and sync from the Connections tab." />
             ) : (
-              <Card><CardContent className="pt-6"><p className="text-muted-foreground">Google Ads data available. {googleAdsData.length} records.</p></CardContent></Card>
+              <>
+                {/* KPI Cards */}
+                {(() => {
+                  const latest = googleAdsData[googleAdsData.length - 1];
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      <FacebookInsightCard title="Clicks" mainValue={latest?.clicks?.toLocaleString() ?? "—"} mainLabel="Total clicks (30 days)" />
+                      <FacebookInsightCard title="Impressions" mainValue={latest?.impressions?.toLocaleString() ?? "—"} mainLabel="Total impressions (30 days)" />
+                      <FacebookInsightCard title="Cost" mainValue={latest?.cost != null ? `$${latest.cost.toFixed(2)}` : "—"} mainLabel="Total spend (30 days)" />
+                      <FacebookInsightCard title="Conversions" mainValue={latest?.conversions?.toLocaleString() ?? "—"} mainLabel="Total conversions (30 days)" />
+                    </div>
+                  );
+                })()}
+
+                {/* Campaign Breakdown */}
+                {(() => {
+                  const latest = googleAdsData[googleAdsData.length - 1];
+                  const campaigns = latest?.campaigns || [];
+                  if (campaigns.length === 0) return null;
+                  return (
+                    <Card>
+                      <CardHeader><CardTitle className="text-base">Campaign Breakdown</CardTitle></CardHeader>
+                      <CardContent>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-sm">
+                            <thead>
+                              <tr className="border-b border-border text-left text-muted-foreground">
+                                <th className="pb-2 font-medium">Campaign</th>
+                                <th className="pb-2 font-medium text-right">Clicks</th>
+                                <th className="pb-2 font-medium text-right">Impressions</th>
+                                <th className="pb-2 font-medium text-right">Cost</th>
+                                <th className="pb-2 font-medium text-right">Conversions</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {campaigns.map((c: any, i: number) => (
+                                <tr key={i} className="border-b border-border/50">
+                                  <td className="py-2 text-foreground">{c.name}</td>
+                                  <td className="py-2 text-right text-foreground">{c.clicks?.toLocaleString()}</td>
+                                  <td className="py-2 text-right text-foreground">{c.impressions?.toLocaleString()}</td>
+                                  <td className="py-2 text-right text-foreground">${c.cost?.toFixed(2)}</td>
+                                  <td className="py-2 text-right text-foreground">{c.conversions?.toLocaleString()}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })()}
+
+                {/* Daily Trends */}
+                {(() => {
+                  const latest = googleAdsData[googleAdsData.length - 1];
+                  const dailyTrends = latest?.daily_trends || [];
+                  if (dailyTrends.length === 0) return null;
+                  return (
+                    <>
+                      <Card>
+                        <CardHeader><CardTitle className="text-base">Clicks & Impressions (Last 30 Days)</CardTitle></CardHeader>
+                        <CardContent>
+                          <ResponsiveContainer width="100%" height={300}>
+                            <AreaChart data={dailyTrends}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                              <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v: string) => v ? format(new Date(v), "MMM d") : ""} />
+                              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} />
+                              <Tooltip labelFormatter={(v: string) => v ? format(new Date(v), "MMM d, yyyy") : ""} />
+                              <Area type="monotone" dataKey="impressions" stroke="hsl(var(--primary))" fill="hsl(var(--primary) / 0.15)" strokeWidth={2} name="Impressions" />
+                              <Area type="monotone" dataKey="clicks" stroke="hsl(var(--accent-foreground))" fill="hsl(var(--accent) / 0.15)" strokeWidth={2} name="Clicks" />
+                            </AreaChart>
+                          </ResponsiveContainer>
+                        </CardContent>
+                      </Card>
+                      <Card>
+                        <CardHeader><CardTitle className="text-base">Daily Spend</CardTitle></CardHeader>
+                        <CardContent>
+                          <ResponsiveContainer width="100%" height={200}>
+                            <BarChart data={dailyTrends}>
+                              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                              <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v: string) => v ? format(new Date(v), "MMM d") : ""} />
+                              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickFormatter={(v: number) => `$${v}`} />
+                              <Tooltip labelFormatter={(v: string) => v ? format(new Date(v), "MMM d, yyyy") : ""} formatter={(v: number) => [`$${v.toFixed(2)}`, "Cost"]} />
+                              <Bar dataKey="cost" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Cost" />
+                            </BarChart>
+                          </ResponsiveContainer>
+                        </CardContent>
+                      </Card>
+                    </>
+                  );
+                })()}
+              </>
             )}
           </TabsContent>
 
@@ -370,20 +461,14 @@ export default function ClinicDetail() {
                 lastMetaSyncAt={creds.last_meta_sync_at}
                 onRefresh={() => { fetchCredentials(); fetchAnalytics(); }}
               />
-              <Card>
-                <CardHeader><CardTitle className="text-base">Google Ads</CardTitle></CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="space-y-3">
-                    <div className="space-y-2"><Label className="text-xs">Refresh Token</Label><Input type="password" value={creds.google_ads_refresh_token || ""} onChange={e => setCreds(p => ({ ...p, google_ads_refresh_token: e.target.value }))} placeholder="1//0..." /></div>
-                    <div className="space-y-2"><Label className="text-xs">Customer ID</Label><Input value={creds.google_ads_customer_id || ""} onChange={e => setCreds(p => ({ ...p, google_ads_customer_id: e.target.value }))} placeholder="123-456-7890" /></div>
-                    <div className="space-y-2"><Label className="text-xs">Login Customer ID (MCC)</Label><Input value={creds.google_ads_login_customer_id || ""} onChange={e => setCreds(p => ({ ...p, google_ads_login_customer_id: e.target.value }))} placeholder="123-456-7890" /></div>
-                  </div>
-                  <Button onClick={saveCredentials} disabled={savingCreds} className="w-full">
-                    {savingCreds ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
-                    Save Google Ads Credentials
-                  </Button>
-                </CardContent>
-              </Card>
+              <GoogleAdsConnectionCard
+                clinicId={id!}
+                hasGoogleCreds={hasGoogleCreds}
+                accountName={(creds as any).google_ads_account_name || null}
+                customerId={creds.google_ads_customer_id}
+                lastGoogleSyncAt={creds.last_google_sync_at}
+                onRefresh={() => { fetchCredentials(); fetchAnalytics(); }}
+              />
             </TabsContent>
           )}
         </Tabs>
@@ -399,6 +484,25 @@ export default function ClinicDetail() {
             }}
             onConnected={() => {
               setMetaPages(null);
+              setSearchParams({}, { replace: true });
+              fetchCredentials();
+              fetchAnalytics();
+            }}
+          />
+        )}
+
+        {googleAccounts && id && (
+          <GoogleAccountSelectionDialog
+            open={!!googleAccounts}
+            accounts={googleAccounts.accounts}
+            refreshToken={googleAccounts.refresh_token}
+            clinicId={id}
+            onClose={() => {
+              setGoogleAccounts(null);
+              setSearchParams({}, { replace: true });
+            }}
+            onConnected={() => {
+              setGoogleAccounts(null);
               setSearchParams({}, { replace: true });
               fetchCredentials();
               fetchAnalytics();
