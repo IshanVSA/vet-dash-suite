@@ -82,8 +82,8 @@ export function GoogleAdsConnectionCard({
               <XCircle className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground text-sm">Not connected</span>
             </div>
-            <Button asChild className="w-full">
-              <a href={oauthUrl} target="_blank" rel="noopener noreferrer">Connect Google Ads</a>
+            <Button className="w-full" onClick={() => { window.open(oauthUrl, "_blank"); }}>
+              Connect Google Ads
             </Button>
           </div>
         ) : (
