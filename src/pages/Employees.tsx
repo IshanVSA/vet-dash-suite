@@ -104,7 +104,7 @@ export default function Employees() {
                 <div className="space-y-4 py-2">
                   <div className="space-y-2"><Label>Full Name</Label><Input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="Jane Doe" className="input-glow" /></div>
                   <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@example.com" className="input-glow" /></div>
-                  <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 6 characters" className="input-glow" /></div>
+                  <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 8 characters" className="input-glow" /></div>
                   <div className="space-y-2">
                     <Label>Role</Label>
                     <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
@@ -119,7 +119,7 @@ export default function Employees() {
                 <DialogFooter>
                   <Button disabled={creating} onClick={async () => {
                     if (!form.full_name || !form.email || !form.password) { toast.error("All fields are required"); return; }
-                    if (form.password.length < 6) { toast.error("Password must be at least 6 characters"); return; }
+                    if (form.password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
                     setCreating(true);
                     const { data, error } = await supabase.functions.invoke("create-team-member", { body: form });
                     setCreating(false);
