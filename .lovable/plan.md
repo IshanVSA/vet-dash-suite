@@ -1,64 +1,50 @@
 
-## Fix: Google OAuth Callback Crash
 
-### Problem
-The `google-oauth` edge function crashes at the callback stage because the Google Ads API (`listAccessibleCustomers`) returns an HTML error page instead of JSON. Calling `.json()` on HTML throws `SyntaxError: Unexpected token '<'`.
+# Add Upcoming Scheduled Posts to Dashboard
 
-This is likely caused by one of:
-1. The developer token having only "Test Account" access level (not approved for production use)
-2. The Google Ads API not being enabled in the Google Cloud project
+## Overview
+Add an "Upcoming Scheduled Posts" section to all three dashboard views (Admin, Concierge, Client) showing the next 5-7 posts scheduled in the future with dates, clinic names, platform, and status.
 
-### Root Cause (line 124 in google-oauth/index.ts)
-The code does `await customersRes.json()` without first checking if the response is actually JSON.
+## What You'll See
+A new card below the existing KPI/chart sections with a clean list of upcoming posts. Each row shows:
+- Post title
+- Clinic name
+- Platform icon (Facebook/Instagram)
+- Scheduled date (formatted as "Mon DD")
+- Status badge (draft, scheduled, etc.)
+- A "View Calendar" link to jump to the content calendar
 
-### Solution
-Add defensive response handling throughout the `google-oauth` function to:
-1. Check response status and content-type before parsing JSON
-2. Log the actual response text when it's not JSON, so we can see the real error
-3. Redirect to the clinic page with a descriptive error instead of crashing
+If no upcoming posts exist, a friendly empty state message is shown.
 
-### Changes
+## Technical Details
 
-**File: `supabase/functions/google-oauth/index.ts`**
+### Data Query
+- Query `content_posts` table where `scheduled_date >= today`, ordered by `scheduled_date ASC`, limit 7
+- Join with `clinics` table to get clinic names
+- For **Concierge**: filter by clinics assigned to them (already handled by RLS)
+- For **Client**: filter by clinics they own (already handled by RLS)
+- No database changes needed -- RLS policies already allow all roles to SELECT posts
 
-Wrap the two Google Ads API calls (listAccessibleCustomers and customer detail fetch) with proper error handling:
+### Files to Modify
 
-1. After the `listAccessibleCustomers` fetch (line 124), check `customersRes.ok` and response content-type before calling `.json()`. If not OK, log the response text and redirect with an error.
+1. **`src/components/dashboard/AdminDashboard.tsx`**
+   - Add the upcoming posts query to the existing `fetchAll` function
+   - Render a new "Upcoming Posts" card after the Content Trend chart, before the Clinics Table
+   - Show post title, clinic name, platform icon, date, and status badge
 
-2. In the customer detail loop (around line 148), similarly guard the `.json()` call with a status check.
+2. **`src/components/dashboard/ConciergeDashboard.tsx`**
+   - Add the same upcoming posts query to existing `fetchData`
+   - Render the "Upcoming Posts" card after the KPI cards section
 
-This will:
-- Prevent the crash
-- Log the actual Google error message so we can diagnose the root cause (likely a developer token access level issue)
-- Give the user a clean redirect with an error parameter instead of a raw JSON error page
+3. **`src/components/dashboard/ClientDashboard.tsx`**
+   - Add the upcoming posts query to existing `fetchData`
+   - Render the "Upcoming Posts" card after the KPI cards, before the clinics list
 
-### Technical Details
+### Component Design
+- Reuses existing `Card`, `Badge`, `Button` components
+- Calendar icon header consistent with existing card headers (icon + title + subtitle)
+- Each post row: title (truncated), clinic name (muted text), platform icon, date pill, status badge
+- "View Calendar" link button in the header
+- Empty state with CalendarDays icon and message
+- Staggered fade-in animation matching existing dashboard style
 
-```typescript
-// Before parsing, check response
-const customersText = await customersRes.text();
-if (!customersRes.ok) {
-  console.error("List customers HTTP error:", customersRes.status, customersText);
-  return new Response(null, {
-    status: 302,
-    headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=list_customers` },
-  });
-}
-let customersData;
-try {
-  customersData = JSON.parse(customersText);
-} catch {
-  console.error("List customers non-JSON response:", customersText.substring(0, 500));
-  return new Response(null, {
-    status: 302,
-    headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=list_customers` },
-  });
-}
-```
-
-Same pattern for the detail fetch inside the loop.
-
-### Post-Fix: Diagnosing the Real Issue
-Once deployed, the edge function logs will show the actual error from Google. Most likely next steps:
-- Enable the **Google Ads API** in Google Cloud Console (APIs and Services > Library > search "Google Ads API" > Enable)
-- Or upgrade the developer token from Test to Basic access level
