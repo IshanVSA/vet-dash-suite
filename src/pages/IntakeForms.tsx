@@ -23,6 +23,92 @@ const themeOptions = [
   "Community / Adoption", "Surgery & Recovery", "Senior Pet Care", "Puppy / Kitten Care",
 ];
 
+const statesByCountry: Record<string, { value: string; label: string }[]> = {
+  US: [
+    { value: "AL", label: "Alabama" }, { value: "AK", label: "Alaska" }, { value: "AZ", label: "Arizona" },
+    { value: "AR", label: "Arkansas" }, { value: "CA", label: "California" }, { value: "CO", label: "Colorado" },
+    { value: "CT", label: "Connecticut" }, { value: "DE", label: "Delaware" }, { value: "FL", label: "Florida" },
+    { value: "GA", label: "Georgia" }, { value: "HI", label: "Hawaii" }, { value: "ID", label: "Idaho" },
+    { value: "IL", label: "Illinois" }, { value: "IN", label: "Indiana" }, { value: "IA", label: "Iowa" },
+    { value: "KS", label: "Kansas" }, { value: "KY", label: "Kentucky" }, { value: "LA", label: "Louisiana" },
+    { value: "ME", label: "Maine" }, { value: "MD", label: "Maryland" }, { value: "MA", label: "Massachusetts" },
+    { value: "MI", label: "Michigan" }, { value: "MN", label: "Minnesota" }, { value: "MS", label: "Mississippi" },
+    { value: "MO", label: "Missouri" }, { value: "MT", label: "Montana" }, { value: "NE", label: "Nebraska" },
+    { value: "NV", label: "Nevada" }, { value: "NH", label: "New Hampshire" }, { value: "NJ", label: "New Jersey" },
+    { value: "NM", label: "New Mexico" }, { value: "NY", label: "New York" }, { value: "NC", label: "North Carolina" },
+    { value: "ND", label: "North Dakota" }, { value: "OH", label: "Ohio" }, { value: "OK", label: "Oklahoma" },
+    { value: "OR", label: "Oregon" }, { value: "PA", label: "Pennsylvania" }, { value: "RI", label: "Rhode Island" },
+    { value: "SC", label: "South Carolina" }, { value: "SD", label: "South Dakota" }, { value: "TN", label: "Tennessee" },
+    { value: "TX", label: "Texas" }, { value: "UT", label: "Utah" }, { value: "VT", label: "Vermont" },
+    { value: "VA", label: "Virginia" }, { value: "WA", label: "Washington" }, { value: "WV", label: "West Virginia" },
+    { value: "WI", label: "Wisconsin" }, { value: "WY", label: "Wyoming" }, { value: "DC", label: "District of Columbia" },
+  ],
+  CA: [
+    { value: "AB", label: "Alberta" }, { value: "BC", label: "British Columbia" }, { value: "MB", label: "Manitoba" },
+    { value: "NB", label: "New Brunswick" }, { value: "NL", label: "Newfoundland and Labrador" },
+    { value: "NS", label: "Nova Scotia" }, { value: "NT", label: "Northwest Territories" },
+    { value: "NU", label: "Nunavut" }, { value: "ON", label: "Ontario" }, { value: "PE", label: "Prince Edward Island" },
+    { value: "QC", label: "Quebec" }, { value: "SK", label: "Saskatchewan" }, { value: "YT", label: "Yukon" },
+  ],
+  GB: [
+    { value: "ENG", label: "England" }, { value: "SCT", label: "Scotland" },
+    { value: "WLS", label: "Wales" }, { value: "NIR", label: "Northern Ireland" },
+  ],
+  AU: [
+    { value: "NSW", label: "New South Wales" }, { value: "VIC", label: "Victoria" },
+    { value: "QLD", label: "Queensland" }, { value: "WA", label: "Western Australia" },
+    { value: "SA", label: "South Australia" }, { value: "TAS", label: "Tasmania" },
+    { value: "ACT", label: "Australian Capital Territory" }, { value: "NT", label: "Northern Territory" },
+  ],
+  IN: [
+    { value: "AN", label: "Andhra Pradesh" }, { value: "AR", label: "Arunachal Pradesh" },
+    { value: "AS", label: "Assam" }, { value: "BR", label: "Bihar" }, { value: "CT", label: "Chhattisgarh" },
+    { value: "GA", label: "Goa" }, { value: "GJ", label: "Gujarat" }, { value: "HR", label: "Haryana" },
+    { value: "HP", label: "Himachal Pradesh" }, { value: "JK", label: "Jammu & Kashmir" },
+    { value: "JH", label: "Jharkhand" }, { value: "KA", label: "Karnataka" }, { value: "KL", label: "Kerala" },
+    { value: "MP", label: "Madhya Pradesh" }, { value: "MH", label: "Maharashtra" }, { value: "MN", label: "Manipur" },
+    { value: "ML", label: "Meghalaya" }, { value: "MZ", label: "Mizoram" }, { value: "NL", label: "Nagaland" },
+    { value: "OR", label: "Odisha" }, { value: "PB", label: "Punjab" }, { value: "RJ", label: "Rajasthan" },
+    { value: "SK", label: "Sikkim" }, { value: "TN", label: "Tamil Nadu" }, { value: "TG", label: "Telangana" },
+    { value: "TR", label: "Tripura" }, { value: "UP", label: "Uttar Pradesh" }, { value: "UK", label: "Uttarakhand" },
+    { value: "WB", label: "West Bengal" }, { value: "DL", label: "Delhi" },
+  ],
+  DE: [
+    { value: "BW", label: "Baden-Württemberg" }, { value: "BY", label: "Bavaria" }, { value: "BE", label: "Berlin" },
+    { value: "BB", label: "Brandenburg" }, { value: "HB", label: "Bremen" }, { value: "HH", label: "Hamburg" },
+    { value: "HE", label: "Hesse" }, { value: "NI", label: "Lower Saxony" }, { value: "MV", label: "Mecklenburg-Vorpommern" },
+    { value: "NW", label: "North Rhine-Westphalia" }, { value: "RP", label: "Rhineland-Palatinate" },
+    { value: "SL", label: "Saarland" }, { value: "SN", label: "Saxony" }, { value: "ST", label: "Saxony-Anhalt" },
+    { value: "SH", label: "Schleswig-Holstein" }, { value: "TH", label: "Thuringia" },
+  ],
+  BR: [
+    { value: "AC", label: "Acre" }, { value: "AL", label: "Alagoas" }, { value: "AM", label: "Amazonas" },
+    { value: "BA", label: "Bahia" }, { value: "CE", label: "Ceará" }, { value: "DF", label: "Distrito Federal" },
+    { value: "ES", label: "Espírito Santo" }, { value: "GO", label: "Goiás" }, { value: "MA", label: "Maranhão" },
+    { value: "MG", label: "Minas Gerais" }, { value: "MS", label: "Mato Grosso do Sul" },
+    { value: "MT", label: "Mato Grosso" }, { value: "PA", label: "Pará" }, { value: "PB", label: "Paraíba" },
+    { value: "PE", label: "Pernambuco" }, { value: "PI", label: "Piauí" }, { value: "PR", label: "Paraná" },
+    { value: "RJ", label: "Rio de Janeiro" }, { value: "RN", label: "Rio Grande do Norte" },
+    { value: "RO", label: "Rondônia" }, { value: "RS", label: "Rio Grande do Sul" },
+    { value: "SC", label: "Santa Catarina" }, { value: "SE", label: "Sergipe" }, { value: "SP", label: "São Paulo" },
+    { value: "TO", label: "Tocantins" },
+  ],
+  MX: [
+    { value: "AGU", label: "Aguascalientes" }, { value: "BCN", label: "Baja California" },
+    { value: "BCS", label: "Baja California Sur" }, { value: "CAM", label: "Campeche" },
+    { value: "CHP", label: "Chiapas" }, { value: "CHH", label: "Chihuahua" }, { value: "CMX", label: "Ciudad de México" },
+    { value: "COA", label: "Coahuila" }, { value: "COL", label: "Colima" }, { value: "DUR", label: "Durango" },
+    { value: "GUA", label: "Guanajuato" }, { value: "GRO", label: "Guerrero" }, { value: "HID", label: "Hidalgo" },
+    { value: "JAL", label: "Jalisco" }, { value: "MEX", label: "Estado de México" }, { value: "MIC", label: "Michoacán" },
+    { value: "MOR", label: "Morelos" }, { value: "NAY", label: "Nayarit" }, { value: "NLE", label: "Nuevo León" },
+    { value: "OAX", label: "Oaxaca" }, { value: "PUE", label: "Puebla" }, { value: "QUE", label: "Querétaro" },
+    { value: "ROO", label: "Quintana Roo" }, { value: "SLP", label: "San Luis Potosí" },
+    { value: "SIN", label: "Sinaloa" }, { value: "SON", label: "Sonora" }, { value: "TAB", label: "Tabasco" },
+    { value: "TAM", label: "Tamaulipas" }, { value: "TLA", label: "Tlaxcala" }, { value: "VER", label: "Veracruz" },
+    { value: "YUC", label: "Yucatán" }, { value: "ZAC", label: "Zacatecas" },
+  ],
+};
+
 const monthOptions = Array.from({ length: 12 }, (_, i) => {
   const d = new Date(new Date().getFullYear(), i, 1);
   return { value: format(d, "yyyy-MM"), label: format(d, "MMMM yyyy") };
@@ -47,6 +133,7 @@ export default function IntakeForms() {
   const [specialEvents, setSpecialEvents] = useState("");
   const [tone, setTone] = useState("professional");
   const [country, setCountry] = useState("");
+  const [stateProvince, setStateProvince] = useState("");
   const [language, setLanguage] = useState("");
   const [services, setServices] = useState("");
   const [competitors, setCompetitors] = useState("");
@@ -92,7 +179,7 @@ export default function IntakeForms() {
     const intakeData = {
       clinicName: clinics.find(c => c.id === selectedClinicId)?.clinic_name,
       goal, secondaryGoals, promotions, targetAudience, adBudget, specialEvents,
-      tone, services, competitors, notes, selectedMonth, country, language,
+      tone, services, competitors, notes, selectedMonth, country, stateProvince, language,
       topPost, avgEngagement, followerGrowth, topContentType, performanceNotes,
       selectedThemes, preferredPlatforms, postsPerWeek,
       platform: preferredPlatforms,
@@ -224,7 +311,7 @@ export default function IntakeForms() {
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Country</Label>
-                  <Select value={country} onValueChange={setCountry}>
+                  <Select value={country} onValueChange={(val) => { setCountry(val); setStateProvince(""); }}>
                     <SelectTrigger className="h-10"><SelectValue placeholder="Select country..." /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="US">United States</SelectItem>
@@ -250,6 +337,19 @@ export default function IntakeForms() {
                     </SelectContent>
                   </Select>
                 </div>
+                {country && statesByCountry[country] && (
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">State / Province</Label>
+                    <Select value={stateProvince} onValueChange={setStateProvince}>
+                      <SelectTrigger className="h-10"><SelectValue placeholder="Select state/province..." /></SelectTrigger>
+                      <SelectContent>
+                        {statesByCountry[country].map(s => (
+                          <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
                 <div className="space-y-1.5">
                   <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Language</Label>
                   <Select value={language} onValueChange={setLanguage}>
