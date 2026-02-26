@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { motion } from "framer-motion";
+import UpcomingPosts from "./UpcomingPosts";
 
 interface Clinic {
   id: string;
@@ -163,6 +164,9 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
       )}
+
+      {/* Upcoming Posts */}
+      <UpcomingPosts />
 
       {/* Clinics Table */}
       <Card className="overflow-hidden border-border/60 animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
