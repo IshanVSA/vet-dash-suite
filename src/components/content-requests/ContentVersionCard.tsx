@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, ThumbsUp, Check, ChevronDown } from "lucide-react";
+import { Star, ThumbsUp, Check, ChevronDown, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContentPostCard } from "./ContentPostCard";
 
@@ -80,6 +80,37 @@ function StrategySummary({ summary }: { summary: any }) {
         <div className="space-y-1">
           <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">Competitive Positioning</p>
           <p className="text-xs text-foreground/80">{summary.competitive_positioning}</p>
+        </div>
+      )}
+
+      {summary.regulatory_compliance && (
+        <div className="space-y-2 p-3 rounded-md bg-primary/5 border border-primary/20">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="h-4 w-4 text-primary" />
+            <p className="text-[10px] font-bold uppercase tracking-wider text-primary">Regulatory Compliance</p>
+          </div>
+          {summary.regulatory_compliance.regulatory_body && (
+            <p className="text-xs text-foreground/80">
+              <span className="font-medium">Body:</span> {summary.regulatory_compliance.regulatory_body}
+            </p>
+          )}
+          {summary.regulatory_compliance.jurisdiction && (
+            <p className="text-xs text-foreground/80">
+              <span className="font-medium">Jurisdiction:</span> {summary.regulatory_compliance.jurisdiction}
+            </p>
+          )}
+          {summary.regulatory_compliance.key_restrictions?.length > 0 && (
+            <div className="space-y-1">
+              <p className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/50">Key Restrictions</p>
+              <div className="flex gap-1.5 flex-wrap">
+                {summary.regulatory_compliance.key_restrictions.map((r: string, i: number) => (
+                  <Badge key={i} variant="outline" className="text-[10px] py-0 text-primary/80 border-primary/20">
+                    {r}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
