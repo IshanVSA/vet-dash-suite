@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import UpcomingPosts from "./UpcomingPosts";
+import RecentActivity from "./RecentActivity";
 
 interface Clinic {
   id: string;
@@ -67,7 +68,10 @@ export default function ClientDashboard() {
         <KPICard label="Analytics Records" value={analyticsCount} icon={BarChart3} index={2} gradient="green" />
       </div>
 
-      <UpcomingPosts />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <UpcomingPosts />
+        <RecentActivity />
+      </div>
 
       {loading ? (
         <DashboardSkeleton />

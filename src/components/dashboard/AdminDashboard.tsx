@@ -12,6 +12,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { motion } from "framer-motion";
 import UpcomingPosts from "./UpcomingPosts";
+import RecentActivity from "./RecentActivity";
 
 interface Clinic {
   id: string;
@@ -165,8 +166,11 @@ export default function AdminDashboard() {
         </Card>
       )}
 
-      {/* Upcoming Posts */}
-      <UpcomingPosts />
+      {/* Upcoming Posts & Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <UpcomingPosts />
+        <RecentActivity />
+      </div>
 
       {/* Clinics Table */}
       <Card className="overflow-hidden border-border/60 animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
