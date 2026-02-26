@@ -170,7 +170,7 @@ export default function ContentRequests() {
 
       // Batch update posts
       await supabase.from("content_posts")
-        .update({ status: "approved", workflow_stage: "client_approved" })
+        .update({ status: "scheduled", workflow_stage: "client_approved" })
         .in("id", postIds);
 
       // Batch update workflow rows

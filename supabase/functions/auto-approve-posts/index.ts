@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     // Batch update all content_posts
     const { error: postsUpdateError } = await supabase
       .from("content_posts")
-      .update({ status: "approved", workflow_stage: "auto_approved" })
+      .update({ status: "scheduled", workflow_stage: "auto_approved" })
       .in("id", postIds);
 
     if (postsUpdateError) {
