@@ -7,6 +7,7 @@ import { Building2, FileText, BarChart3, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
+import UpcomingPosts from "./UpcomingPosts";
 
 interface Clinic {
   id: string;
@@ -65,6 +66,8 @@ export default function ClientDashboard() {
         <KPICard label="Content Posts" value={postCount} icon={FileText} index={1} gradient="purple" />
         <KPICard label="Analytics Records" value={analyticsCount} icon={BarChart3} index={2} gradient="green" />
       </div>
+
+      <UpcomingPosts />
 
       {loading ? (
         <DashboardSkeleton />

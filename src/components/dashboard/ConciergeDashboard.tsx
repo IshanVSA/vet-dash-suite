@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatedListItem } from "@/components/AnimatedList";
+import UpcomingPosts from "./UpcomingPosts";
 
 interface Clinic {
   id: string;
@@ -68,6 +69,8 @@ export default function ConciergeDashboard() {
         <KPICard label="Total Posts" value={postCount} icon={FileText} index={1} gradient="purple" />
         <KPICard label="Pending Review" value={pendingCount} icon={Megaphone} index={2} gradient="amber" />
       </div>
+
+      <UpcomingPosts />
 
       <div>
         <div className="flex items-center justify-between mb-4">
