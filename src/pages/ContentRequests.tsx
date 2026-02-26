@@ -107,6 +107,21 @@ export default function ContentRequests() {
     const reqVersions = versions[requestId] || [];
     const selectedVersion = reqVersions.find(v => v.id === versionId);
     if (selectedVersion && clinicId) {
+      // Guard: check if posts were already created for this clinic from this approval
+      const { data: existingPosts } = await supabase
+        .from("content_posts")
+        .select("id")
+        .eq("clinic_id", clinicId)
+        .eq("workflow_stage", "sent_to_client")
+        .limit(1);
+
+      if (existingPosts && existingPosts.length > 0) {
+        // Posts already inserted — skip duplicate creation
+        toast.success("Content approved and sent to client! Auto-approval in 5 days.");
+        fetchData();
+        return;
+      }
+
       const content = selectedVersion.generated_content as any;
       const posts = content?.posts || [];
       const sentToClientAt = new Date().toISOString();
@@ -123,12 +138,11 @@ export default function ContentRequests() {
           status: "pending",
           workflow_stage: "sent_to_client",
           tags: [post.goal_type, post.funnel_stage, post.service_highlighted].filter(Boolean),
-          compliance_note: null,
+          compliance_note: post.compliance_note || null,
           content: post.main_copy || null,
         }).select("id").single();
 
         if (insertedPost) {
-          // Create workflow tracking row with 5-day auto-approve countdown
           await supabase.from("post_workflow").insert({
             post_id: insertedPost.id,
             stage: "sent_to_client",
@@ -136,7 +150,6 @@ export default function ContentRequests() {
             auto_approve_at: autoApproveAt,
           });
 
-          // Log activity
           await supabase.from("post_activity_log").insert({
             post_id: insertedPost.id,
             action: "sent_to_client",
