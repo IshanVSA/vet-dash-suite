@@ -37,6 +37,19 @@ Before generating the calendar:
 - If engagement rate is low → Increase engagement posts.
 - If follower growth is low → Add awareness-focused posts.
 
+🛡️ REGULATORY COMPLIANCE (CRITICAL):
+- Based on the clinic's country and state/province, identify the governing veterinary regulatory body (e.g., CVBC for British Columbia, AVMA + state board for US states, RCVS for the UK, AVA for Australia).
+- Apply that body's advertising and marketing guidelines to ALL generated content.
+- Common rules to enforce:
+  * No misleading or unsubstantiated claims
+  * No guaranteed treatment outcomes
+  * Proper use of veterinary titles and credentials
+  * Testimonial restrictions (if applicable)
+  * Price advertising compliance
+  * No superlative claims ("best", "cheapest") unless verifiable
+  * Emergency service disclaimers where needed
+- Each post MUST include a compliance_note explaining what regulatory considerations were applied.
+
 Return your response as valid JSON with this exact structure:
 {
   "strategy_summary": {
@@ -44,7 +57,12 @@ Return your response as valid JSON with this exact structure:
     "format_distribution": { "reel": 40, "carousel": 30, "static": 20, "story": 10 },
     "goal_alignment": "Explanation of how content aligns with goals",
     "revenue_focus": "Explanation of revenue strategy",
-    "competitive_positioning": "How content differentiates from competitors"
+    "competitive_positioning": "How content differentiates from competitors",
+    "regulatory_compliance": {
+      "regulatory_body": "Name of the governing veterinary regulatory body",
+      "jurisdiction": "State/Province, Country",
+      "key_restrictions": ["Restriction 1", "Restriction 2", "Restriction 3"]
+    }
   },
   "posts": [
     {
@@ -61,7 +79,8 @@ Return your response as valid JSON with this exact structure:
       "goal_type": "Awareness",
       "service_highlighted": "Service name",
       "funnel_stage": "Top",
-      "theme": "The theme or topic of this post"
+      "theme": "The theme or topic of this post",
+      "compliance_note": "Brief explanation of regulatory considerations applied to this post"
     }
   ]
 }
@@ -73,6 +92,7 @@ function buildUserPrompt(intake: any): string {
   const parts = [
     `Clinic Name: ${intake.clinicName || "Veterinary Clinic"}`,
     intake.country && `Country: ${intake.country}`,
+    intake.stateProvince && `State/Province: ${intake.stateProvince}`,
     intake.language && `Language: ${intake.language}`,
     intake.budget && `Budget: ${intake.budget}`,
     intake.tone && `Tone: ${intake.tone}`,

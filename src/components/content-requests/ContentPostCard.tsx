@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const GOAL_TYPE_COLORS: Record<string, string> = {
@@ -113,6 +113,13 @@ export function ContentPostCard({ post, index, defaultOpen = false, isLast = fal
 
           {post.hashtags && (
             <p className="text-[11px] text-primary/60 leading-relaxed pt-1">{post.hashtags}</p>
+          )}
+
+          {post.compliance_note && (
+            <div className="flex items-start gap-1.5 p-2 rounded-md bg-primary/5 border border-primary/15 mt-1">
+              <ShieldCheck className="h-3.5 w-3.5 text-primary shrink-0 mt-0.5" />
+              <p className="text-[11px] text-primary/70 leading-relaxed">{post.compliance_note}</p>
+            </div>
           )}
         </div>
       )}
