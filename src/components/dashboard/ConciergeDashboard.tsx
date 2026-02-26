@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { AnimatedListItem } from "@/components/AnimatedList";
 import UpcomingPosts from "./UpcomingPosts";
+import RecentActivity from "./RecentActivity";
 
 interface Clinic {
   id: string;
@@ -70,7 +71,10 @@ export default function ConciergeDashboard() {
         <KPICard label="Pending Review" value={pendingCount} icon={Megaphone} index={2} gradient="amber" />
       </div>
 
-      <UpcomingPosts />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <UpcomingPosts />
+        <RecentActivity />
+      </div>
 
       <div>
         <div className="flex items-center justify-between mb-4">
