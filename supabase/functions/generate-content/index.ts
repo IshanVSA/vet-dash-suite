@@ -157,28 +157,26 @@ async function callOpenAI(apiKey: string, systemPrompt: string, userPrompt: stri
 }
 
 async function callClaude(apiKey: string, systemPrompt: string, userPrompt: string): Promise<any> {
-  // Use Lovable AI gateway with Gemini as the second model
-  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${apiKey}`,
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "google/gemini-2.5-flash",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt + "\n\nReturn only raw JSON, no markdown fences." },
-      ],
-      temperature: 0.7,
+      model: "claude-sonnet-4-20250514",
+      max_tokens: 8192,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userPrompt }],
     }),
   });
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`Gemini error ${res.status}: ${txt}`);
+    throw new Error(`Claude error ${res.status}: ${txt}`);
   }
   const data = await res.json();
-  const text = data.choices?.[0]?.message?.content || "{}";
+  const text = data.content?.[0]?.text || "{}";
   // Extract JSON from response
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   let jsonStr: string;
@@ -275,7 +273,7 @@ Deno.serve(async (req) => {
 
     // Call APIs in parallel
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
+    const claudeKey = Deno.env.get("ANTHROPIC_API_KEY");
 
     // Run models SEQUENTIALLY to avoid exceeding compute limits
     const results: { model: string; content: any; error?: string }[] = [];
@@ -289,13 +287,13 @@ Deno.serve(async (req) => {
         results.push({ model: "OpenAI", content: null, error: err.message });
       }
     }
-    if (lovableKey) {
+    if (claudeKey) {
       try {
-        const content = await callClaude(lovableKey, systemPrompt, userPrompt);
-        results.push({ model: "Gemini", content });
+        const content = await callClaude(claudeKey, systemPrompt, userPrompt);
+        results.push({ model: "Claude", content });
       } catch (err: any) {
-        console.error("Gemini call failed:", err.message);
-        results.push({ model: "Gemini", content: null, error: err.message });
+        console.error("Claude call failed:", err.message);
+        results.push({ model: "Claude", content: null, error: err.message });
       }
     }
 
