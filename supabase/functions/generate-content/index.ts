@@ -39,7 +39,14 @@ Before generating the calendar:
 - CRITICAL: Distribute posts evenly across ALL platforms the user selected. If they selected Instagram, Facebook, and TikTok, roughly 1/3 of posts should be for each platform. Never default to only one platform.
 
 🛡️ REGULATORY COMPLIANCE (CRITICAL):
-- Based on the clinic's country and state/province, identify the governing veterinary regulatory body (e.g., CVBC for British Columbia, AVMA + state board for US states, RCVS for the UK, AVA for Australia).
+- Based on the clinic's country and state/province, identify the governing veterinary regulatory body using its OFFICIAL LEGAL NAME (acronym + full name). Examples:
+  * Alberta, Canada → ABVMA (Alberta Veterinary Medical Association)
+  * British Columbia, Canada → CVBC (College of Veterinarians of British Columbia)
+  * Ontario, Canada → CVO (College of Veterinarians of Ontario)
+  * United States → AVMA (American Veterinary Medical Association) + the specific state veterinary medical board
+  * United Kingdom → RCVS (Royal College of Veterinary Surgeons)
+  * Australia → AVA (Australian Veterinary Association)
+  Do NOT use unofficial or abbreviated names like "College of Veterinarians of Alberta" — always use the legally recognized name of the regulatory body.
 - Apply that body's advertising and marketing guidelines to ALL generated content.
 - Common rules to enforce:
   * No misleading or unsubstantiated claims
