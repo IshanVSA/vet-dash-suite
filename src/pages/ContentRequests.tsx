@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { ContentRequestCard } from "@/components/content-requests/ContentRequestCard";
 import { StatsCard } from "@/components/StatsCard";
 
+type RegeneratingMap = Record<string, boolean>;
+
 interface ContentRequest {
   id: string;
   clinic_id: string;
@@ -36,6 +38,7 @@ export default function ContentRequests() {
   const [versions, setVersions] = useState<Record<string, ContentVersion[]>>({});
   const [clinics, setClinics] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
+  const [regenerating, setRegenerating] = useState<RegeneratingMap>({});
 
   useEffect(() => {
     fetchData();
@@ -205,6 +208,62 @@ export default function ContentRequests() {
     fetchData();
   };
 
+  const regenerateContent = async (requestId: string) => {
+    const req = requests.find(r => r.id === requestId);
+    if (!req) return;
+
+    setRegenerating(prev => ({ ...prev, [requestId]: true }));
+
+    try {
+      // Delete old versions for this request
+      await supabase.from("content_versions").delete().eq("content_request_id", requestId);
+
+      // Reset request status
+      await supabase.from("content_requests")
+        .update({ status: "generated" })
+        .eq("id", requestId);
+
+      // Re-invoke the generation function with original intake data
+      const { data, error } = await supabase.functions.invoke("generate-content", {
+        body: { clinic_id: req.clinic_id, intake_data: req.intake_data },
+      });
+
+      if (error) throw error;
+
+      const errorList = data?.errors || [];
+      if (errorList.length > 0 && (!data?.versions || data.versions.length === 0)) {
+        toast.error("Regeneration failed: " + errorList.map((e: any) => `${e.model}: ${e.error}`).join("; "));
+      } else {
+        const platformMap: Record<string, string[]> = {
+          instagram_facebook: ["Instagram", "Facebook"],
+          instagram_tiktok: ["Instagram", "TikTok"],
+          all: ["Instagram", "Facebook", "TikTok"],
+          instagram: ["Instagram"],
+          facebook: ["Facebook"],
+          tiktok: ["TikTok"],
+        };
+        const intake = req.intake_data as any;
+        const expectedPlatforms = platformMap[intake?.preferredPlatforms || intake?.platform] || [];
+        if (expectedPlatforms.length > 1 && data?.versions) {
+          for (const version of data.versions) {
+            const posts = (version.generated_content as any)?.posts || [];
+            const generatedPlatforms = new Set(posts.map((p: any) => (p.platform || "").toLowerCase()));
+            const missing = expectedPlatforms.filter(ep => !generatedPlatforms.has(ep.toLowerCase()));
+            if (missing.length > 0) {
+              toast.warning(`${version.model_name} is missing posts for: ${missing.join(", ")}`);
+            }
+          }
+        }
+        toast.success("Content regenerated successfully!");
+      }
+    } catch (err: any) {
+      toast.error("Regeneration failed: " + (err.message || "Unknown error"));
+    } finally {
+      setRegenerating(prev => ({ ...prev, [requestId]: false }));
+      fetchData();
+    }
+  };
+
   const totalRequests = requests.length;
   const pendingCount = requests.filter(r => !["client_approved"].includes(r.status)).length;
   const completedCount = requests.filter(r => r.status === "client_approved").length;
@@ -284,6 +343,8 @@ export default function ContentRequests() {
                 onConciergePrefer={setConciergePreferred}
                 onAdminApprove={adminApprove}
                 onClientSelect={clientSelect}
+                onRegenerate={regenerateContent}
+                isRegenerating={regenerating[req.id] || false}
               />
             ))}
           </div>
