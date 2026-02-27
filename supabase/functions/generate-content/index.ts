@@ -36,6 +36,7 @@ Before generating the calendar:
 - If budget is high → Increase lead-focused content.
 - If engagement rate is low → Increase engagement posts.
 - If follower growth is low → Add awareness-focused posts.
+- CRITICAL: Distribute posts evenly across ALL platforms the user selected. If they selected Instagram, Facebook, and TikTok, roughly 1/3 of posts should be for each platform. Never default to only one platform.
 
 🛡️ REGULATORY COMPLIANCE (CRITICAL):
 - Based on the clinic's country and state/province, identify the governing veterinary regulatory body (e.g., CVBC for British Columbia, AVMA + state board for US states, RCVS for the UK, AVA for Australia).
@@ -69,7 +70,7 @@ Return your response as valid JSON with this exact structure:
       "post_number": 1,
       "week": 1,
       "suggested_date": "YYYY-MM-DD",
-      "platform": "Instagram",
+      "platform": "One of the selected platforms (distribute posts evenly across ALL selected platforms)",
       "content_type": "Reel",
       "hook": "Attention-grabbing opening line",
       "caption": "The main social media caption text",
