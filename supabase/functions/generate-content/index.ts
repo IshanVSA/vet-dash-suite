@@ -231,6 +231,7 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const clinic_id = typeof body.clinic_id === "string" ? body.clinic_id.trim() : "";
     const intake_data = body.intake_data && typeof body.intake_data === "object" && !Array.isArray(body.intake_data) ? body.intake_data : null;
+    const existingRequestId = typeof body.content_request_id === "string" ? body.content_request_id.trim() : null;
 
     if (!clinic_id || !intake_data) {
       return new Response(JSON.stringify({ error: "Missing clinic_id or intake_data" }), {
@@ -250,26 +251,32 @@ Deno.serve(async (req) => {
     const systemPrompt = buildSystemPrompt(totalPosts);
     const userPrompt = buildUserPrompt(intake_data);
 
-    // Create content request
-    const { data: requestData, error: reqError } = await supabaseAdmin
-      .from("content_requests")
-      .insert({
-        clinic_id,
-        created_by_concierge_id: user.id,
-        intake_data,
-        status: "generated",
-      })
-      .select("id")
-      .single();
+    let contentRequestId: string;
 
-    if (reqError) {
-      console.error("Content request insert error:", reqError.message);
-      return new Response(JSON.stringify({ error: "Failed to create content request" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (existingRequestId) {
+      // Regeneration: reuse the existing content request
+      contentRequestId = existingRequestId;
+    } else {
+      // New request: create content request
+      const { data: requestData, error: reqError } = await supabaseAdmin
+        .from("content_requests")
+        .insert({
+          clinic_id,
+          created_by_concierge_id: user.id,
+          intake_data,
+          status: "generated",
+        })
+        .select("id")
+        .single();
+
+      if (reqError) {
+        console.error("Content request insert error:", reqError.message);
+        return new Response(JSON.stringify({ error: "Failed to create content request" }), {
+          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      contentRequestId = requestData.id;
     }
-
-    const contentRequestId = requestData.id;
 
     // Call APIs in parallel
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
