@@ -156,27 +156,28 @@ async function callOpenAI(apiKey: string, systemPrompt: string, userPrompt: stri
   return JSON.parse(content);
 }
 
-async function callClaude(apiKey: string, systemPrompt: string, userPrompt: string): Promise<any> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+async function callGemini(apiKey: string, systemPrompt: string, userPrompt: string): Promise<any> {
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 4096,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.7,
     }),
   });
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`Claude error ${res.status}: ${txt}`);
+    throw new Error(`Gemini error ${res.status}: ${txt}`);
   }
   const data = await res.json();
-  const text = data.content?.[0]?.text || "{}";
+  const text = data.choices?.[0]?.message?.content || "{}";
   // Extract JSON from response
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   let jsonStr: string;
@@ -280,13 +281,13 @@ Deno.serve(async (req) => {
 
     // Call APIs in parallel
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    const claudeKey = Deno.env.get("ANTHROPIC_API_KEY");
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
 
     // Run models SEQUENTIALLY and save each version IMMEDIATELY after success
     const versions: any[] = [];
     const errors: { model: string; error: string }[] = [];
 
-    console.log("API keys available - OpenAI:", !!openaiKey, "Claude:", !!claudeKey);
+    console.log("API keys available - OpenAI:", !!openaiKey, "Gemini:", !!lovableKey);
 
     // Helper to save a version right away
     const saveVersion = async (model: string, content: any) => {
@@ -318,15 +319,15 @@ Deno.serve(async (req) => {
         errors.push({ model: "OpenAI", error: err.message });
       }
     }
-    if (claudeKey) {
+    if (lovableKey) {
       try {
-        console.log("Calling Claude...");
-        const content = await callClaude(claudeKey, systemPrompt, userPrompt);
-        console.log("Claude succeeded, saving immediately...");
-        await saveVersion("Claude", content);
+        console.log("Calling Gemini...");
+        const content = await callGemini(lovableKey, systemPrompt, userPrompt);
+        console.log("Gemini succeeded, saving immediately...");
+        await saveVersion("Gemini", content);
       } catch (err: any) {
-        console.error("Claude call failed:", err.message);
-        errors.push({ model: "Claude", error: err.message });
+        console.error("Gemini call failed:", err.message);
+        errors.push({ model: "Gemini", error: err.message });
       }
     }
 
