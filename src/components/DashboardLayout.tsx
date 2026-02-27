@@ -185,6 +185,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <p className="text-[10px] text-[hsl(var(--sidebar-muted))] tracking-wide">Content Platform</p>
             </div>
           )}
+          {/* Collapse toggle - top right of sidebar (desktop) */}
+          <button
+            onClick={toggleCollapse}
+            className="hidden lg:flex p-1.5 rounded-md hover:bg-[hsl(var(--sidebar-accent))]/50 transition-colors shrink-0"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? <PanelLeft className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" /> : <PanelLeftClose className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" />}
+          </button>
           <button className="lg:hidden p-1 rounded-md hover:bg-[hsl(var(--sidebar-accent))]" onClick={() => setSidebarOpen(false)}>
             <X className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" />
           </button>
@@ -246,15 +254,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        {/* Collapse toggle (desktop only) */}
-        <div className="hidden lg:flex px-3 py-2 border-t border-[hsl(var(--sidebar-border))]">
-          <button
-            onClick={toggleCollapse}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium text-[hsl(var(--sidebar-muted))] hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]/50 transition-colors"
-          >
-            {collapsed ? <PanelLeft className="h-4 w-4" /> : <><PanelLeftClose className="h-4 w-4" /> Collapse</>}
-          </button>
-        </div>
 
         {/* User footer */}
         <div className={cn("py-4 border-t border-[hsl(var(--sidebar-border))]", collapsed ? "px-1.5" : "px-3")}>
