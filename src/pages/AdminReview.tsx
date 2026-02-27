@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ShieldCheck, ChevronDown, Eye, Check, Calendar, FileText, RefreshCw, Star, ThumbsUp, Loader2 } from "lucide-react";
+import { ShieldCheck, ChevronDown, Eye, Check, Calendar, FileText, RefreshCw, ThumbsUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReviewSkeleton } from "@/components/DashboardSkeleton";
 import { format } from "date-fns";
@@ -363,7 +363,7 @@ function ReviewCard({
                 )}
                 {selectedVersion && (
                   <Badge className="bg-primary/10 text-primary text-[10px] py-0 rounded-full border-0">
-                    <Star className="h-3 w-3 mr-1 fill-current" /> Client selected: {selectedVersion.model_name}
+                    <Check className="h-3 w-3 mr-1" /> Client Approved
                   </Badge>
                 )}
               </div>

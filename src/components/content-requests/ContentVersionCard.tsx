@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Star, ThumbsUp, Check, ChevronDown, ShieldCheck } from "lucide-react";
+import { Send, ThumbsUp, Check, ChevronDown, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ContentPostCard } from "./ContentPostCard";
 
@@ -22,7 +22,7 @@ interface ContentVersionCardProps {
   requestStatus: string;
   clinicId: string;
   role: string | null;
-  onConciergePrefer: (requestId: string, versionId: string) => void;
+  onSendForReview: (requestId: string, versionId: string) => void;
   onAdminApprove: (requestId: string, versionId: string) => void;
   onClientSelect: (requestId: string, versionId: string, clinicId: string) => void;
 }
@@ -206,7 +206,7 @@ export function ContentVersionCard({
   requestStatus,
   clinicId,
   role,
-  onConciergePrefer,
+  onSendForReview,
   onAdminApprove,
   onClientSelect,
 }: ContentVersionCardProps) {
@@ -223,11 +223,11 @@ export function ContentVersionCard({
       {/* Header */}
       <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
         <Badge className="bg-gradient-to-r from-primary to-[hsl(280,65%,60%)] text-primary-foreground text-[10px] font-bold border-0 shadow-sm">
-          {version.model_name}
+          AI Generated
         </Badge>
         {version.concierge_preferred && (
           <Badge className="bg-[hsl(280,65%,60%)]/15 text-[hsl(280,65%,60%)] border-[hsl(280,65%,60%)]/20 text-[10px] font-semibold">
-            <Star className="h-3 w-3 mr-1 fill-current" /> Concierge Pick
+            <Send className="h-3 w-3 mr-1" /> Sent for Review
           </Badge>
         )}
         {version.admin_approved && (
@@ -248,8 +248,8 @@ export function ContentVersionCard({
       {/* Actions */}
       <div className="flex flex-wrap gap-2 pt-3 border-t border-border/40">
         {role === "concierge" && requestStatus === "generated" && !version.concierge_preferred && (
-          <Button size="sm" variant="outline" className="text-xs hover:bg-[hsl(280,65%,60%)]/10 hover:text-[hsl(280,65%,60%)] hover:border-[hsl(280,65%,60%)]/30" onClick={() => onConciergePrefer(requestId, version.id)}>
-            <Star className="h-3.5 w-3.5 mr-1" /> Mark Preferred
+          <Button size="sm" variant="outline" className="text-xs hover:bg-primary/10 hover:text-primary hover:border-primary/30" onClick={() => onSendForReview(requestId, version.id)}>
+            <Send className="h-3.5 w-3.5 mr-1" /> Send for Review
           </Button>
         )}
         {role === "admin" && !version.admin_approved && requestStatus === "concierge_preferred" && (
@@ -259,7 +259,7 @@ export function ContentVersionCard({
         )}
         {role === "client" && requestStatus === "admin_approved" && !version.client_selected && (
           <Button size="sm" className="text-xs shadow-sm" onClick={() => onClientSelect(requestId, version.id, clinicId)}>
-            <Check className="h-3.5 w-3.5 mr-1" /> Select This
+            <Check className="h-3.5 w-3.5 mr-1" /> Approve
           </Button>
         )}
       </div>
