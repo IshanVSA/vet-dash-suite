@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Calendar, FileText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Check, Calendar, FileText, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ContentVersionCard } from "./ContentVersionCard";
@@ -42,6 +43,8 @@ interface ContentRequestCardProps {
   onConciergePrefer: (requestId: string, versionId: string) => void;
   onAdminApprove: (requestId: string, versionId: string) => void;
   onClientSelect: (requestId: string, versionId: string, clinicId: string) => void;
+  onRegenerate?: (requestId: string) => void;
+  isRegenerating?: boolean;
 }
 
 function ModelToggleView({
@@ -124,6 +127,8 @@ export function ContentRequestCard({
   onConciergePrefer,
   onAdminApprove,
   onClientSelect,
+  onRegenerate,
+  isRegenerating,
 }: ContentRequestCardProps) {
   const status = statusConfig[request.status] || { label: request.status, color: "bg-muted text-muted-foreground" };
   const intake = request.intake_data as any;
@@ -191,6 +196,18 @@ export function ContentRequestCard({
               <Badge variant="secondary" className="text-[10px] font-semibold rounded-full px-2.5 py-0.5">
                 <FileText className="h-3 w-3 mr-1" /> {totalPosts} posts
               </Badge>
+            )}
+            {onRegenerate && (role === "admin" || role === "concierge") && request.status !== "client_approved" && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onRegenerate(request.id)}
+                disabled={isRegenerating}
+                className="text-[11px] h-7 px-2.5 gap-1.5"
+              >
+                <RefreshCw className={cn("h-3 w-3", isRegenerating && "animate-spin")} />
+                {isRegenerating ? "Regenerating…" : "Regenerate"}
+              </Button>
             )}
           </div>
         </div>
