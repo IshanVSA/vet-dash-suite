@@ -233,14 +233,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                           active ? "text-[hsl(var(--sidebar-primary))]" : "group-hover:text-[hsl(var(--sidebar-foreground))]"
                         )} />
                         {/* Badge on icon when collapsed */}
-                        {collapsed && item.badge && item.badge > 0 && (
+                        {collapsed && (item.badge ?? 0) > 0 && (
                           <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">
                             {item.badge}
                           </span>
                         )}
                       </div>
                       {!collapsed && item.label}
-                      {!collapsed && item.badge && item.badge > 0 && (
+                      {!collapsed && (item.badge ?? 0) > 0 && (
                         <span className="ml-auto bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
                           {item.badge}
                         </span>
