@@ -168,7 +168,7 @@ export default function ContentRequests() {
         .eq("id", requestId);
 
       const { data, error } = await supabase.functions.invoke("generate-content", {
-        body: { clinic_id: req.clinic_id, intake_data: req.intake_data },
+        body: { clinic_id: req.clinic_id, intake_data: req.intake_data, content_request_id: requestId },
       });
 
       if (error) throw error;
