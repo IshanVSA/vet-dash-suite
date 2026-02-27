@@ -285,9 +285,13 @@ Deno.serve(async (req) => {
     // Run models SEQUENTIALLY to avoid exceeding compute limits
     const results: { model: string; content: any; error?: string }[] = [];
 
+    console.log("API keys available - OpenAI:", !!openaiKey, "Claude:", !!claudeKey);
+
     if (openaiKey) {
       try {
+        console.log("Calling OpenAI...");
         const content = await callOpenAI(openaiKey, systemPrompt, userPrompt);
+        console.log("OpenAI succeeded");
         results.push({ model: "OpenAI", content });
       } catch (err: any) {
         console.error("OpenAI call failed:", err.message);
@@ -296,13 +300,17 @@ Deno.serve(async (req) => {
     }
     if (claudeKey) {
       try {
+        console.log("Calling Claude...");
         const content = await callClaude(claudeKey, systemPrompt, userPrompt);
+        console.log("Claude succeeded");
         results.push({ model: "Claude", content });
       } catch (err: any) {
         console.error("Claude call failed:", err.message);
         results.push({ model: "Claude", content: null, error: err.message });
       }
     }
+
+    console.log("Total results:", results.length, "successful:", results.filter(r => r.content).length);
 
     // Save versions
     const versions = [];
