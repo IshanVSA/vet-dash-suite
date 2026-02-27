@@ -282,58 +282,61 @@ Deno.serve(async (req) => {
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
     const claudeKey = Deno.env.get("ANTHROPIC_API_KEY");
 
-    // Run models SEQUENTIALLY to avoid exceeding compute limits
-    const results: { model: string; content: any; error?: string }[] = [];
+    // Run models SEQUENTIALLY and save each version IMMEDIATELY after success
+    const versions: any[] = [];
+    const errors: { model: string; error: string }[] = [];
 
     console.log("API keys available - OpenAI:", !!openaiKey, "Claude:", !!claudeKey);
+
+    // Helper to save a version right away
+    const saveVersion = async (model: string, content: any) => {
+      const { data: versionData, error: insertErr } = await supabaseAdmin
+        .from("content_versions")
+        .insert({
+          content_request_id: contentRequestId,
+          model_name: model,
+          generated_content: content,
+        })
+        .select()
+        .single();
+      if (insertErr) {
+        console.error(`Failed to save ${model} version:`, insertErr.message);
+      } else if (versionData) {
+        versions.push(versionData);
+        console.log(`${model} version saved successfully`);
+      }
+    };
 
     if (openaiKey) {
       try {
         console.log("Calling OpenAI...");
         const content = await callOpenAI(openaiKey, systemPrompt, userPrompt);
-        console.log("OpenAI succeeded");
-        results.push({ model: "OpenAI", content });
+        console.log("OpenAI succeeded, saving immediately...");
+        await saveVersion("OpenAI", content);
       } catch (err: any) {
         console.error("OpenAI call failed:", err.message);
-        results.push({ model: "OpenAI", content: null, error: err.message });
+        errors.push({ model: "OpenAI", error: err.message });
       }
     }
     if (claudeKey) {
       try {
         console.log("Calling Claude...");
         const content = await callClaude(claudeKey, systemPrompt, userPrompt);
-        console.log("Claude succeeded");
-        results.push({ model: "Claude", content });
+        console.log("Claude succeeded, saving immediately...");
+        await saveVersion("Claude", content);
       } catch (err: any) {
         console.error("Claude call failed:", err.message);
-        results.push({ model: "Claude", content: null, error: err.message });
+        errors.push({ model: "Claude", error: err.message });
       }
     }
 
-    console.log("Total results:", results.length, "successful:", results.filter(r => r.content).length);
-
-    // Save versions
-    const versions = [];
-    for (const result of results) {
-      if (result.content) {
-        const { data: versionData } = await supabaseAdmin
-          .from("content_versions")
-          .insert({
-            content_request_id: contentRequestId,
-            model_name: result.model,
-            generated_content: result.content,
-          })
-          .select()
-          .single();
-        if (versionData) versions.push(versionData);
-      }
-    }
+    console.log("Total versions saved:", versions.length);
 
     return new Response(JSON.stringify({
       content_request_id: contentRequestId,
       versions,
       total_posts: totalPosts,
-      errors: results.filter(r => r.error).map(r => ({ model: r.model, error: r.error })),
+      errors,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
