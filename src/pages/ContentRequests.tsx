@@ -1,10 +1,11 @@
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, FileText, Clock, CheckCircle2, Loader2 } from "lucide-react";
+import { Sparkles, FileText, Clock, CheckCircle2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { ContentRequestCard } from "@/components/content-requests/ContentRequestCard";
 import { StatsCard } from "@/components/StatsCard";
@@ -39,8 +40,8 @@ export default function ContentRequests() {
   const [clinics, setClinics] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState<RegeneratingMap>({});
-  const [generatingMessage, setGeneratingMessage] = useState<string | null>(null);
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set());
+  const [refreshing, setRefreshing] = useState(false);
 
   const fetchData = useCallback(async () => {
     const isInitial = requests.length === 0;
@@ -77,31 +78,16 @@ export default function ContentRequests() {
       (clinicData || []).forEach(c => { map[c.id] = c.clinic_name; });
       setClinics(map);
 
-      // Check if any request has no versions yet (still generating)
-      const hasEmpty = reqs.some(r => !grouped[r.id] || grouped[r.id].length === 0);
-      if (hasEmpty) {
-        setGeneratingMessage("AI is generating content… This will auto-refresh when ready.");
-        startPolling();
-      } else {
-        setGeneratingMessage(null);
-        stopPolling();
-      }
+      // Update generatingIds: requests with no versions that are being tracked
+      setGeneratingIds(prev => {
+        const next = new Set(prev);
+        for (const id of next) {
+          if (grouped[id] && grouped[id].length > 0) next.delete(id);
+        }
+        return next;
+      });
     }
     setLoading(false);
-  }, []);
-
-  const startPolling = useCallback(() => {
-    if (pollingRef.current) return;
-    pollingRef.current = setInterval(() => {
-      fetchData();
-    }, 5000);
-  }, [fetchData]);
-
-  const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
   }, []);
 
   useEffect(() => {
@@ -117,7 +103,6 @@ export default function ContentRequests() {
 
     return () => {
       supabase.removeChannel(channel);
-      stopPolling();
     };
   }, [role, user]);
 
@@ -282,6 +267,7 @@ export default function ContentRequests() {
     if (!req) return;
 
     setRegenerating(prev => ({ ...prev, [requestId]: true }));
+    setGeneratingIds(prev => new Set(prev).add(requestId));
 
     try {
       // Delete old versions for this request
@@ -368,14 +354,24 @@ export default function ContentRequests() {
           </div>
         )}
 
-        {/* Generating indicator */}
-        {generatingMessage && (
-          <Card className="border-primary/30 bg-primary/5">
-            <CardContent className="py-4 flex items-center gap-3">
-              <Loader2 className="h-5 w-5 text-primary animate-spin" />
-              <p className="text-sm font-medium text-primary">{generatingMessage}</p>
-            </CardContent>
-          </Card>
+        {/* Refresh Button */}
+        {!loading && requests.length > 0 && (
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                setRefreshing(true);
+                await fetchData();
+                setRefreshing(false);
+              }}
+              disabled={refreshing}
+              className="gap-2"
+            >
+              <RefreshCw className={refreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </Button>
+          </div>
         )}
 
         {/* Content */}
@@ -424,6 +420,7 @@ export default function ContentRequests() {
                 onClientSelect={clientSelect}
                 onRegenerate={regenerateContent}
                 isRegenerating={regenerating[req.id] || false}
+                isGenerating={generatingIds.has(req.id)}
               />
             ))}
           </div>
