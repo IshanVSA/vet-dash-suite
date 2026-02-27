@@ -157,26 +157,29 @@ async function callOpenAI(apiKey: string, systemPrompt: string, userPrompt: stri
 }
 
 async function callClaude(apiKey: string, systemPrompt: string, userPrompt: string): Promise<any> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  // Use Lovable AI gateway with Gemini as the second model
+  const res = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
     method: "POST",
     headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-3-5-haiku-20241022",
-      max_tokens: 8192,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt + "\n\nReturn only raw JSON, no markdown fences." },
+      ],
+      temperature: 0.7,
     }),
   });
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`Claude error ${res.status}: ${txt}`);
+    throw new Error(`Gemini error ${res.status}: ${txt}`);
   }
   const data = await res.json();
-  const text = data.content?.[0]?.text || "{}";
+  const text = data.choices?.[0]?.message?.content || "{}";
+  // Extract JSON from response
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   let jsonStr: string;
   if (jsonMatch) {
@@ -272,7 +275,7 @@ Deno.serve(async (req) => {
 
     // Call APIs in parallel
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    const claudeKey = Deno.env.get("ANTHROPIC_API_KEY");
+    const lovableKey = Deno.env.get("LOVABLE_API_KEY");
 
     // Run models SEQUENTIALLY to avoid exceeding compute limits
     const results: { model: string; content: any; error?: string }[] = [];
@@ -286,13 +289,13 @@ Deno.serve(async (req) => {
         results.push({ model: "OpenAI", content: null, error: err.message });
       }
     }
-    if (claudeKey) {
+    if (lovableKey) {
       try {
-        const content = await callClaude(claudeKey, systemPrompt, userPrompt);
-        results.push({ model: "Claude", content });
+        const content = await callClaude(lovableKey, systemPrompt, userPrompt);
+        results.push({ model: "Gemini", content });
       } catch (err: any) {
-        console.error("Claude call failed:", err.message);
-        results.push({ model: "Claude", content: null, error: err.message });
+        console.error("Gemini call failed:", err.message);
+        results.push({ model: "Gemini", content: null, error: err.message });
       }
     }
 
