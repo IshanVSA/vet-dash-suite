@@ -130,14 +130,40 @@ export default function ContentRequests() {
       const sentToClientAt = new Date().toISOString();
       const autoApproveAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
 
+      // Determine the selected month boundaries for date clamping
+      const intake = req?.intake_data as any;
+      const selectedMonth = intake?.selectedMonth; // e.g. "March 2026"
+      let monthStart: string | null = null;
+      let monthEnd: string | null = null;
+      if (selectedMonth) {
+        try {
+          const parsed = new Date(selectedMonth + " 1");
+          if (!isNaN(parsed.getTime())) {
+            const year = parsed.getFullYear();
+            const month = parsed.getMonth();
+            monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            monthEnd = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+          }
+        } catch {}
+      }
+
       for (const post of posts) {
+        // Clamp date to selected month if it falls outside
+        let scheduledDate = post.suggested_date || null;
+        if (scheduledDate && monthStart && monthEnd) {
+          if (scheduledDate < monthStart || scheduledDate > monthEnd) {
+            scheduledDate = null; // Drop invalid dates rather than scheduling in wrong month
+          }
+        }
+
         const { data: insertedPost } = await supabase.from("content_posts").insert({
           clinic_id: clinicId,
           title: post.hook || post.theme || "Untitled Post",
           caption: post.caption || post.main_copy || null,
           platform: (post.platform || "instagram").toLowerCase(),
           content_type: (post.content_type || "IMAGE").toUpperCase(),
-          scheduled_date: post.suggested_date || null,
+          scheduled_date: scheduledDate,
           status: "pending",
           workflow_stage: "sent_to_client",
           tags: [post.goal_type, post.funnel_stage, post.service_highlighted].filter(Boolean),

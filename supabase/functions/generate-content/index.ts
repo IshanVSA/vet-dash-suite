@@ -18,6 +18,7 @@ You must:
 - Automatically determine ideal post distribution and formats.
 - Create content that is differentiated from competitors.
 - Generate conversion-focused CTAs aligned with business goals.
+- CRITICAL DATE RULE: ALL suggested_date values MUST fall within the selected calendar month. Do NOT generate any dates outside the selected month. For example, if the month is "March 2026", all dates must be between 2026-03-01 and 2026-03-31. Never spill into the next or previous month.
 
 🔥 AI Decision Logic Requirements:
 Before generating the calendar:
