@@ -1,90 +1,32 @@
 
 
-# Veterinary Regulatory Compliance in Content Generation
+## Plan: Replace Auto-Polling with Manual Refresh + Per-Request Generating State
 
-## Overview
-Enhance the AI content generation system so that both OpenAI and Claude automatically identify the veterinary regulatory body for the clinic's country and state/province, then ensure all generated content complies with that body's advertising and marketing guidelines.
+### Changes
 
-## How It Works
-The system prompt will be updated to instruct the AI models to:
-1. Identify the relevant veterinary regulatory body based on the country + state/province (e.g., CVBC for British Columbia, AVMA/state boards for US states, RCVS for the UK)
-2. Apply that body's advertising rules -- such as restrictions on testimonials, price guarantees, misleading claims, before/after photos, and superlative language
-3. Include a compliance note on each post explaining what was considered
-4. Add a regulatory summary to the strategy output
+**1. `src/pages/ContentRequests.tsx`**
 
-No new APIs or external lookups are needed -- the AI models already have knowledge of major veterinary regulatory bodies and their marketing guidelines.
+- **Remove auto-polling**: Delete `pollingRef`, `startPolling`, `stopPolling`, and the 5-second interval logic.
+- **Add a Refresh button** in the header area (next to the title or stats row) that calls `fetchData()` manually. Show a spinning icon while fetching.
+- **Track generating state per-request**: Replace the single `generatingMessage` string with a `Set<string>` of request IDs that have no versions yet. When `regenerateContent` is called, add that request ID to the set. After `fetchData`, compute which requests still have no versions and update the set accordingly.
+- **Keep the Realtime subscription** (INSERT on `content_versions`) -- this stays as-is so content auto-appears when the edge function finishes.
 
-## What Changes
+**2. `src/components/content-requests/ContentRequestCard.tsx`**
 
-### 1. Edge Function: `supabase/functions/generate-content/index.ts`
+- **Accept a new `isGenerating` boolean prop**.
+- **When `isGenerating` is true and versions are empty**, show a "AI is generating content..." indicator with a spinner **inside** that specific card, instead of the current "No versions generated yet" empty state.
 
-**System Prompt Update** -- Add a compliance section:
-- Instruct the AI to determine the veterinary regulatory body from the provided country and state/province
-- List common compliance rules to check (no misleading claims, no guaranteed outcomes, proper use of credentials, testimonial restrictions, price advertising rules)
-- Require each post to include a `compliance_note` field explaining regulatory considerations
-- Add a `regulatory_compliance` section to the `strategy_summary` output containing: regulatory body name, key restrictions applied, and a compliance confidence statement
+### Technical Details
 
-**User Prompt Update** -- Include state/province:
-- Add the `stateProvince` field so the AI knows the exact jurisdiction
+**ContentRequests.tsx changes:**
+- New state: `const [refreshing, setRefreshing] = useState(false)` for the refresh button spinner.
+- New state: `const [generatingIds, setGeneratingIds] = useState<Set<string>>(new Set())` -- populated when regenerateContent fires (add requestId) and cleared per-request when fetchData finds versions exist.
+- Remove `generatingMessage` state, `pollingRef`, `startPolling`, `stopPolling`.
+- Remove the global generating indicator Card. 
+- Add a `<Button>` with `RefreshCw` icon in the header that calls fetchData and toggles `refreshing`.
+- Pass `isGenerating={generatingIds.has(req.id)}` to each `ContentRequestCard`.
 
-**Updated JSON Output Structure**:
-- `strategy_summary` gains a `regulatory_compliance` object with `regulatory_body`, `jurisdiction`, and `key_restrictions`
-- Each post gains a `compliance_note` string field
-
-### 2. Frontend: Display Compliance Info
-
-**`src/components/content-requests/ContentVersionCard.tsx`** (StrategySummary component):
-- Add a new block to display the regulatory compliance info (body name, jurisdiction, key restrictions) with a shield icon
-
-**`src/components/content-requests/ContentPostCard.tsx`**:
-- Show the `compliance_note` field on each post card if present, with a small compliance badge/indicator
-
-## Technical Details
-
-### System Prompt Addition (appended before the JSON structure)
-```
-REGULATORY COMPLIANCE (CRITICAL):
-- Based on the clinic's country and state/province, identify the governing 
-  veterinary regulatory body (e.g., CVBC for British Columbia, AVMA + state 
-  board for US states, RCVS for the UK, AVA for Australia).
-- Apply that body's advertising and marketing guidelines to ALL generated content.
-- Common rules to enforce:
-  * No misleading or unsubstantiated claims
-  * No guaranteed treatment outcomes
-  * Proper use of veterinary titles and credentials
-  * Testimonial restrictions (if applicable)
-  * Price advertising compliance
-  * No superlative claims ("best", "cheapest") unless verifiable
-  * Emergency service disclaimers where needed
-- Each post MUST include a compliance_note explaining what was considered.
-```
-
-### Updated JSON Structure
-```json
-{
-  "strategy_summary": {
-    "content_mix": { ... },
-    "format_distribution": { ... },
-    "goal_alignment": "...",
-    "revenue_focus": "...",
-    "competitive_positioning": "...",
-    "regulatory_compliance": {
-      "regulatory_body": "College of Veterinarians of BC (CVBC)",
-      "jurisdiction": "British Columbia, Canada",
-      "key_restrictions": ["No guaranteed outcomes", "Testimonial restrictions", "..."]
-    }
-  },
-  "posts": [
-    {
-      ...existing fields...,
-      "compliance_note": "Avoids outcome guarantees per CVBC guidelines. CTA uses informational language."
-    }
-  ]
-}
-```
-
-### Files Modified
-1. **`supabase/functions/generate-content/index.ts`** -- Update `buildSystemPrompt` and `buildUserPrompt`
-2. **`src/components/content-requests/ContentVersionCard.tsx`** -- Display regulatory compliance in strategy summary
-3. **`src/components/content-requests/ContentPostCard.tsx`** -- Show compliance note per post
+**ContentRequestCard.tsx changes:**
+- Add `isGenerating?: boolean` to `ContentRequestCardProps`.
+- In the "No versions generated yet" empty state, conditionally render a spinner + "AI is generating content..." message when `isGenerating` is true, otherwise keep the existing "No versions generated yet" text.
 
