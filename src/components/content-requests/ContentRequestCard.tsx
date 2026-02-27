@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,9 +26,9 @@ interface ContentVersion {
   created_at: string;
 }
 
-const statusConfig: Record<string, { label: string; color: string; icon?: string }> = {
+const statusConfig: Record<string, { label: string; color: string }> = {
   generated: { label: "Generated", color: "bg-accent text-accent-foreground" },
-  concierge_preferred: { label: "Concierge Preferred", color: "bg-[hsl(280,65%,60%)]/15 text-[hsl(280,65%,60%)]" },
+  concierge_preferred: { label: "Under Review", color: "bg-[hsl(280,65%,60%)]/15 text-[hsl(280,65%,60%)]" },
   admin_approved: { label: "Sent to Client", color: "bg-success/15 text-success" },
   client_selected: { label: "Client Selected", color: "bg-primary/15 text-primary" },
   final_approved: { label: "Final Approved", color: "bg-success/15 text-success" },
@@ -41,83 +40,12 @@ interface ContentRequestCardProps {
   clinicName: string;
   role: string | null;
   index: number;
-  onConciergePrefer: (requestId: string, versionId: string) => void;
+  onSendForReview: (requestId: string, versionId: string) => void;
   onAdminApprove: (requestId: string, versionId: string) => void;
   onClientSelect: (requestId: string, versionId: string, clinicId: string) => void;
   onRegenerate?: (requestId: string) => void;
   isRegenerating?: boolean;
   isGenerating?: boolean;
-}
-
-function ModelToggleView({
-  versions,
-  requestId,
-  requestStatus,
-  clinicId,
-  role,
-  onConciergePrefer,
-  onAdminApprove,
-  onClientSelect,
-}: {
-  versions: ContentVersion[];
-  requestId: string;
-  requestStatus: string;
-  clinicId: string;
-  role: string | null;
-  onConciergePrefer: (requestId: string, versionId: string) => void;
-  onAdminApprove: (requestId: string, versionId: string) => void;
-  onClientSelect: (requestId: string, versionId: string, clinicId: string) => void;
-}) {
-  const [activeIndex, setActiveIndex] = useState(0);
-
-  // Derive labels from model names
-  const labels = versions.map(v => {
-    const name = v.model_name.toLowerCase();
-    if (name.includes("openai") || name.includes("gpt")) return "OpenAI";
-    if (name.includes("claude") || name.includes("anthropic")) return "Claude";
-    return v.model_name;
-  });
-
-  const activeVersion = versions[activeIndex];
-  if (!activeVersion) return null;
-
-  return (
-    <div className="space-y-4">
-      {/* Toggle switch */}
-      {versions.length > 1 && (
-        <div className="flex items-center justify-center">
-          <div className="inline-flex items-center rounded-lg bg-muted/60 p-1 border border-border/40">
-            {versions.map((_, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setActiveIndex(i)}
-                className={cn(
-                  "px-4 py-1.5 rounded-md text-xs font-semibold transition-all duration-200",
-                  activeIndex === i
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {labels[i]}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      <ContentVersionCard
-        version={activeVersion}
-        requestId={requestId}
-        requestStatus={requestStatus}
-        clinicId={clinicId}
-        role={role}
-        onConciergePrefer={onConciergePrefer}
-        onAdminApprove={onAdminApprove}
-        onClientSelect={onClientSelect}
-      />
-    </div>
-  );
 }
 
 export function ContentRequestCard({
@@ -126,7 +54,7 @@ export function ContentRequestCard({
   clinicName,
   role,
   index,
-  onConciergePrefer,
+  onSendForReview,
   onAdminApprove,
   onClientSelect,
   onRegenerate,
@@ -141,6 +69,9 @@ export function ContentRequestCard({
     return sum + (content?.posts?.length || 1);
   }, 0);
 
+  // With single model, just render the first (only) version directly
+  const singleVersion = versions.length > 0 ? versions[0] : null;
+
   return (
     <Card
       className={cn(
@@ -149,7 +80,6 @@ export function ContentRequestCard({
       )}
       style={{ animationDelay: `${index * 60}ms`, animationFillMode: "both" }}
     >
-      {/* Gradient top accent bar */}
       <div className={cn(
         "h-1 w-full",
         isComplete
@@ -228,18 +158,18 @@ export function ContentRequestCard({
               <p className="text-sm text-muted-foreground">No versions generated yet.</p>
             )}
           </div>
-        ) : (
-          <ModelToggleView
-            versions={versions}
+        ) : singleVersion ? (
+          <ContentVersionCard
+            version={singleVersion}
             requestId={request.id}
             requestStatus={request.status}
             clinicId={request.clinic_id}
             role={role}
-            onConciergePrefer={onConciergePrefer}
+            onSendForReview={onSendForReview}
             onAdminApprove={onAdminApprove}
             onClientSelect={onClientSelect}
           />
-        )}
+        ) : null}
       </CardContent>
     </Card>
   );

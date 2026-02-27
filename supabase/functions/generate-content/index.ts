@@ -106,13 +106,11 @@ function buildUserPrompt(intake: any): string {
     intake.budget && `Budget: ${intake.budget}`,
     intake.tone && `Tone: ${intake.tone}`,
     intake.selectedMonth && `Calendar Month: ${intake.selectedMonth}`,
-    // Past Performance
     intake.topPost && `Top Performing Post: ${intake.topPost}`,
     intake.engagementRate && `Engagement Rate: ${intake.engagementRate}`,
     intake.followerGrowth && `Follower Growth: ${intake.followerGrowth}`,
     intake.topContentType && `Top Content Type: ${intake.topContentType}`,
     intake.performanceNotes && `Performance Notes: ${intake.performanceNotes}`,
-    // Goals
     intake.goal && `Primary Goal: ${intake.goal}`,
     intake.secondaryGoals && `Secondary Goals: ${intake.secondaryGoals}`,
     intake.promotions && `Promotions: ${intake.promotions}`,
@@ -154,39 +152,6 @@ async function callOpenAI(apiKey: string, systemPrompt: string, userPrompt: stri
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content;
   return JSON.parse(content);
-}
-
-async function callClaude(apiKey: string, systemPrompt: string, userPrompt: string): Promise<any> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: "claude-3-5-haiku-20241022",
-      max_tokens: 8192,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-    }),
-  });
-  if (!res.ok) {
-    const txt = await res.text();
-    throw new Error(`Claude error ${res.status}: ${txt}`);
-  }
-  const data = await res.json();
-  const text = data.content?.[0]?.text || "{}";
-  const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  let jsonStr: string;
-  if (jsonMatch) {
-    jsonStr = jsonMatch[1].trim();
-  } else {
-    const start = text.indexOf("{");
-    const end = text.lastIndexOf("}");
-    jsonStr = start !== -1 && end !== -1 ? text.substring(start, end + 1) : text.trim();
-  }
-  return JSON.parse(jsonStr);
 }
 
 Deno.serve(async (req) => {
@@ -237,7 +202,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Validate payload size (limit intake_data to ~50KB)
     const intakeStr = JSON.stringify(intake_data);
     if (intakeStr.length > 50000) {
       return new Response(JSON.stringify({ error: "Intake data is too large" }), {
@@ -270,54 +234,39 @@ Deno.serve(async (req) => {
 
     const contentRequestId = requestData.id;
 
-    // Call APIs in parallel
+    // Call OpenAI only
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
-    const claudeKey = Deno.env.get("ANTHROPIC_API_KEY");
-
-    // Run models SEQUENTIALLY to avoid exceeding compute limits
-    const results: { model: string; content: any; error?: string }[] = [];
-
-    if (openaiKey) {
-      try {
-        const content = await callOpenAI(openaiKey, systemPrompt, userPrompt);
-        results.push({ model: "OpenAI", content });
-      } catch (err: any) {
-        console.error("OpenAI call failed:", err.message);
-        results.push({ model: "OpenAI", content: null, error: err.message });
-      }
-    }
-    if (claudeKey) {
-      try {
-        const content = await callClaude(claudeKey, systemPrompt, userPrompt);
-        results.push({ model: "Claude", content });
-      } catch (err: any) {
-        console.error("Claude call failed:", err.message);
-        results.push({ model: "Claude", content: null, error: err.message });
-      }
+    if (!openaiKey) {
+      return new Response(JSON.stringify({ error: "OpenAI API key not configured" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Save versions
     const versions = [];
-    for (const result of results) {
-      if (result.content) {
-        const { data: versionData } = await supabaseAdmin
-          .from("content_versions")
-          .insert({
-            content_request_id: contentRequestId,
-            model_name: result.model,
-            generated_content: result.content,
-          })
-          .select()
-          .single();
-        if (versionData) versions.push(versionData);
-      }
+    const errors: { model: string; error: string }[] = [];
+
+    try {
+      const content = await callOpenAI(openaiKey, systemPrompt, userPrompt);
+      const { data: versionData } = await supabaseAdmin
+        .from("content_versions")
+        .insert({
+          content_request_id: contentRequestId,
+          model_name: "OpenAI",
+          generated_content: content,
+        })
+        .select()
+        .single();
+      if (versionData) versions.push(versionData);
+    } catch (err: any) {
+      console.error("OpenAI call failed:", err.message);
+      errors.push({ model: "OpenAI", error: err.message });
     }
 
     return new Response(JSON.stringify({
       content_request_id: contentRequestId,
       versions,
       total_posts: totalPosts,
-      errors: results.filter(r => r.error).map(r => ({ model: r.model, error: r.error })),
+      errors,
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

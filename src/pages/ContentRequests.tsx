@@ -114,17 +114,14 @@ export default function ContentRequests() {
     };
   }, [role, user]);
 
-  const setConciergePreferred = async (requestId: string, versionId: string) => {
-    const reqVersions = versions[requestId] || [];
-    for (const v of reqVersions) {
-      await supabase.from("content_versions")
-        .update({ concierge_preferred: v.id === versionId })
-        .eq("id", v.id);
-    }
+  const sendForReview = async (requestId: string, versionId: string) => {
+    await supabase.from("content_versions")
+      .update({ concierge_preferred: true })
+      .eq("id", versionId);
     await supabase.from("content_requests")
       .update({ status: "concierge_preferred" })
       .eq("id", requestId);
-    toast.success("Marked as preferred! Sent to admin for review.");
+    toast.success("Sent for review!");
     fetchData();
   };
 
@@ -285,7 +282,7 @@ export default function ContentRequests() {
                 clinicName={clinics[req.clinic_id] || "Unknown Clinic"}
                 role={role}
                 index={idx}
-                onConciergePrefer={setConciergePreferred}
+                onSendForReview={sendForReview}
                 onAdminApprove={adminApprove}
                 onClientSelect={clientSelect}
                 onRegenerate={regenerateContent}
