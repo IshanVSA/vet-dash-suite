@@ -47,10 +47,20 @@ export default function ContentRequests() {
     const isInitial = requests.length === 0;
     if (isInitial) setLoading(true);
 
-    const { data: reqData } = await supabase
+    let query = supabase
       .from("content_requests")
       .select("*")
       .order("created_at", { ascending: false });
+
+    // Role-based filtering:
+    // Concierge: sees generated + concierge_preferred (RLS handles ownership)
+    // Admin: sees concierge_preferred + admin_approved (not generated)
+    // Client: sees admin_approved + client_selected (RLS handles this)
+    if (role === "admin") {
+      query = query.in("status", ["concierge_preferred", "admin_approved", "client_selected", "final_approved"]);
+    }
+
+    const { data: reqData } = await query;
 
     const reqs = (reqData || []) as unknown as ContentRequest[];
     setRequests(reqs);
@@ -78,7 +88,6 @@ export default function ContentRequests() {
       (clinicData || []).forEach(c => { map[c.id] = c.clinic_name; });
       setClinics(map);
 
-      // Update generatingIds: requests with no versions that are being tracked
       setGeneratingIds(prev => {
         const next = new Set(prev);
         for (const id of next) {
@@ -88,12 +97,11 @@ export default function ContentRequests() {
       });
     }
     setLoading(false);
-  }, []);
+  }, [role]);
 
   useEffect(() => {
     fetchData();
 
-    // Subscribe to realtime changes on content_versions
     const channel = supabase
       .channel("content-versions-changes")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "content_versions" }, () => {
@@ -106,8 +114,6 @@ export default function ContentRequests() {
     };
   }, [role, user]);
 
-  // fetchData is now defined above via useCallback
-
   const setConciergePreferred = async (requestId: string, versionId: string) => {
     const reqVersions = versions[requestId] || [];
     for (const v of reqVersions) {
@@ -118,11 +124,12 @@ export default function ContentRequests() {
     await supabase.from("content_requests")
       .update({ status: "concierge_preferred" })
       .eq("id", requestId);
-    toast.success("Marked as preferred!");
+    toast.success("Marked as preferred! Sent to admin for review.");
     fetchData();
   };
 
   const adminApprove = async (requestId: string, versionId: string) => {
+    // Admin approves in Content Requests → sends to client (NO post creation yet)
     await supabase.from("content_versions")
       .update({ admin_approved: true })
       .eq("id", versionId);
@@ -130,135 +137,20 @@ export default function ContentRequests() {
       .update({ status: "admin_approved" })
       .eq("id", requestId);
 
-    // Find the clinic_id for this request
-    const req = requests.find(r => r.id === requestId);
-    const clinicId = req?.clinic_id;
-
-    // Insert posts into content_posts at admin-approval stage (sent to client)
-    const reqVersions = versions[requestId] || [];
-    const selectedVersion = reqVersions.find(v => v.id === versionId);
-    if (selectedVersion && clinicId) {
-      // Guard: check if posts were already created for this clinic from this approval
-      const { data: existingPosts } = await supabase
-        .from("content_posts")
-        .select("id")
-        .eq("clinic_id", clinicId)
-        .eq("workflow_stage", "sent_to_client")
-        .limit(1);
-
-      if (existingPosts && existingPosts.length > 0) {
-        // Posts already inserted — skip duplicate creation
-        toast.success("Content approved and sent to client! Auto-approval in 5 days.");
-        fetchData();
-        return;
-      }
-
-      const content = selectedVersion.generated_content as any;
-      const posts = content?.posts || [];
-      const sentToClientAt = new Date().toISOString();
-      const autoApproveAt = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString();
-
-      // Determine the selected month boundaries for date clamping
-      const intake = req?.intake_data as any;
-      const selectedMonth = intake?.selectedMonth; // e.g. "March 2026"
-      let monthStart: string | null = null;
-      let monthEnd: string | null = null;
-      if (selectedMonth) {
-        try {
-          const parsed = new Date(selectedMonth + " 1");
-          if (!isNaN(parsed.getTime())) {
-            const year = parsed.getFullYear();
-            const month = parsed.getMonth();
-            monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
-            const lastDay = new Date(year, month + 1, 0).getDate();
-            monthEnd = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-          }
-        } catch {}
-      }
-
-      for (const post of posts) {
-        // Clamp date to selected month if it falls outside
-        let scheduledDate = post.suggested_date || null;
-        if (scheduledDate && monthStart && monthEnd) {
-          if (scheduledDate < monthStart || scheduledDate > monthEnd) {
-            scheduledDate = null; // Drop invalid dates rather than scheduling in wrong month
-          }
-        }
-
-        const { data: insertedPost } = await supabase.from("content_posts").insert({
-          clinic_id: clinicId,
-          title: post.hook || post.theme || "Untitled Post",
-          caption: post.caption || post.main_copy || null,
-          platform: (post.platform || "instagram").toLowerCase(),
-          content_type: (post.content_type || "IMAGE").toUpperCase(),
-          scheduled_date: scheduledDate,
-          status: "pending",
-          workflow_stage: "sent_to_client",
-          tags: [post.goal_type, post.funnel_stage, post.service_highlighted].filter(Boolean),
-          compliance_note: post.compliance_note || null,
-          content: post.main_copy || null,
-        }).select("id").single();
-
-        if (insertedPost) {
-          await supabase.from("post_workflow").insert({
-            post_id: insertedPost.id,
-            stage: "sent_to_client",
-            sent_to_client_at: sentToClientAt,
-            auto_approve_at: autoApproveAt,
-          });
-
-          await supabase.from("post_activity_log").insert({
-            post_id: insertedPost.id,
-            action: "sent_to_client",
-            actor_id: user?.id || null,
-            metadata: { version_id: versionId, request_id: requestId },
-          });
-        }
-      }
-    }
-
-    toast.success("Content approved and sent to client! Auto-approval in 5 days.");
+    toast.success("Content approved! Sent to client for selection.");
     fetchData();
   };
 
-  const clientSelect = async (requestId: string, _versionId: string, clinicId: string) => {
-    // Client approves the whole month batch - update all pending posts for this clinic
-    // that were created from this content request flow
+  const clientSelect = async (requestId: string, versionId: string, clinicId: string) => {
+    // Client selects their preferred version → sends to Admin Review (NO post creation yet)
+    await supabase.from("content_versions")
+      .update({ client_selected: true })
+      .eq("id", versionId);
     await supabase.from("content_requests")
-      .update({ status: "client_approved" })
+      .update({ status: "client_selected" })
       .eq("id", requestId);
 
-    // Update all content_posts for this clinic that are in 'sent_to_client' stage
-    const { data: postsToApprove } = await supabase
-      .from("content_posts")
-      .select("id")
-      .eq("clinic_id", clinicId)
-      .eq("workflow_stage", "sent_to_client");
-
-    if (postsToApprove && postsToApprove.length > 0) {
-      const postIds = postsToApprove.map(p => p.id);
-
-      // Batch update posts
-      await supabase.from("content_posts")
-        .update({ status: "scheduled", workflow_stage: "client_approved" })
-        .in("id", postIds);
-
-      // Batch update workflow rows
-      await supabase.from("post_workflow")
-        .update({ stage: "client_approved", updated_at: new Date().toISOString() })
-        .in("post_id", postIds);
-
-      // Log activity for each
-      const logs = postIds.map(postId => ({
-        post_id: postId,
-        action: "client_approved",
-        actor_id: user?.id || null,
-        metadata: { request_id: requestId },
-      }));
-      await supabase.from("post_activity_log").insert(logs);
-    }
-
-    toast.success("Month approved! All posts are now scheduled.");
+    toast.success("Selection submitted! Awaiting final admin approval.");
     fetchData();
   };
 
@@ -270,15 +162,11 @@ export default function ContentRequests() {
     setGeneratingIds(prev => new Set(prev).add(requestId));
 
     try {
-      // Delete old versions for this request
       await supabase.from("content_versions").delete().eq("content_request_id", requestId);
-
-      // Reset request status
       await supabase.from("content_requests")
         .update({ status: "generated" })
         .eq("id", requestId);
 
-      // Re-invoke the generation function with original intake data
       const { data, error } = await supabase.functions.invoke("generate-content", {
         body: { clinic_id: req.clinic_id, intake_data: req.intake_data },
       });
@@ -289,26 +177,6 @@ export default function ContentRequests() {
       if (errorList.length > 0 && (!data?.versions || data.versions.length === 0)) {
         toast.error("Regeneration failed: " + errorList.map((e: any) => `${e.model}: ${e.error}`).join("; "));
       } else {
-        const platformMap: Record<string, string[]> = {
-          instagram_facebook: ["Instagram", "Facebook"],
-          instagram_tiktok: ["Instagram", "TikTok"],
-          all: ["Instagram", "Facebook", "TikTok"],
-          instagram: ["Instagram"],
-          facebook: ["Facebook"],
-          tiktok: ["TikTok"],
-        };
-        const intake = req.intake_data as any;
-        const expectedPlatforms = platformMap[intake?.preferredPlatforms || intake?.platform] || [];
-        if (expectedPlatforms.length > 1 && data?.versions) {
-          for (const version of data.versions) {
-            const posts = (version.generated_content as any)?.posts || [];
-            const generatedPlatforms = new Set(posts.map((p: any) => (p.platform || "").toLowerCase()));
-            const missing = expectedPlatforms.filter(ep => !generatedPlatforms.has(ep.toLowerCase()));
-            if (missing.length > 0) {
-              toast.warning(`${version.model_name} is missing posts for: ${missing.join(", ")}`);
-            }
-          }
-        }
         toast.success("Content regenerated successfully!");
       }
     } catch (err: any) {
@@ -320,8 +188,8 @@ export default function ContentRequests() {
   };
 
   const totalRequests = requests.length;
-  const pendingCount = requests.filter(r => !["client_approved"].includes(r.status)).length;
-  const completedCount = requests.filter(r => r.status === "client_approved").length;
+  const pendingCount = requests.filter(r => !["final_approved", "client_selected"].includes(r.status)).length;
+  const completedCount = requests.filter(r => r.status === "final_approved").length;
 
   return (
     <DashboardLayout>
@@ -338,8 +206,8 @@ export default function ContentRequests() {
               <h1 className="text-xl sm:text-2xl font-bold">Content Requests</h1>
             </div>
             <p className="text-primary-foreground/80 text-xs sm:text-sm max-w-lg">
-              {role === "admin" && "Review and approve AI-generated content for your clinics"}
-              {role === "concierge" && "View generated content and mark your preference for clients"}
+              {role === "admin" && "Review concierge-preferred content and approve for clients"}
+              {role === "concierge" && "View generated content and mark your preference for admin review"}
               {role === "client" && "Review and select the perfect content for your clinic"}
             </p>
           </div>
@@ -401,6 +269,8 @@ export default function ContentRequests() {
               <p className="text-sm text-muted-foreground max-w-sm mx-auto">
                 {role === "client"
                   ? "No content awaiting your approval at the moment."
+                  : role === "admin"
+                  ? "No concierge-preferred content awaiting your review."
                   : "Generate content from the Intake Forms page to get started."}
               </p>
             </CardContent>

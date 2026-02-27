@@ -1,399 +1,422 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { ChevronLeft, ChevronRight, Download, Plus, Check, Pencil, RotateCcw, Instagram, Facebook, ShieldCheck, ChevronDown, Eye } from "lucide-react";
+import { ShieldCheck, ChevronDown, Eye, Check, Calendar, FileText, RefreshCw, Star, ThumbsUp, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReviewSkeleton } from "@/components/DashboardSkeleton";
-import { format, addMonths, subMonths, endOfMonth } from "date-fns";
+import { format } from "date-fns";
 import { toast } from "sonner";
-import { PostInspector } from "@/components/content-calendar/PostInspector";
-import type { ContentPost } from "@/components/content-calendar/PostChip";
+import { ContentPostCard } from "@/components/content-requests/ContentPostCard";
 
-interface Clinic { id: string; clinic_name: string; }
-interface Submission {
+interface ContentRequest {
   id: string;
-  clinic_id: string | null;
+  clinic_id: string;
+  created_by_concierge_id: string;
+  intake_data: any;
   status: string;
-  submitted_by: string | null;
-  submitted_at: string | null;
-  month: string | null;
-  admin_notes: string | null;
+  created_at: string;
 }
-interface Profile { id: string; full_name: string | null; }
 
-const platformIcon = (platform: string) => {
-  switch (platform) {
-    case "instagram": return <div className="h-5 w-5 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0"><Instagram className="h-3 w-3 text-white" /></div>;
-    case "facebook": return <div className="h-5 w-5 rounded-full bg-blue-600 flex items-center justify-center shrink-0"><Facebook className="h-3 w-3 text-white" /></div>;
-    default: return <div className="h-5 w-5 rounded-full bg-muted flex items-center justify-center shrink-0 text-muted-foreground text-[9px] font-bold">{platform[0]?.toUpperCase()}</div>;
-  }
-};
-
-const statusAccent: Record<string, string> = {
-  approved: "border-l-success",
-  needs_review: "border-l-warning",
-  pending: "border-l-warning",
-  sent_back: "border-l-destructive",
-  no_submission: "border-l-border",
-};
-
-const postStatusBadge: Record<string, string> = {
-  scheduled: "bg-blue-100 text-blue-700",
-  posted: "bg-green-100 text-green-700",
-  failed: "bg-red-100 text-red-700",
-  draft: "bg-muted text-muted-foreground",
-};
-
-const postStatusBorder: Record<string, string> = {
-  scheduled: "border-l-blue-500",
-  posted: "border-l-green-500",
-  failed: "border-l-red-500",
-  draft: "border-l-muted",
-};
+interface ContentVersion {
+  id: string;
+  content_request_id: string;
+  model_name: string;
+  generated_content: any;
+  concierge_preferred: boolean;
+  admin_approved: boolean;
+  client_selected: boolean;
+  created_at: string;
+}
 
 export default function AdminReview() {
-  const [clinics, setClinics] = useState<Clinic[]>([]);
-  const [selectedClinicId, setSelectedClinicId] = useState("all");
-  const [currentMonth, setCurrentMonth] = useState(new Date());
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [postsByClinic, setPostsByClinic] = useState<Record<string, ContentPost[]>>({});
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const { user } = useAuth();
+  const [requests, setRequests] = useState<ContentRequest[]>([]);
+  const [versions, setVersions] = useState<Record<string, ContentVersion[]>>({});
+  const [clinics, setClinics] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [openClinics, setOpenClinics] = useState<Record<string, boolean>>({});
-  const [selectedPost, setSelectedPost] = useState<ContentPost | null>(null);
-  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean; submissionId: string; action: "needs_review" | "sent_back" }>({ open: false, submissionId: "", action: "needs_review" });
-  const [actionReason, setActionReason] = useState("");
+  const [openCards, setOpenCards] = useState<Record<string, boolean>>({});
+  const [approving, setApproving] = useState<Record<string, boolean>>({});
+  const [refreshing, setRefreshing] = useState(false);
 
-  const monthStr = format(currentMonth, "yyyy-MM");
+  const fetchData = useCallback(async () => {
+    const isInitial = requests.length === 0;
+    if (isInitial) setLoading(true);
 
-  const toggleClinic = (clinicId: string) => {
-    setOpenClinics(prev => ({ ...prev, [clinicId]: !prev[clinicId] }));
-  };
+    // Fetch client_selected requests awaiting final admin approval
+    const { data: reqData } = await supabase
+      .from("content_requests")
+      .select("*")
+      .eq("status", "client_selected")
+      .order("created_at", { ascending: false });
 
-  useEffect(() => {
-    Promise.all([
-      supabase.from("clinics").select("id, clinic_name"),
-      supabase.from("profiles").select("id, full_name"),
-    ]).then(([clinicsRes, profilesRes]) => {
-      setClinics(clinicsRes.data || []);
-      setProfiles(profilesRes.data || []);
-    });
+    // Also fetch final_approved for history
+    const { data: approvedData } = await supabase
+      .from("content_requests")
+      .select("*")
+      .eq("status", "final_approved")
+      .order("created_at", { ascending: false })
+      .limit(10);
+
+    const allReqs = [...(reqData || []), ...(approvedData || [])] as unknown as ContentRequest[];
+    setRequests(allReqs);
+
+    if (allReqs.length > 0) {
+      const reqIds = allReqs.map(r => r.id);
+      const { data: verData } = await supabase
+        .from("content_versions")
+        .select("*")
+        .in("content_request_id", reqIds);
+
+      const grouped: Record<string, ContentVersion[]> = {};
+      ((verData || []) as unknown as ContentVersion[]).forEach(v => {
+        if (!grouped[v.content_request_id]) grouped[v.content_request_id] = [];
+        grouped[v.content_request_id].push(v);
+      });
+      setVersions(grouped);
+
+      const clinicIds = [...new Set(allReqs.map(r => r.clinic_id))];
+      const { data: clinicData } = await supabase
+        .from("clinics")
+        .select("id, clinic_name")
+        .in("id", clinicIds);
+      const map: Record<string, string> = {};
+      (clinicData || []).forEach(c => { map[c.id] = c.clinic_name; });
+      setClinics(map);
+    }
+    setLoading(false);
   }, []);
 
   useEffect(() => {
-    setLoading(true);
-    const fetchData = async () => {
-      let subQuery = supabase.from("calendar_submissions").select("*").eq("month", monthStr);
-      if (selectedClinicId !== "all") subQuery = subQuery.eq("clinic_id", selectedClinicId);
-      const { data: subs } = await subQuery;
-      setSubmissions((subs as any as Submission[]) || []);
-
-      const startDate = `${monthStr}-01`;
-      const endDate = format(endOfMonth(currentMonth), "yyyy-MM-dd");
-      let postQuery = supabase.from("content_posts").select("*")
-        .gte("scheduled_date", startDate).lte("scheduled_date", endDate);
-      if (selectedClinicId !== "all") postQuery = postQuery.eq("clinic_id", selectedClinicId);
-      const { data: posts } = await postQuery;
-
-      const grouped: Record<string, ContentPost[]> = {};
-      ((posts as any as ContentPost[]) || []).forEach(p => {
-        const cid = p.clinic_id || "";
-        if (!grouped[cid]) grouped[cid] = [];
-        grouped[cid].push(p);
-      });
-      setPostsByClinic(grouped);
-      setLoading(false);
-    };
     fetchData();
-  }, [monthStr, selectedClinicId]);
 
-  const updateSubmissionStatus = async (id: string, status: string, notes?: string) => {
-    const updateData: any = { status };
-    if (notes) updateData.admin_notes = notes;
-    const { error } = await supabase.from("calendar_submissions").update(updateData).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    setSubmissions(prev => prev.map(s => s.id === id ? { ...s, status, admin_notes: notes || s.admin_notes } : s));
-    toast.success(`Calendar ${status === "approved" ? "approved" : status === "sent_back" ? "sent back" : "updated"}!`);
-  };
+    const channel = supabase
+      .channel("admin-review-changes")
+      .on("postgres_changes", { event: "*", schema: "public", table: "content_requests" }, fetchData)
+      .subscribe();
 
-  const openConfirmDialog = (submissionId: string, action: "needs_review" | "sent_back") => {
-    setConfirmDialog({ open: true, submissionId, action });
-    setActionReason("");
-  };
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
-  const handleConfirmAction = async () => {
-    await updateSubmissionStatus(confirmDialog.submissionId, confirmDialog.action, actionReason);
-    setConfirmDialog({ open: false, submissionId: "", action: "needs_review" });
-    setActionReason("");
-  };
+  const finalApprove = async (requestId: string) => {
+    const req = requests.find(r => r.id === requestId);
+    if (!req) return;
 
-  const handlePostSaved = (updated: ContentPost) => {
-    setPostsByClinic(prev => {
-      const next = { ...prev };
-      for (const cid of Object.keys(next)) {
-        next[cid] = next[cid].map(p => p.id === updated.id ? updated : p);
+    setApproving(prev => ({ ...prev, [requestId]: true }));
+
+    try {
+      // Find the client-selected version
+      const reqVersions = versions[requestId] || [];
+      const selectedVersion = reqVersions.find(v => v.client_selected);
+      if (!selectedVersion) {
+        toast.error("No client-selected version found.");
+        return;
       }
-      return next;
-    });
-    setSelectedPost(updated);
-  };
 
-  const handlePostDeleted = (postId: string) => {
-    setPostsByClinic(prev => {
-      const next = { ...prev };
-      for (const cid of Object.keys(next)) {
-        next[cid] = next[cid].filter(p => p.id !== postId);
+      const clinicId = req.clinic_id;
+      const content = selectedVersion.generated_content as any;
+      const posts = content?.posts || [];
+      const intake = req.intake_data as any;
+      const selectedMonth = intake?.selectedMonth;
+
+      // Determine month boundaries for date clamping
+      let monthStart: string | null = null;
+      let monthEnd: string | null = null;
+      if (selectedMonth) {
+        try {
+          const parsed = new Date(selectedMonth + " 1");
+          if (!isNaN(parsed.getTime())) {
+            const year = parsed.getFullYear();
+            const month = parsed.getMonth();
+            monthStart = `${year}-${String(month + 1).padStart(2, "0")}-01`;
+            const lastDay = new Date(year, month + 1, 0).getDate();
+            monthEnd = `${year}-${String(month + 1).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
+          }
+        } catch {}
       }
-      return next;
-    });
-    setSelectedPost(null);
+
+      // Create posts in content_posts
+      for (const post of posts) {
+        let scheduledDate = post.suggested_date || null;
+        if (scheduledDate && monthStart && monthEnd) {
+          if (scheduledDate < monthStart || scheduledDate > monthEnd) {
+            scheduledDate = null;
+          }
+        }
+
+        const { data: insertedPost } = await supabase.from("content_posts").insert({
+          clinic_id: clinicId,
+          title: post.hook || post.theme || "Untitled Post",
+          caption: post.caption || post.main_copy || null,
+          platform: (post.platform || "instagram").toLowerCase(),
+          content_type: (post.content_type || "IMAGE").toUpperCase(),
+          scheduled_date: scheduledDate,
+          status: "scheduled",
+          workflow_stage: "final_approved",
+          tags: [post.goal_type, post.funnel_stage, post.service_highlighted].filter(Boolean),
+          compliance_note: post.compliance_note || null,
+          content: post.main_copy || null,
+        }).select("id").single();
+
+        if (insertedPost) {
+          await supabase.from("post_workflow").insert({
+            post_id: insertedPost.id,
+            stage: "final_approved",
+          });
+
+          await supabase.from("post_activity_log").insert({
+            post_id: insertedPost.id,
+            action: "final_approved",
+            actor_id: user?.id || null,
+            metadata: { request_id: requestId, version_id: selectedVersion.id },
+          });
+        }
+      }
+
+      // Update request status
+      await supabase.from("content_requests")
+        .update({ status: "final_approved" })
+        .eq("id", requestId);
+
+      toast.success("Content final approved! Posts added to the Content Calendar.");
+      fetchData();
+    } catch (err: any) {
+      toast.error("Approval failed: " + (err.message || "Unknown error"));
+    } finally {
+      setApproving(prev => ({ ...prev, [requestId]: false }));
+    }
   };
 
-  const getProfileName = (userId: string | null) => {
-    if (!userId) return "Unknown";
-    return profiles.find(p => p.id === userId)?.full_name || "Unknown";
-  };
-
-  const getClinicName = (clinicId: string) => clinics.find(c => c.id === clinicId)?.clinic_name || "Unknown Clinic";
-
-  const relevantClinicIds = [...new Set([
-    ...submissions.map(s => s.clinic_id).filter(Boolean) as string[],
-    ...Object.keys(postsByClinic),
-  ])];
+  const pendingRequests = requests.filter(r => r.status === "client_selected");
+  const completedRequests = requests.filter(r => r.status === "final_approved");
 
   return (
     <DashboardLayout>
-      <div className="flex h-[calc(100vh-80px)]">
-        {/* Main content */}
-        <div className={cn("flex-1 overflow-y-auto space-y-6 p-1 transition-all duration-200", selectedPost && "pr-0")}>
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Select value={selectedClinicId} onValueChange={setSelectedClinicId}>
-                <SelectTrigger className="w-[260px]"><SelectValue placeholder="All Clinics" /></SelectTrigger>
-                <SelectContent className="z-50 bg-popover">
-                  <SelectItem value="all">🐾 All Clinics</SelectItem>
-                  {clinics.map(c => (<SelectItem key={c.id} value={c.id}>🐾 {c.clinic_name}</SelectItem>))}
-                </SelectContent>
-              </Select>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(prev => subMonths(prev, 1))}><ChevronLeft className="h-4 w-4" /></Button>
-                <span className="text-lg font-semibold text-foreground min-w-[160px] text-center">{format(currentMonth, "MMMM yyyy")}</span>
-                <Button variant="ghost" size="icon" onClick={() => setCurrentMonth(prev => addMonths(prev, 1))}><ChevronRight className="h-4 w-4" /></Button>
+      <div className="min-h-full dot-grid rounded-xl p-4 sm:p-6 md:p-8">
+        <div className="space-y-4 sm:space-y-6">
+          {/* Hero Header */}
+          <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-primary via-primary/90 to-[hsl(280,65%,60%)] p-5 sm:p-8 text-primary-foreground shadow-lg">
+            <div className="absolute inset-0 dot-grid opacity-10" />
+            <div className="relative z-10">
+              <div className="flex items-center gap-2.5 sm:gap-3 mb-2">
+                <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center shrink-0">
+                  <ShieldCheck className="h-4 w-4 sm:h-5 sm:w-5" />
+                </div>
+                <h1 className="text-xl sm:text-2xl font-bold">Admin Review</h1>
               </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm"><Download className="h-4 w-4 mr-2" /> Export</Button>
-              <Button size="sm"><Plus className="h-4 w-4 mr-2" /> New Post</Button>
+              <p className="text-primary-foreground/80 text-xs sm:text-sm max-w-lg">
+                Final review of client-selected content before publishing to the Content Calendar.
+              </p>
             </div>
           </div>
 
-          <div className="hero-section">
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-1">
-                <ShieldCheck className="h-5 w-5 text-primary" />
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Review</span>
-              </div>
-              <h1 className="text-2xl font-bold text-foreground tracking-tight">Admin Calendar Review</h1>
-              <p className="text-muted-foreground mt-0.5 text-sm">Review, tweak, and approve full monthly calendars before concierges can view them.</p>
+          {/* Refresh */}
+          {!loading && requests.length > 0 && (
+            <div className="flex justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={async () => {
+                  setRefreshing(true);
+                  await fetchData();
+                  setRefreshing(false);
+                }}
+                disabled={refreshing}
+                className="gap-2"
+              >
+                <RefreshCw className={refreshing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
+                {refreshing ? "Refreshing…" : "Refresh"}
+              </Button>
             </div>
-          </div>
+          )}
 
           {loading ? (
             <ReviewSkeleton />
-          ) : relevantClinicIds.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground animate-fade-in">
-              <div className="h-16 w-16 rounded-2xl bg-accent flex items-center justify-center mx-auto mb-4">
-                <ShieldCheck className="h-8 w-8 text-accent-foreground" />
-              </div>
-              <p className="font-medium text-foreground mb-1">No submissions yet</p>
-              <p className="text-sm">No calendar submissions for this month yet.</p>
-            </div>
+          ) : pendingRequests.length === 0 && completedRequests.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="py-16 text-center">
+                <div className="mx-auto h-16 w-16 rounded-2xl bg-accent flex items-center justify-center mb-4">
+                  <ShieldCheck className="h-8 w-8 text-primary" />
+                </div>
+                <p className="font-semibold text-foreground text-lg mb-1">No content awaiting review</p>
+                <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                  Client-selected content will appear here for your final approval before being added to the Content Calendar.
+                </p>
+              </CardContent>
+            </Card>
           ) : (
-            <div className="space-y-4">
-              {relevantClinicIds.map((clinicId, idx) => {
-                const submission = submissions.find(s => s.clinic_id === clinicId);
-                const posts = (postsByClinic[clinicId] || []).sort((a, b) => (a.scheduled_date || "").localeCompare(b.scheduled_date || ""));
-                const clinicName = getClinicName(clinicId);
-                const submitterName = submission ? getProfileName(submission.submitted_by) : null;
-                const status = submission?.status || "no_submission";
-                const isOpen = openClinics[clinicId] ?? false;
+            <div className="space-y-6">
+              {/* Pending section */}
+              {pendingRequests.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                    Awaiting Final Approval ({pendingRequests.length})
+                  </h2>
+                  {pendingRequests.map((req, idx) => (
+                    <ReviewCard
+                      key={req.id}
+                      request={req}
+                      versions={versions[req.id] || []}
+                      clinicName={clinics[req.clinic_id] || "Unknown Clinic"}
+                      index={idx}
+                      isOpen={openCards[req.id] ?? false}
+                      onToggle={() => setOpenCards(prev => ({ ...prev, [req.id]: !prev[req.id] }))}
+                      onApprove={() => finalApprove(req.id)}
+                      isApproving={approving[req.id] || false}
+                      isPending
+                    />
+                  ))}
+                </div>
+              )}
 
-                return (
-                  <Collapsible
-                    key={clinicId}
-                    open={isOpen}
-                    onOpenChange={() => toggleClinic(clinicId)}
-                  >
-                    <div
-                      className={cn(
-                        "bg-card rounded-xl border border-border border-l-4 animate-fade-in",
-                        statusAccent[status] || "border-l-border"
-                      )}
-                      style={{ animationDelay: `${idx * 60}ms`, animationFillMode: "both" }}
-                    >
-                      {/* Header */}
-                      <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex-1">
-                          <h2 className="text-lg font-bold text-foreground">{clinicName}</h2>
-                          <p className="text-sm text-muted-foreground">
-                            {format(currentMonth, "MMMM yyyy")}
-                            {submitterName && <> · Submitted by <span className="font-medium text-foreground">{submitterName}</span></>}
-                            {submission?.submitted_at && <> on {format(new Date(submission.submitted_at), "MMM d, yyyy")}</>}
-                          </p>
-                          <div className="flex items-center gap-3 mt-2">
-                            {(status === "needs_review" || status === "pending") && (
-                              <Badge className="bg-warning/20 text-warning font-semibold text-xs">⏳ NEEDS REVIEW</Badge>
-                            )}
-                            {status === "approved" && (
-                              <Badge className="bg-success/20 text-success font-semibold text-xs">✅ ADMIN APPROVED</Badge>
-                            )}
-                            {status === "sent_back" && (
-                              <Badge className="bg-destructive/20 text-destructive font-semibold text-xs">↩ SENT BACK</Badge>
-                            )}
-                            {status === "no_submission" && (
-                              <Badge variant="secondary" className="text-xs">No submission</Badge>
-                            )}
-                            {posts.length > 0 && (
-                              <span className="text-xs text-muted-foreground">{posts.length} post{posts.length !== 1 ? "s" : ""}</span>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          {posts.length > 0 && (
-                            <CollapsibleTrigger asChild>
-                              <Button variant="outline" size="sm" className="gap-1.5">
-                                <Eye className="h-3.5 w-3.5" />
-                                {isOpen ? "Hide" : "View"} Content
-                                <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")} />
-                              </Button>
-                            </CollapsibleTrigger>
-                          )}
-                          {submission && (
-                            <>
-                              <Button size="sm" className="bg-gradient-to-r from-success to-success/90 hover:from-success/90 hover:to-success/80 text-success-foreground shadow-sm"
-                                onClick={() => updateSubmissionStatus(submission.id, "approved")}>
-                                <Check className="h-4 w-4 mr-1.5" /> Approve
-                              </Button>
-                              <Button variant="outline" size="sm" onClick={() => openConfirmDialog(submission.id, "needs_review")}>
-                                <Pencil className="h-4 w-4 mr-1.5" /> Edit
-                              </Button>
-                              <Button variant="outline" size="sm" className="text-destructive border-destructive/30 hover:bg-destructive/10"
-                                onClick={() => openConfirmDialog(submission.id, "sent_back")}>
-                                <RotateCcw className="h-4 w-4 mr-1.5" /> Send Back
-                              </Button>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Collapsible content list */}
-                      <CollapsibleContent>
-                        {posts.length > 0 && (
-                          <div className="border-t border-border">
-                            <table className="w-full text-sm">
-                              <thead>
-                                <tr className="bg-muted/40 text-muted-foreground text-[11px] uppercase tracking-wider">
-                                  <th className="text-left py-2.5 px-5 font-semibold">Title</th>
-                                  <th className="text-left py-2.5 px-3 font-semibold">Type</th>
-                                  <th className="text-left py-2.5 px-3 font-semibold">Date & Time</th>
-                                  <th className="text-left py-2.5 px-3 font-semibold">Platform</th>
-                                  <th className="text-left py-2.5 px-3 font-semibold">Status</th>
-                                  <th className="text-left py-2.5 px-3 font-semibold">Caption</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {posts.map(post => (
-                                  <tr
-                                    key={post.id}
-                                    onClick={() => setSelectedPost(post)}
-                                    className={cn(
-                                      "border-t border-border/60 hover:bg-accent/30 transition-colors border-l-[3px] cursor-pointer",
-                                      postStatusBorder[post.status] || "border-l-muted",
-                                      selectedPost?.id === post.id && "bg-accent/40"
-                                    )}
-                                  >
-                                    <td className="py-3 px-5 font-medium text-foreground">{post.title}</td>
-                                    <td className="py-3 px-3">
-                                      <Badge variant="outline" className="text-[10px] uppercase">{post.content_type}</Badge>
-                                    </td>
-                                    <td className="py-3 px-3 text-muted-foreground whitespace-nowrap">
-                                      {post.scheduled_date ? format(new Date(post.scheduled_date + "T00:00:00"), "MMM d, yyyy") : "—"}
-                                      {post.scheduled_time && <span className="ml-1.5 text-foreground">{post.scheduled_time.slice(0, 5)}</span>}
-                                    </td>
-                                    <td className="py-3 px-3">{platformIcon(post.platform)}</td>
-                                    <td className="py-3 px-3">
-                                      <Badge className={cn("text-[10px] uppercase border-0", postStatusBadge[post.status] || "bg-muted text-muted-foreground")}>
-                                        {post.status}
-                                      </Badge>
-                                    </td>
-                                    <td className="py-3 px-3 text-muted-foreground text-xs max-w-[250px] truncate">
-                                      {post.caption || "—"}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        )}
-                      </CollapsibleContent>
-                    </div>
-                  </Collapsible>
-                );
-              })}
+              {/* Completed section */}
+              {completedRequests.length > 0 && (
+                <div className="space-y-4">
+                  <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                    Recently Approved ({completedRequests.length})
+                  </h2>
+                  {completedRequests.map((req, idx) => (
+                    <ReviewCard
+                      key={req.id}
+                      request={req}
+                      versions={versions[req.id] || []}
+                      clinicName={clinics[req.clinic_id] || "Unknown Clinic"}
+                      index={idx}
+                      isOpen={openCards[req.id] ?? false}
+                      onToggle={() => setOpenCards(prev => ({ ...prev, [req.id]: !prev[req.id] }))}
+                      isPending={false}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>
-
-        {/* Inspector panel */}
-        {selectedPost && (
-          <PostInspector
-            post={selectedPost}
-            onClose={() => setSelectedPost(null)}
-            onSaved={handlePostSaved}
-            onDeleted={handlePostDeleted}
-          />
-        )}
       </div>
-
-      <Dialog open={confirmDialog.open} onOpenChange={(open) => !open && setConfirmDialog(prev => ({ ...prev, open: false }))}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {confirmDialog.action === "sent_back" ? "Send Back Calendar" : "Request Edits"}
-            </DialogTitle>
-            <DialogDescription>
-              {confirmDialog.action === "sent_back"
-                ? "Please provide a reason for sending this calendar back to the concierge."
-                : "Describe what edits are needed for this calendar."}
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            placeholder={confirmDialog.action === "sent_back" ? "Reason for sending back..." : "What edits are needed..."}
-            value={actionReason}
-            onChange={(e) => setActionReason(e.target.value)}
-            className="min-h-[100px]"
-          />
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmDialog(prev => ({ ...prev, open: false }))}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleConfirmAction}
-              className={cn(
-                confirmDialog.action === "sent_back" && "bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              )}
-            >
-              {confirmDialog.action === "sent_back" ? "Send Back" : "Submit"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </DashboardLayout>
+  );
+}
+
+// Sub-component for each review card
+function ReviewCard({
+  request,
+  versions,
+  clinicName,
+  index,
+  isOpen,
+  onToggle,
+  onApprove,
+  isApproving,
+  isPending,
+}: {
+  request: ContentRequest;
+  versions: ContentVersion[];
+  clinicName: string;
+  index: number;
+  isOpen: boolean;
+  onToggle: () => void;
+  onApprove?: () => void;
+  isApproving?: boolean;
+  isPending: boolean;
+}) {
+  const intake = request.intake_data as any;
+  const selectedVersion = versions.find(v => v.client_selected);
+  const content = selectedVersion?.generated_content as any;
+  const posts = content?.posts || [];
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={onToggle}>
+      <Card
+        className={cn(
+          "animate-fade-in overflow-hidden transition-all duration-300 border-l-4",
+          isPending ? "border-l-warning" : "border-l-success"
+        )}
+        style={{ animationDelay: `${index * 60}ms`, animationFillMode: "both" }}
+      >
+        <CardHeader className="px-4 sm:px-6 pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-base sm:text-lg font-bold text-foreground">{clinicName}</h3>
+                <Badge className={cn(
+                  "text-[10px] font-semibold border-0 rounded-full px-2.5 py-0.5",
+                  isPending ? "bg-warning/15 text-warning" : "bg-success/15 text-success"
+                )}>
+                  {isPending ? "⏳ Awaiting Approval" : "✅ Approved"}
+                </Badge>
+              </div>
+              <div className="flex items-center gap-2 flex-wrap text-xs text-muted-foreground">
+                <span>{format(new Date(request.created_at), "MMM d, yyyy")}</span>
+                {intake?.selectedMonth && (
+                  <Badge variant="outline" className="text-[10px] py-0 rounded-full">
+                    <Calendar className="h-3 w-3 mr-1" /> {intake.selectedMonth}
+                  </Badge>
+                )}
+                {posts.length > 0 && (
+                  <Badge variant="secondary" className="text-[10px] py-0 rounded-full">
+                    <FileText className="h-3 w-3 mr-1" /> {posts.length} posts
+                  </Badge>
+                )}
+                {selectedVersion && (
+                  <Badge className="bg-primary/10 text-primary text-[10px] py-0 rounded-full border-0">
+                    <Star className="h-3 w-3 mr-1 fill-current" /> Client selected: {selectedVersion.model_name}
+                  </Badge>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {posts.length > 0 && (
+                <CollapsibleTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Eye className="h-3.5 w-3.5" />
+                    {isOpen ? "Hide" : "View"} Content
+                    <ChevronDown className={cn("h-3.5 w-3.5 transition-transform", isOpen && "rotate-180")} />
+                  </Button>
+                </CollapsibleTrigger>
+              )}
+              {isPending && onApprove && (
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-success to-success/90 hover:from-success/90 hover:to-success/80 text-success-foreground shadow-sm"
+                  onClick={onApprove}
+                  disabled={isApproving}
+                >
+                  {isApproving ? (
+                    <Loader2 className="h-4 w-4 mr-1.5 animate-spin" />
+                  ) : (
+                    <Check className="h-4 w-4 mr-1.5" />
+                  )}
+                  {isApproving ? "Approving…" : "Final Approve"}
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+
+        <CollapsibleContent>
+          {posts.length > 0 && (
+            <CardContent className="px-4 sm:px-6 pt-0">
+              <div className="rounded-lg border border-border/40 bg-muted/20 p-4">
+                <div className="flex flex-col">
+                  {posts.map((post: any, i: number) => (
+                    <ContentPostCard
+                      key={i}
+                      post={post}
+                      index={i}
+                      isLast={i === posts.length - 1}
+                    />
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          )}
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 }

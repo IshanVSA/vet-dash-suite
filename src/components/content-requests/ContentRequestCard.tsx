@@ -30,8 +30,9 @@ interface ContentVersion {
 const statusConfig: Record<string, { label: string; color: string; icon?: string }> = {
   generated: { label: "Generated", color: "bg-accent text-accent-foreground" },
   concierge_preferred: { label: "Concierge Preferred", color: "bg-[hsl(280,65%,60%)]/15 text-[hsl(280,65%,60%)]" },
-  admin_approved: { label: "Admin Approved", color: "bg-success/15 text-success" },
-  client_approved: { label: "Client Approved", color: "bg-primary/15 text-primary" },
+  admin_approved: { label: "Sent to Client", color: "bg-success/15 text-success" },
+  client_selected: { label: "Client Selected", color: "bg-primary/15 text-primary" },
+  final_approved: { label: "Final Approved", color: "bg-success/15 text-success" },
 };
 
 interface ContentRequestCardProps {
@@ -134,7 +135,7 @@ export function ContentRequestCard({
 }: ContentRequestCardProps) {
   const status = statusConfig[request.status] || { label: request.status, color: "bg-muted text-muted-foreground" };
   const intake = request.intake_data as any;
-  const isComplete = request.status === "client_approved";
+  const isComplete = request.status === "final_approved";
   const totalPosts = versions.reduce((sum, v) => {
     const content = v.generated_content as any;
     return sum + (content?.posts?.length || 1);
