@@ -1,0 +1,1 @@
+TRUNCATE content_versions, content_requests, post_activity_log, post_workflow, content_posts, content_calendar CASCADE;
