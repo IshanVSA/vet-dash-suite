@@ -2,11 +2,12 @@ import { useState, useEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useUserRole, type AppRole } from "@/hooks/useUserRole";
+import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
   CalendarDays, ShieldCheck, ClipboardList, LayoutDashboard, UserCheck, FileCheck,
-  Search, Sun, Moon,
+  Search, Sun, Moon, PanelLeftClose, PanelLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -105,8 +106,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { user, signOut } = useAuth();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem("sidebar-collapsed") === "true");
   const [clientClinicId, setClientClinicId] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
+  const { pendingRequests, pendingReview } = usePendingCounts();
 
   useEffect(() => {
     if (!user) return;
@@ -131,9 +134,32 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     },
   ];
 
-  const sections = role === "admin" ? adminSections : role === "concierge" ? conciergeSections : clientSections;
+  // Inject badge counts into nav items
+  const injectBadges = (sections: NavSection[]): NavSection[] =>
+    sections.map(s => ({
+      ...s,
+      items: s.items.map(item => ({
+        ...item,
+        badge:
+          item.path === "/content-requests" ? pendingRequests :
+          item.path === "/review" ? pendingReview :
+          item.badge,
+      })),
+    }));
+
+  const sections = injectBadges(
+    role === "admin" ? adminSections : role === "concierge" ? conciergeSections : clientSections
+  );
 
   const currentPageTitle = pageTitles[location.pathname] || "";
+
+  const toggleCollapse = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem("sidebar-collapsed", String(next));
+  };
+
+  const sidebarWidth = collapsed ? "w-[68px]" : "w-[260px]";
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -141,31 +167,34 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar - Dark theme */}
+      {/* Sidebar - Sticky, collapsible */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-50 w-[260px] flex flex-col transition-transform duration-300 ease-out lg:translate-x-0 lg:static lg:z-auto",
+        "fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-out lg:sticky lg:top-0 lg:h-screen lg:z-auto",
         "bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))]",
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        sidebarWidth,
+        sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 h-16 border-b border-[hsl(var(--sidebar-border))]">
-          <img src={vsaLogo} alt="VSA Vet Media" className="h-9 w-9 rounded-xl object-cover shadow-lg" />
-          <div className="flex-1 min-w-0">
-            <h1 className="font-bold text-sm tracking-tight">
-              <span className="text-[hsl(var(--sidebar-primary))]">VSA</span> Vetmedia
-            </h1>
-            <p className="text-[10px] text-[hsl(var(--sidebar-muted))] tracking-wide">Content Platform</p>
-          </div>
+        <div className={cn("flex items-center h-16 border-b border-[hsl(var(--sidebar-border))]", collapsed ? "px-3 justify-center" : "px-5 gap-3")}>
+          <img src={vsaLogo} alt="VSA Vet Media" className="h-9 w-9 rounded-xl object-cover shadow-lg shrink-0" />
+          {!collapsed && (
+            <div className="flex-1 min-w-0">
+              <h1 className="font-bold text-sm tracking-tight">
+                <span className="text-[hsl(var(--sidebar-primary))]">VSA</span> Vetmedia
+              </h1>
+              <p className="text-[10px] text-[hsl(var(--sidebar-muted))] tracking-wide">Content Platform</p>
+            </div>
+          )}
           <button className="lg:hidden p-1 rounded-md hover:bg-[hsl(var(--sidebar-accent))]" onClick={() => setSidebarOpen(false)}>
             <X className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-6 overflow-y-auto">
+        <nav className={cn("flex-1 py-4 space-y-6 overflow-y-auto", collapsed ? "px-1.5" : "px-3")}>
           {sections.map((section, si) => (
             <div key={si}>
-              {section.title && (
+              {section.title && !collapsed && (
                 <p className="px-3 mb-2.5 text-[10px] font-bold tracking-[0.15em] text-[hsl(var(--sidebar-muted))]/60 uppercase select-none">
                   {section.title}
                 </p>
@@ -178,8 +207,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       key={item.path}
                       to={item.path}
                       onClick={() => setSidebarOpen(false)}
+                      title={collapsed ? item.label : undefined}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-all duration-200 group relative",
+                        "flex items-center rounded-lg font-medium transition-all duration-200 group relative",
+                        collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5 text-[13px]",
                         active
                           ? "bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-primary))]"
                           : "text-[hsl(var(--sidebar-muted))] hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]/50"
@@ -188,17 +219,25 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       {active && (
                         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[hsl(var(--sidebar-primary))] rounded-r-full" />
                       )}
-                      <item.icon className={cn(
-                        "h-[18px] w-[18px] shrink-0 transition-colors duration-200",
-                        active ? "text-[hsl(var(--sidebar-primary))]" : "group-hover:text-[hsl(var(--sidebar-foreground))]"
-                      )} />
-                      {item.label}
-                      {item.badge && item.badge > 0 && (
+                      <div className="relative shrink-0">
+                        <item.icon className={cn(
+                          "h-[18px] w-[18px] transition-colors duration-200",
+                          active ? "text-[hsl(var(--sidebar-primary))]" : "group-hover:text-[hsl(var(--sidebar-foreground))]"
+                        )} />
+                        {/* Badge on icon when collapsed */}
+                        {collapsed && item.badge && item.badge > 0 && (
+                          <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">
+                            {item.badge}
+                          </span>
+                        )}
+                      </div>
+                      {!collapsed && item.label}
+                      {!collapsed && item.badge && item.badge > 0 && (
                         <span className="ml-auto bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
                           {item.badge}
                         </span>
                       )}
-                      {active && !item.badge && <ChevronRight className="h-3 w-3 ml-auto text-[hsl(var(--sidebar-primary))]/50" />}
+                      {!collapsed && active && !item.badge && <ChevronRight className="h-3 w-3 ml-auto text-[hsl(var(--sidebar-primary))]/50" />}
                     </Link>
                   );
                 })}
@@ -207,27 +246,43 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
+        {/* Collapse toggle (desktop only) */}
+        <div className="hidden lg:flex px-3 py-2 border-t border-[hsl(var(--sidebar-border))]">
+          <button
+            onClick={toggleCollapse}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-[12px] font-medium text-[hsl(var(--sidebar-muted))] hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]/50 transition-colors"
+          >
+            {collapsed ? <PanelLeft className="h-4 w-4" /> : <><PanelLeftClose className="h-4 w-4" /> Collapse</>}
+          </button>
+        </div>
+
         {/* User footer */}
-        <div className="px-3 py-4 border-t border-[hsl(var(--sidebar-border))]">
-          <div className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-lg bg-[hsl(var(--sidebar-accent))]/60">
-            <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[hsl(var(--sidebar-primary))]/30 to-[hsl(280,65%,55%)]/20 flex items-center justify-center ring-1 ring-[hsl(var(--sidebar-primary))]/20">
-              <span className="text-xs font-semibold text-[hsl(var(--sidebar-primary))]">
-                {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
-              </span>
+        <div className={cn("py-4 border-t border-[hsl(var(--sidebar-border))]", collapsed ? "px-1.5" : "px-3")}>
+          {!collapsed && (
+            <div className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-lg bg-[hsl(var(--sidebar-accent))]/60">
+              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[hsl(var(--sidebar-primary))]/30 to-[hsl(280,65%,55%)]/20 flex items-center justify-center ring-1 ring-[hsl(var(--sidebar-primary))]/20">
+                <span className="text-xs font-semibold text-[hsl(var(--sidebar-primary))]">
+                  {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium text-[hsl(var(--sidebar-foreground))] truncate">{profile?.full_name || "User"}</p>
+                <p className="text-[11px] text-[hsl(var(--sidebar-muted))] truncate capitalize">{role}</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[13px] font-medium text-[hsl(var(--sidebar-foreground))] truncate">{profile?.full_name || "User"}</p>
-              <p className="text-[11px] text-[hsl(var(--sidebar-muted))] truncate capitalize">{role}</p>
-            </div>
-          </div>
+          )}
           <Button
             variant="ghost"
             size="sm"
-            className="w-full justify-start text-[hsl(var(--sidebar-muted))] hover:text-destructive hover:bg-destructive/10 rounded-lg text-[13px]"
+            className={cn(
+              "w-full text-[hsl(var(--sidebar-muted))] hover:text-destructive hover:bg-destructive/10 rounded-lg text-[13px]",
+              collapsed ? "justify-center px-2" : "justify-start"
+            )}
             onClick={signOut}
+            title={collapsed ? "Sign Out" : undefined}
           >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
+            <LogOut className="h-4 w-4" />
+            {!collapsed && <span className="ml-2">Sign Out</span>}
           </Button>
         </div>
       </aside>

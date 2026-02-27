@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, FileText, Clock, CheckCircle2 } from "lucide-react";
+import { Sparkles, FileText, Clock, CheckCircle2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { ContentRequestCard } from "@/components/content-requests/ContentRequestCard";
 import { StatsCard } from "@/components/StatsCard";
@@ -39,13 +39,13 @@ export default function ContentRequests() {
   const [clinics, setClinics] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [regenerating, setRegenerating] = useState<RegeneratingMap>({});
+  const [generatingMessage, setGeneratingMessage] = useState<string | null>(null);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
-    fetchData();
-  }, [role, user]);
+  const fetchData = useCallback(async () => {
+    const isInitial = requests.length === 0;
+    if (isInitial) setLoading(true);
 
-  const fetchData = async () => {
-    setLoading(true);
     const { data: reqData } = await supabase
       .from("content_requests")
       .select("*")
@@ -76,9 +76,52 @@ export default function ContentRequests() {
       const map: Record<string, string> = {};
       (clinicData || []).forEach(c => { map[c.id] = c.clinic_name; });
       setClinics(map);
+
+      // Check if any request has no versions yet (still generating)
+      const hasEmpty = reqs.some(r => !grouped[r.id] || grouped[r.id].length === 0);
+      if (hasEmpty) {
+        setGeneratingMessage("AI is generating content… This will auto-refresh when ready.");
+        startPolling();
+      } else {
+        setGeneratingMessage(null);
+        stopPolling();
+      }
     }
     setLoading(false);
-  };
+  }, []);
+
+  const startPolling = useCallback(() => {
+    if (pollingRef.current) return;
+    pollingRef.current = setInterval(() => {
+      fetchData();
+    }, 5000);
+  }, [fetchData]);
+
+  const stopPolling = useCallback(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+
+    // Subscribe to realtime changes on content_versions
+    const channel = supabase
+      .channel("content-versions-changes")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "content_versions" }, () => {
+        fetchData();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      stopPolling();
+    };
+  }, [role, user]);
+
+  // fetchData is now defined above via useCallback
 
   const setConciergePreferred = async (requestId: string, versionId: string) => {
     const reqVersions = versions[requestId] || [];
@@ -323,6 +366,16 @@ export default function ContentRequests() {
             <StatsCard title="Pending Review" value={pendingCount} icon={Clock} index={1} changeType={pendingCount > 0 ? "negative" : "neutral"} change={pendingCount > 0 ? "Needs attention" : "All clear"} />
             <StatsCard title="Completed" value={completedCount} icon={CheckCircle2} index={2} changeType="positive" change={totalRequests > 0 ? `${Math.round((completedCount / totalRequests) * 100)}% completion rate` : ""} />
           </div>
+        )}
+
+        {/* Generating indicator */}
+        {generatingMessage && (
+          <Card className="border-primary/30 bg-primary/5">
+            <CardContent className="py-4 flex items-center gap-3">
+              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+              <p className="text-sm font-medium text-primary">{generatingMessage}</p>
+            </CardContent>
+          </Card>
         )}
 
         {/* Content */}
