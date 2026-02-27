@@ -252,9 +252,9 @@ export function ContentVersionCard({
             <Star className="h-3.5 w-3.5 mr-1" /> Mark Preferred
           </Button>
         )}
-        {role === "admin" && !version.admin_approved && ["generated", "concierge_preferred"].includes(requestStatus) && (
+        {role === "admin" && !version.admin_approved && requestStatus === "concierge_preferred" && (
           <Button size="sm" className="bg-success hover:bg-success/90 text-success-foreground text-xs shadow-sm" onClick={() => onAdminApprove(requestId, version.id)}>
-            <ThumbsUp className="h-3.5 w-3.5 mr-1" /> Approve
+            <ThumbsUp className="h-3.5 w-3.5 mr-1" /> Approve & Send to Client
           </Button>
         )}
         {role === "client" && requestStatus === "admin_approved" && !version.client_selected && (
