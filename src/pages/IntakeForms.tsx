@@ -212,6 +212,33 @@ export default function IntakeForms() {
       } else {
         toast.success("Content generated! View results in Content Requests.");
       }
+
+      // Platform distribution validation
+      if (data?.versions?.length > 0) {
+        const platformMap: Record<string, string[]> = {
+          instagram_facebook: ["Instagram", "Facebook"],
+          instagram_tiktok: ["Instagram", "TikTok"],
+          all: ["Instagram", "Facebook", "TikTok"],
+          instagram: ["Instagram"],
+          facebook: ["Facebook"],
+          tiktok: ["TikTok"],
+        };
+        const expectedPlatforms = platformMap[preferredPlatforms] || [];
+        if (expectedPlatforms.length > 1) {
+          for (const version of data.versions) {
+            const posts = (version.generated_content as any)?.posts || [];
+            const generatedPlatforms = new Set(posts.map((p: any) => p.platform));
+            const missing = expectedPlatforms.filter(
+              (ep) => !Array.from(generatedPlatforms).some((gp: any) => gp.toLowerCase() === ep.toLowerCase())
+            );
+            if (missing.length > 0) {
+              toast.warning(
+                `${version.model_name} version is missing posts for: ${missing.join(", ")}. You may want to regenerate.`
+              );
+            }
+          }
+        }
+      }
     } catch (err: any) {
       toast.error("Generation failed: " + (err.message || "Unknown error"));
     }
