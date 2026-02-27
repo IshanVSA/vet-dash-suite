@@ -274,31 +274,27 @@ Deno.serve(async (req) => {
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
     const claudeKey = Deno.env.get("ANTHROPIC_API_KEY");
 
+    // Run models SEQUENTIALLY to avoid exceeding compute limits
     const results: { model: string; content: any; error?: string }[] = [];
-    const promises = [];
 
     if (openaiKey) {
-      promises.push(
-        callOpenAI(openaiKey, systemPrompt, userPrompt)
-          .then(content => results.push({ model: "OpenAI", content }))
-          .catch(err => {
-            console.error("OpenAI call failed:", err.message);
-            results.push({ model: "OpenAI", content: null, error: err.message });
-          })
-      );
+      try {
+        const content = await callOpenAI(openaiKey, systemPrompt, userPrompt);
+        results.push({ model: "OpenAI", content });
+      } catch (err: any) {
+        console.error("OpenAI call failed:", err.message);
+        results.push({ model: "OpenAI", content: null, error: err.message });
+      }
     }
     if (claudeKey) {
-      promises.push(
-        callClaude(claudeKey, systemPrompt, userPrompt)
-          .then(content => results.push({ model: "Claude", content }))
-          .catch(err => {
-            console.error("Claude call failed:", err.message);
-            results.push({ model: "Claude", content: null, error: err.message });
-          })
-      );
+      try {
+        const content = await callClaude(claudeKey, systemPrompt, userPrompt);
+        results.push({ model: "Claude", content });
+      } catch (err: any) {
+        console.error("Claude call failed:", err.message);
+        results.push({ model: "Claude", content: null, error: err.message });
+      }
     }
-
-    await Promise.all(promises);
 
     // Save versions
     const versions = [];
