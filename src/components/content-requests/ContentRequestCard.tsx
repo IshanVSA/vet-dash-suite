@@ -74,7 +74,6 @@ function ModelToggleView({
   const labels = versions.map(v => {
     const name = v.model_name.toLowerCase();
     if (name.includes("openai") || name.includes("gpt")) return "OpenAI";
-    if (name.includes("gemini") || name.includes("google")) return "Gemini";
     if (name.includes("claude") || name.includes("anthropic")) return "Claude";
     return v.model_name;
   });

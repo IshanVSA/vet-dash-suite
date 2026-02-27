@@ -165,8 +165,8 @@ async function callClaude(apiKey: string, systemPrompt: string, userPrompt: stri
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      model: "claude-3-haiku-20240307",
-      max_tokens: 4096,
+      model: "claude-3-5-haiku-20241022",
+      max_tokens: 8192,
       system: systemPrompt,
       messages: [{ role: "user", content: userPrompt }],
     }),
@@ -177,7 +177,6 @@ async function callClaude(apiKey: string, systemPrompt: string, userPrompt: stri
   }
   const data = await res.json();
   const text = data.content?.[0]?.text || "{}";
-  // Extract JSON from response
   const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/);
   let jsonStr: string;
   if (jsonMatch) {
@@ -231,7 +230,6 @@ Deno.serve(async (req) => {
     const body = await req.json();
     const clinic_id = typeof body.clinic_id === "string" ? body.clinic_id.trim() : "";
     const intake_data = body.intake_data && typeof body.intake_data === "object" && !Array.isArray(body.intake_data) ? body.intake_data : null;
-    const existingRequestId = typeof body.content_request_id === "string" ? body.content_request_id.trim() : null;
 
     if (!clinic_id || !intake_data) {
       return new Response(JSON.stringify({ error: "Missing clinic_id or intake_data" }), {
@@ -251,92 +249,75 @@ Deno.serve(async (req) => {
     const systemPrompt = buildSystemPrompt(totalPosts);
     const userPrompt = buildUserPrompt(intake_data);
 
-    let contentRequestId: string;
+    // Create content request
+    const { data: requestData, error: reqError } = await supabaseAdmin
+      .from("content_requests")
+      .insert({
+        clinic_id,
+        created_by_concierge_id: user.id,
+        intake_data,
+        status: "generated",
+      })
+      .select("id")
+      .single();
 
-    if (existingRequestId) {
-      // Regeneration: reuse the existing content request
-      contentRequestId = existingRequestId;
-    } else {
-      // New request: create content request
-      const { data: requestData, error: reqError } = await supabaseAdmin
-        .from("content_requests")
-        .insert({
-          clinic_id,
-          created_by_concierge_id: user.id,
-          intake_data,
-          status: "generated",
-        })
-        .select("id")
-        .single();
-
-      if (reqError) {
-        console.error("Content request insert error:", reqError.message);
-        return new Response(JSON.stringify({ error: "Failed to create content request" }), {
-          status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      contentRequestId = requestData.id;
+    if (reqError) {
+      console.error("Content request insert error:", reqError.message);
+      return new Response(JSON.stringify({ error: "Failed to create content request" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
+
+    const contentRequestId = requestData.id;
 
     // Call APIs in parallel
     const openaiKey = Deno.env.get("OPENAI_API_KEY");
     const claudeKey = Deno.env.get("ANTHROPIC_API_KEY");
 
-    // Run models SEQUENTIALLY and save each version IMMEDIATELY after success
-    const versions: any[] = [];
-    const errors: { model: string; error: string }[] = [];
-
-    console.log("API keys available - OpenAI:", !!openaiKey, "Claude:", !!claudeKey);
-
-    // Helper to save a version right away
-    const saveVersion = async (model: string, content: any) => {
-      const { data: versionData, error: insertErr } = await supabaseAdmin
-        .from("content_versions")
-        .insert({
-          content_request_id: contentRequestId,
-          model_name: model,
-          generated_content: content,
-        })
-        .select()
-        .single();
-      if (insertErr) {
-        console.error(`Failed to save ${model} version:`, insertErr.message);
-      } else if (versionData) {
-        versions.push(versionData);
-        console.log(`${model} version saved successfully`);
-      }
-    };
+    // Run models SEQUENTIALLY to avoid exceeding compute limits
+    const results: { model: string; content: any; error?: string }[] = [];
 
     if (openaiKey) {
       try {
-        console.log("Calling OpenAI...");
         const content = await callOpenAI(openaiKey, systemPrompt, userPrompt);
-        console.log("OpenAI succeeded, saving immediately...");
-        await saveVersion("OpenAI", content);
+        results.push({ model: "OpenAI", content });
       } catch (err: any) {
         console.error("OpenAI call failed:", err.message);
-        errors.push({ model: "OpenAI", error: err.message });
+        results.push({ model: "OpenAI", content: null, error: err.message });
       }
     }
     if (claudeKey) {
       try {
-        console.log("Calling Claude...");
         const content = await callClaude(claudeKey, systemPrompt, userPrompt);
-        console.log("Claude succeeded, saving immediately...");
-        await saveVersion("Claude", content);
+        results.push({ model: "Claude", content });
       } catch (err: any) {
         console.error("Claude call failed:", err.message);
-        errors.push({ model: "Claude", error: err.message });
+        results.push({ model: "Claude", content: null, error: err.message });
       }
     }
 
-    console.log("Total versions saved:", versions.length);
+    // Save versions
+    const versions = [];
+    for (const result of results) {
+      if (result.content) {
+        const { data: versionData } = await supabaseAdmin
+          .from("content_versions")
+          .insert({
+            content_request_id: contentRequestId,
+            model_name: result.model,
+            generated_content: result.content,
+          })
+          .select()
+          .single();
+        if (versionData) versions.push(versionData);
+      }
+    }
 
     return new Response(JSON.stringify({
       content_request_id: contentRequestId,
       versions,
       total_posts: totalPosts,
-      errors,
+      errors: results.filter(r => r.error).map(r => ({ model: r.model, error: r.error })),
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

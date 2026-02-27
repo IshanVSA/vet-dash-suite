@@ -1,1 +1,0 @@
-DELETE FROM content_versions; DELETE FROM content_calendar; DELETE FROM content_requests;
