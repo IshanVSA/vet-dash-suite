@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Check, Calendar, FileText, RefreshCw } from "lucide-react";
+import { Check, Calendar, FileText, RefreshCw, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ContentVersionCard } from "./ContentVersionCard";
@@ -45,6 +45,7 @@ interface ContentRequestCardProps {
   onClientSelect: (requestId: string, versionId: string, clinicId: string) => void;
   onRegenerate?: (requestId: string) => void;
   isRegenerating?: boolean;
+  isGenerating?: boolean;
 }
 
 function ModelToggleView({
@@ -129,6 +130,7 @@ export function ContentRequestCard({
   onClientSelect,
   onRegenerate,
   isRegenerating,
+  isGenerating,
 }: ContentRequestCardProps) {
   const status = statusConfig[request.status] || { label: request.status, color: "bg-muted text-muted-foreground" };
   const intake = request.intake_data as any;
@@ -216,7 +218,14 @@ export function ContentRequestCard({
       <CardContent className="px-4 sm:px-6 pt-0">
         {versions.length === 0 ? (
           <div className="rounded-lg bg-muted/50 p-6 text-center">
-            <p className="text-sm text-muted-foreground">No versions generated yet.</p>
+            {isGenerating ? (
+              <div className="flex items-center justify-center gap-3">
+                <Loader2 className="h-5 w-5 text-primary animate-spin" />
+                <p className="text-sm font-medium text-primary">AI is generating content…</p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No versions generated yet.</p>
+            )}
           </div>
         ) : (
           <ModelToggleView
