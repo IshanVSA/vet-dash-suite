@@ -31,7 +31,7 @@ function getFileIcon(name: string) {
   return <FileText className="h-4 w-4 text-muted-foreground" />;
 }
 
-export function UploadsTab({ department }: { department: string }) {
+export function UploadsTab({ department, clinicId }: { department: string; clinicId?: string }) {
   const { role } = useUserRole();
   const [files, setFiles] = useState<UploadedFile[]>([]);
   const [uploading, setUploading] = useState(false);
