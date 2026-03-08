@@ -309,14 +309,18 @@ export default function Employees() {
                         </Select>
                       </TableCell>
                       <TableCell>
-                        <Select value={p.team_role || ""} onValueChange={v => handleTeamRoleChange(p.id, v)}>
-                          <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Assign role" /></SelectTrigger>
-                          <SelectContent>
-                            {TEAM_ROLES.map(r => (
-                              <SelectItem key={r} value={r}>{r}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        {userRole === "admin" ? (
+                          <span className="text-xs text-muted-foreground italic">N/A</span>
+                        ) : (
+                          <Select value={p.team_role || ""} onValueChange={v => handleTeamRoleChange(p.id, v)}>
+                            <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Assign role" /></SelectTrigger>
+                            <SelectContent>
+                              {TEAM_ROLES.map(r => (
+                                <SelectItem key={r} value={r}>{r}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        )}
                       </TableCell>
                       <TableCell>
                         {assignedClinics.length > 0 ? (
