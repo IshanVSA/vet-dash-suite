@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Plus, Search, Eye, Trash2, ChevronDown, Pencil, Building2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Plus, Search, Eye, Trash2, ChevronDown, Pencil, Building2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Clinic {
@@ -32,12 +33,19 @@ interface UserProfile {
   user_id: string | null;
 }
 
+interface TeamAssignment {
+  clinic_id: string;
+  user_id: string;
+}
+
 export default function Clinics() {
   const { role } = useUserRole();
   const { user } = useAuth();
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [concierges, setConcierges] = useState<{ user_id: string; full_name: string }[]>([]);
+  const [allStaff, setAllStaff] = useState<{ user_id: string; full_name: string; team_role: string | null }[]>([]);
   const [clients, setClients] = useState<{ user_id: string; full_name: string }[]>([]);
+  const [teamAssignments, setTeamAssignments] = useState<TeamAssignment[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
 
@@ -61,6 +69,16 @@ export default function Clinics() {
   const [editAddress, setEditAddress] = useState("");
   const [editOwnerId, setEditOwnerId] = useState("");
 
+  // Team assignment dialog
+  const [teamDialogOpen, setTeamDialogOpen] = useState(false);
+  const [teamDialogClinic, setTeamDialogClinic] = useState<Clinic | null>(null);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+
+  const fetchTeamAssignments = async () => {
+    const { data } = await (supabase.from("clinic_team_members" as any).select("clinic_id, user_id") as any);
+    setTeamAssignments((data as TeamAssignment[]) || []);
+  };
+
   const fetchClinics = async () => {
     let query = supabase.from("clinics").select("*");
     if (role === "concierge") query = query.eq("assigned_concierge_id", user?.id);
@@ -73,19 +91,24 @@ export default function Clinics() {
   const fetchUsers = async () => {
     const { data: roles } = await supabase.from("user_roles").select("user_id, role");
     if (!roles?.length) return;
+    const staffIds = roles.filter(r => r.role === "admin" || r.role === "concierge").map(r => r.user_id);
     const conciergeIds = roles.filter(r => r.role === "concierge").map(r => r.user_id);
     const clientIds = roles.filter(r => r.role === "client").map(r => r.user_id);
-    const allIds = [...new Set([...conciergeIds, ...clientIds])];
+    const allIds = [...new Set([...staffIds, ...clientIds])];
     if (!allIds.length) return;
-    const { data: profiles } = await supabase.from("profiles").select("id, full_name").in("id", allIds);
-    const all = (profiles || []).map(p => ({ user_id: p.id, full_name: p.full_name || "Unknown" }));
+    const { data: profiles } = await supabase.from("profiles").select("id, full_name, team_role").in("id", allIds);
+    const all = (profiles as any[] || []).map((p: any) => ({ user_id: p.id, full_name: p.full_name || "Unknown", team_role: p.team_role || null }));
+    setAllStaff(all.filter(p => staffIds.includes(p.user_id)));
     setConcierges(all.filter(p => conciergeIds.includes(p.user_id)));
     setClients(all.filter(p => clientIds.includes(p.user_id)));
   };
 
   useEffect(() => {
     fetchClinics();
-    if (role === "admin") fetchUsers();
+    if (role === "admin") {
+      fetchUsers();
+      fetchTeamAssignments();
+    }
   }, [role, user]);
 
   const resetAddForm = () => {
@@ -148,14 +171,42 @@ export default function Clinics() {
     fetchClinics();
   };
 
-  const assignConcierge = async (clinicId: string, conciergeId: string | null) => {
-    const { error } = await supabase.from("clinics")
-      .update({ assigned_concierge_id: conciergeId === "none" ? null : conciergeId })
-      .eq("id", clinicId);
-    if (error) { toast.error("Failed to assign concierge"); } else {
-      toast.success("Concierge assigned!");
-      setClinics(prev => prev.map(c => c.id === clinicId ? { ...c, assigned_concierge_id: conciergeId === "none" ? null : conciergeId } : c));
+  const openTeamDialog = (clinic: Clinic) => {
+    setTeamDialogClinic(clinic);
+    const currentMembers = teamAssignments.filter(a => a.clinic_id === clinic.id).map(a => a.user_id);
+    setSelectedMembers(currentMembers);
+    setTeamDialogOpen(true);
+  };
+
+  const saveTeamAssignments = async () => {
+    if (!teamDialogClinic) return;
+    const clinicId = teamDialogClinic.id;
+    const currentMembers = teamAssignments.filter(a => a.clinic_id === clinicId).map(a => a.user_id);
+
+    const toAdd = selectedMembers.filter(id => !currentMembers.includes(id));
+    const toRemove = currentMembers.filter(id => !selectedMembers.includes(id));
+
+    const promises: Promise<any>[] = [];
+    if (toAdd.length > 0) {
+      promises.push(
+        (supabase.from("clinic_team_members" as any).insert(
+          toAdd.map(user_id => ({ clinic_id: clinicId, user_id }))
+        ) as any)
+      );
     }
+    for (const userId of toRemove) {
+      promises.push(
+        (supabase.from("clinic_team_members" as any)
+          .delete()
+          .eq("clinic_id", clinicId)
+          .eq("user_id", userId) as any)
+      );
+    }
+
+    await Promise.all(promises);
+    toast.success("Team assignments updated");
+    setTeamDialogOpen(false);
+    fetchTeamAssignments();
   };
 
   const deleteClinic = async (clinicId: string) => {
@@ -173,8 +224,17 @@ export default function Clinics() {
   };
 
   const filtered = clinics.filter(c => c.clinic_name.toLowerCase().includes(search.toLowerCase()));
-  const getConciergeName = (id: string | null) => !id ? null : concierges.find(c => c.user_id === id)?.full_name || "Unknown";
   const getClientName = (id: string | null) => !id ? null : clients.find(c => c.user_id === id)?.full_name || "Unknown";
+  const getClinicTeam = (clinicId: string) => {
+    const memberIds = teamAssignments.filter(a => a.clinic_id === clinicId).map(a => a.user_id);
+    return allStaff.filter(s => memberIds.includes(s.user_id));
+  };
+
+  const toggleMember = (userId: string) => {
+    setSelectedMembers(prev =>
+      prev.includes(userId) ? prev.filter(id => id !== userId) : [...prev, userId]
+    );
+  };
 
   return (
     <DashboardLayout>
@@ -269,7 +329,7 @@ export default function Clinics() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead>Clinic Name</TableHead>
-                  {role === "admin" && <TableHead className="hidden md:table-cell">Assigned Concierge</TableHead>}
+                  {role === "admin" && <TableHead>Team Members</TableHead>}
                   {role === "admin" && <TableHead className="hidden lg:table-cell">Client Owner</TableHead>}
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden sm:table-cell">Phone</TableHead>
@@ -277,63 +337,70 @@ export default function Clinics() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map((clinic) => (
-                  <TableRow key={clinic.id}>
-                    <TableCell className="font-medium">
-                      {clinic.clinic_name}
+                {filtered.map((clinic) => {
+                  const clinicTeam = getClinicTeam(clinic.id);
+                  return (
+                    <TableRow key={clinic.id}>
+                      <TableCell className="font-medium">{clinic.clinic_name}</TableCell>
                       {role === "admin" && (
-                        <span className="md:hidden block text-xs text-muted-foreground mt-0.5">
-                          {getConciergeName(clinic.assigned_concierge_id) || "Unassigned"}
-                        </span>
+                        <TableCell>
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            {clinicTeam.length > 0 ? clinicTeam.map(m => (
+                              <Badge key={m.user_id} variant="secondary" className="text-[11px] rounded-full gap-1">
+                                {m.full_name}
+                                {m.team_role && <span className="text-muted-foreground">· {m.team_role}</span>}
+                              </Badge>
+                            )) : (
+                              <span className="text-muted-foreground text-xs italic">No team assigned</span>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 rounded-full"
+                              onClick={() => openTeamDialog(clinic)}
+                            >
+                              <Users className="h-3 w-3 text-muted-foreground" />
+                            </Button>
+                          </div>
+                        </TableCell>
                       )}
-                    </TableCell>
-                    {role === "admin" && (
-                      <TableCell className="hidden md:table-cell">
-                        <Select value={clinic.assigned_concierge_id || "none"} onValueChange={v => assignConcierge(clinic.id, v)}>
-                          <SelectTrigger className="w-[180px] h-8 text-xs"><SelectValue placeholder="Assign..." /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="none">Unassigned</SelectItem>
-                            {concierges.map(c => (<SelectItem key={c.user_id} value={c.user_id}>{c.full_name}</SelectItem>))}
-                          </SelectContent>
-                        </Select>
+                      {role === "admin" && (
+                        <TableCell className="hidden lg:table-cell">
+                          <span className={clinic.owner_user_id ? "text-foreground" : "text-muted-foreground italic text-xs"}>
+                            {getClientName(clinic.owner_user_id) || "No owner"}
+                          </span>
+                        </TableCell>
+                      )}
+                      <TableCell>
+                        <Badge
+                          variant={clinic.status === "active" ? "default" : "secondary"}
+                          className={`rounded-full text-[11px] ${role === "admin" ? "cursor-pointer" : ""}`}
+                          onClick={() => role === "admin" && toggleStatus(clinic.id, clinic.status)}
+                        >
+                          {clinic.status}
+                        </Badge>
                       </TableCell>
-                    )}
-                    {role === "admin" && (
-                      <TableCell className="hidden lg:table-cell">
-                        <span className={clinic.owner_user_id ? "text-foreground" : "text-muted-foreground italic text-xs"}>
-                          {getClientName(clinic.owner_user_id) || "No owner"}
-                        </span>
+                      <TableCell className="text-muted-foreground text-sm hidden sm:table-cell">{clinic.phone || "—"}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {role === "admin" && (
+                            <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => openEditDialog(clinic)}>
+                              <Pencil className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">Edit</span>
+                            </Button>
+                          )}
+                          <Link to={`/clinics/${clinic.id}`}>
+                            <Button variant="ghost" size="sm" className="h-8 text-xs"><Eye className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">View</span></Button>
+                          </Link>
+                          {role === "admin" && (
+                            <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => deleteClinic(clinic.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
-                    )}
-                    <TableCell>
-                      <Badge
-                        variant={clinic.status === "active" ? "default" : "secondary"}
-                        className={`rounded-full text-[11px] ${role === "admin" ? "cursor-pointer" : ""}`}
-                        onClick={() => role === "admin" && toggleStatus(clinic.id, clinic.status)}
-                      >
-                        {clinic.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm hidden sm:table-cell">{clinic.phone || "—"}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {role === "admin" && (
-                          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={() => openEditDialog(clinic)}>
-                            <Pencil className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">Edit</span>
-                          </Button>
-                        )}
-                        <Link to={`/clinics/${clinic.id}`}>
-                          <Button variant="ghost" size="sm" className="h-8 text-xs"><Eye className="h-3.5 w-3.5 sm:mr-1" /> <span className="hidden sm:inline">View</span></Button>
-                        </Link>
-                        {role === "admin" && (
-                          <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => deleteClinic(clinic.id)}>
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>
@@ -360,6 +427,58 @@ export default function Clinics() {
               </div>
               <Button onClick={saveEdit} className="w-full">Save Changes</Button>
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Team Assignment Dialog */}
+        <Dialog open={teamDialogOpen} onOpenChange={setTeamDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Assign Team Members</DialogTitle>
+              <DialogDescription>
+                Select team members to assign to <span className="font-medium text-foreground">{teamDialogClinic?.clinic_name}</span>
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1 max-h-[50vh] overflow-y-auto py-2">
+              {allStaff.map(member => (
+                <label
+                  key={member.user_id}
+                  className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-muted/50 cursor-pointer transition-colors"
+                >
+                  <Checkbox
+                    checked={selectedMembers.includes(member.user_id)}
+                    onCheckedChange={() => toggleMember(member.user_id)}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{member.full_name}</p>
+                    {member.team_role && (
+                      <p className="text-xs text-muted-foreground">{member.team_role}</p>
+                    )}
+                  </div>
+                </label>
+              ))}
+              {allStaff.length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No team members available</p>
+              )}
+            </div>
+            {selectedMembers.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {selectedMembers.map(id => {
+                  const m = allStaff.find(s => s.user_id === id);
+                  return m ? (
+                    <Badge key={id} variant="secondary" className="text-[11px] rounded-full gap-1 pr-1">
+                      {m.full_name}
+                      <button onClick={() => toggleMember(id)} className="ml-0.5 hover:text-destructive transition-colors">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ) : null;
+                })}
+              </div>
+            )}
+            <Button onClick={saveTeamAssignments} className="w-full mt-2">
+              Save Assignments ({selectedMembers.length} selected)
+            </Button>
           </DialogContent>
         </Dialog>
       </div>
