@@ -5,6 +5,7 @@ import { Search, LayoutDashboard, Ticket, MessageSquare, FileText, Upload, Trend
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
+import { UploadsTab } from "@/components/department/UploadsTab";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -132,7 +133,7 @@ export default function SeoDepartment() {
           <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={services} /></TabsContent>
           <TabsContent value="seo-thread" className="mt-4"><ComingSoonTab label="SEO Thread" /></TabsContent>
           <TabsContent value="reports" className="mt-4"><ComingSoonTab label="Reports" /></TabsContent>
-          <TabsContent value="uploads" className="mt-4"><ComingSoonTab label="Uploads" /></TabsContent>
+          <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" /></TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
