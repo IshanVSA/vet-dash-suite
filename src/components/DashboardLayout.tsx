@@ -126,7 +126,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const clientSections: NavSection[] = [
     {
       items: [
-        { label: "Dashboard", icon: LayoutDashboard, path: "/" },
+      { label: "Dashboard", icon: LayoutDashboard, path: "/" },
+        { label: "Website", icon: Globe, path: "/website" },
+        { label: "SEO", icon: Search, path: "/seo" },
+        { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
         { label: "Social Media", icon: Share2, path: "/social" },
         ...(clientClinicId ? [{ label: "My Clinic", icon: Building2, path: `/clinics/${clientClinicId}` }] : []),
       ],
