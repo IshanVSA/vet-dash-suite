@@ -19,8 +19,7 @@ const TEAM_ROLES = [
   "Maintenance",
   "Ads Strategist",
   "Ads Analyst",
-  "Social",
-  "Concierge",
+  "Social & Concierge",
   "SEO Lead",
 ] as const;
 
