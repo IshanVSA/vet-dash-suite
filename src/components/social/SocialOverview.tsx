@@ -289,6 +289,36 @@ export function SocialOverview() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Ticket Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "400ms", animationFillMode: "both" }}>
+          <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Ticket className="h-4 w-4 text-primary" />
+              Ticket Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-3">
+              {[
+                { label: "Open", count: ticketSummary.open, icon: Inbox, color: "text-blue-500" },
+                { label: "In Progress", count: ticketSummary.inProgress, icon: Clock, color: "text-amber-500" },
+                { label: "Completed", count: ticketSummary.completed, icon: CheckCircle2, color: "text-emerald-500" },
+                { label: "Emergency", count: ticketSummary.emergency, icon: AlertTriangle, color: "text-destructive" },
+              ].map(t => (
+                <div key={t.label} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <t.icon className={`h-4 w-4 ${t.color}`} />
+                    <span className="text-sm text-foreground">{t.label}</span>
+                  </div>
+                  <span className="text-sm font-bold text-foreground tabular-nums">{t.count}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
