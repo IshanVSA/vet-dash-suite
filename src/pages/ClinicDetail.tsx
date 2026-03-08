@@ -508,6 +508,7 @@ export default function ClinicDetail() {
                 lastGoogleSyncAt={creds.last_google_sync_at}
                 onRefresh={() => { fetchCredentials(); fetchAnalytics(); }}
               />
+              <TrackingSetupCard clinicId={id!} />
             </TabsContent>
           )}
         </Tabs>
