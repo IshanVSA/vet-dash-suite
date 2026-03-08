@@ -133,7 +133,7 @@ export default function GoogleAdsDepartment() {
           <TabsContent value="tickets" className="mt-4"><TicketsTab department="google_ads" services={services} /></TabsContent>
           <TabsContent value="analytics" className="mt-4"><ComingSoonTab label="Analytics" /></TabsContent>
           <TabsContent value="reports" className="mt-4"><ComingSoonTab label="Reports" /></TabsContent>
-          <TabsContent value="uploads" className="mt-4"><ComingSoonTab label="Uploads" /></TabsContent>
+          <TabsContent value="uploads" className="mt-4"><UploadsTab department="google_ads" /></TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
