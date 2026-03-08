@@ -86,6 +86,7 @@ function TopKeywordsCard() {
 export default function SeoDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
+  const { team } = useDepartmentTeam("seo");
 
   return (
     <DashboardLayout>

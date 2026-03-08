@@ -86,6 +86,7 @@ function CampaignsCard() {
 export default function GoogleAdsDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
+  const { team } = useDepartmentTeam("google_ads");
 
   return (
     <DashboardLayout>
