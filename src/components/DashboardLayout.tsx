@@ -426,8 +426,8 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         onCreated={() => {}}
       />
 
-      {/* Chat Assistant */}
-      <ChatAssistant open={chatOpen} onOpenChange={setChatOpen} />
+      {/* Chat Assistant - floating popup */}
+      <ChatAssistant />
     </div>
   );
 }
