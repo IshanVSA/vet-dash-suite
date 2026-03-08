@@ -6,7 +6,9 @@ import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
+import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
+import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Eye, TrendingDown, Clock, Layers } from "lucide-react";
 
 const tabs = [
@@ -41,6 +43,7 @@ export default function WebsiteDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
   const { team } = useDepartmentTeam("website");
+  const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
 
   return (
     <DashboardLayout>
@@ -61,7 +64,15 @@ export default function WebsiteDepartment() {
           </div>
         </div>
 
-        <Tabs value={currentTab} onValueChange={(v) => setSearchParams({ tab: v }, { replace: true })} className="w-full">
+        {/* Clinic Selector */}
+        <ClinicSelector
+          clinics={clinics}
+          selectedClinicId={selectedClinicId}
+          onSelect={setSelectedClinicId}
+          loading={clinicsLoading}
+        />
+
+        <Tabs value={currentTab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true })} className="w-full">
           <TabsList className="w-full justify-start bg-muted/50 h-11 p-1 overflow-x-auto">
             {tabs.map(tab => (
               <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs sm:text-sm data-[state=active]:shadow-sm">
@@ -80,12 +91,13 @@ export default function WebsiteDepartment() {
               team={team}
               department="website"
               accentColor="hsl(25, 95%, 53%)"
+              clinicId={selectedClinicId}
             />
           </TabsContent>
-          <TabsContent value="tickets" className="mt-4"><TicketsTab department="website" services={services} /></TabsContent>
+          <TabsContent value="tickets" className="mt-4"><TicketsTab department="website" services={services} clinicId={selectedClinicId} /></TabsContent>
           <TabsContent value="analytics" className="mt-4"><ComingSoonTab label="Analytics" /></TabsContent>
           <TabsContent value="reports" className="mt-4"><ComingSoonTab label="Reports" /></TabsContent>
-          <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" /></TabsContent>
+          <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
