@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.chat]
 verify_jwt = false
+
+[functions.track-pageview]
+verify_jwt = false
