@@ -8,14 +8,10 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Clinics from "./pages/Clinics";
 import ClinicDetail from "./pages/ClinicDetail";
-import ContentCalendar from "./pages/ContentCalendar";
-
-import Analytics from "./pages/Analytics";
-import IntakeForms from "./pages/IntakeForms";
+import SocialMedia from "./pages/SocialMedia";
+import AdminReview from "./pages/AdminReview";
 import Employees from "./pages/Employees";
 import ClientsPage from "./pages/Clients";
-import AdminReview from "./pages/AdminReview";
-import ContentRequests from "./pages/ContentRequests";
 import Settings from "./pages/Settings";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import DataDeletion from "./pages/DataDeletion";
@@ -34,13 +30,16 @@ const App = () => (
           <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/data-deletion" element={<DataDeletion />} />
           <Route path="/" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+          <Route path="/social" element={<ProtectedRoute><SocialMedia /></ProtectedRoute>} />
           <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Clinics /></ProtectedRoute>} />
           <Route path="/clinics/:id" element={<ProtectedRoute><ClinicDetail /></ProtectedRoute>} />
-          <Route path="/content" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><ContentCalendar /></ProtectedRoute>} />
-          <Route path="/ai-content" element={<Navigate to="/content-requests" replace />} />
-          <Route path="/content-requests" element={<ProtectedRoute><ContentRequests /></ProtectedRoute>} />
-          <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-          <Route path="/intake-forms" element={<ProtectedRoute><IntakeForms /></ProtectedRoute>} />
+          {/* Redirects from old routes to Social Media tabs */}
+          <Route path="/content" element={<Navigate to="/social?tab=calendar" replace />} />
+          <Route path="/content-requests" element={<Navigate to="/social?tab=requests" replace />} />
+          <Route path="/ai-content" element={<Navigate to="/social?tab=requests" replace />} />
+          <Route path="/intake-forms" element={<Navigate to="/social?tab=intake" replace />} />
+          <Route path="/analytics" element={<Navigate to="/social?tab=analytics" replace />} />
+          <Route path="/google-ads" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/employees" element={<ProtectedRoute allowedRoles={["admin"]}><Employees /></ProtectedRoute>} />
           <Route path="/clients" element={<ProtectedRoute allowedRoles={["admin"]}><ClientsPage /></ProtectedRoute>} />
           <Route path="/review" element={<ProtectedRoute allowedRoles={["admin"]}><AdminReview /></ProtectedRoute>} />

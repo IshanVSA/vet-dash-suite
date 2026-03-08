@@ -6,8 +6,8 @@ import { usePendingCounts } from "@/hooks/usePendingCounts";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
-  CalendarDays, ShieldCheck, ClipboardList, LayoutDashboard, UserCheck, FileCheck,
-  Search, Sun, Moon, PanelLeftClose, PanelLeft,
+  ShieldCheck, LayoutDashboard, UserCheck,
+  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -32,16 +32,13 @@ const adminSections: NavSection[] = [
     title: "OVERVIEW",
     items: [
       { label: "Dashboard", icon: LayoutDashboard, path: "/" },
-      { label: "Content Calendar", icon: CalendarDays, path: "/content" },
-      { label: "Admin Review", icon: ShieldCheck, path: "/review" },
     ],
   },
   {
-    title: "WORKFLOW",
+    title: "DEPARTMENTS",
     items: [
-      { label: "Client Intake", icon: ClipboardList, path: "/intake-forms" },
-      { label: "Content Requests", icon: FileCheck, path: "/content-requests" },
-      { label: "Performance", icon: BarChart3, path: "/analytics" },
+      { label: "Social Media", icon: Share2, path: "/social" },
+      { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
     ],
   },
   {
@@ -50,6 +47,7 @@ const adminSections: NavSection[] = [
       { label: "Clinics", icon: Building2, path: "/clinics" },
       { label: "Employees", icon: Users, path: "/employees" },
       { label: "Clients", icon: UserCheck, path: "/clients" },
+      { label: "Admin Review", icon: ShieldCheck, path: "/review" },
       { label: "Settings", icon: Settings, path: "/settings" },
     ],
   },
@@ -60,21 +58,20 @@ const conciergeSections: NavSection[] = [
     title: "OVERVIEW",
     items: [
       { label: "Dashboard", icon: LayoutDashboard, path: "/" },
-      { label: "Content Calendar", icon: CalendarDays, path: "/content" },
     ],
   },
   {
-    title: "WORKFLOW",
+    title: "DEPARTMENTS",
     items: [
-      { label: "Client Intake", icon: ClipboardList, path: "/intake-forms" },
-      { label: "Content Requests", icon: FileCheck, path: "/content-requests" },
-      { label: "Performance", icon: BarChart3, path: "/analytics" },
+      { label: "Social Media", icon: Share2, path: "/social" },
+      { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
     ],
   },
   {
     title: "MANAGE",
     items: [
       { label: "My Clinics", icon: Building2, path: "/clinics" },
+      { label: "Settings", icon: Settings, path: "/settings" },
     ],
   },
 ];
@@ -90,11 +87,9 @@ const defaultClientSections: NavSection[] = [
 // Page title map
 const pageTitles: Record<string, string> = {
   "/": "Dashboard",
-  "/content": "Content Calendar",
+  "/social": "Social Media",
+  "/google-ads": "Google Ads",
   "/review": "Admin Review",
-  "/intake-forms": "Client Intake",
-  "/content-requests": "Content Requests",
-  "/analytics": "Performance",
   "/clinics": "Clinics",
   "/employees": "Team Members",
   "/clients": "Clients",
@@ -128,7 +123,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     {
       items: [
         { label: "Dashboard", icon: LayoutDashboard, path: "/" },
-        { label: "Content Requests", icon: FileCheck, path: "/content-requests" },
+        { label: "Social Media", icon: Share2, path: "/social" },
         ...(clientClinicId ? [{ label: "My Clinic", icon: Building2, path: `/clinics/${clientClinicId}` }] : []),
       ],
     },
@@ -141,7 +136,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       items: s.items.map(item => ({
         ...item,
         badge:
-          item.path === "/content-requests" ? pendingRequests :
+          item.path === "/social" ? pendingRequests :
           item.path === "/review" ? pendingReview :
           item.badge,
       })),
@@ -167,7 +162,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         <div className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar - Sticky, collapsible */}
+      {/* Sidebar */}
       <aside className={cn(
         "fixed inset-y-0 left-0 z-50 flex flex-col transition-all duration-300 ease-out lg:sticky lg:top-0 lg:h-screen lg:z-auto",
         "bg-[hsl(var(--sidebar-background))] text-[hsl(var(--sidebar-foreground))]",
@@ -185,12 +180,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <p className="text-[10px] text-[hsl(var(--sidebar-muted))] tracking-wide">Content Platform</p>
             </div>
           )}
-          {/* Collapse toggle - top right of sidebar (desktop) */}
-          <button
-            onClick={toggleCollapse}
-            className="hidden lg:flex p-1.5 rounded-md hover:bg-[hsl(var(--sidebar-accent))]/50 transition-colors shrink-0"
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
+          <button onClick={toggleCollapse} className="hidden lg:flex p-1.5 rounded-md hover:bg-[hsl(var(--sidebar-accent))]/50 transition-colors shrink-0" title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
             {collapsed ? <PanelLeft className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" /> : <PanelLeftClose className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" />}
           </button>
           <button className="lg:hidden p-1 rounded-md hover:bg-[hsl(var(--sidebar-accent))]" onClick={() => setSidebarOpen(false)}>
@@ -209,7 +199,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               )}
               <div className="space-y-0.5">
                 {section.items.map((item) => {
-                  const active = item.path === "/" ? location.pathname === "/" : location.pathname === item.path || location.pathname.startsWith(item.path + "/");
+                  const active = item.path === "/" ? location.pathname === "/" : location.pathname === item.path || location.pathname.startsWith(item.path + "/") || (item.path === "/social" && location.pathname === "/social");
                   return (
                     <Link
                       key={item.path}
@@ -232,7 +222,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                           "h-[18px] w-[18px] transition-colors duration-200",
                           active ? "text-[hsl(var(--sidebar-primary))]" : "group-hover:text-[hsl(var(--sidebar-foreground))]"
                         )} />
-                        {/* Badge on icon when collapsed */}
                         {collapsed && (item.badge ?? 0) > 0 && (
                           <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[8px] font-bold rounded-full h-4 min-w-[16px] px-1 flex items-center justify-center">
                             {item.badge}
@@ -253,7 +242,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </div>
           ))}
         </nav>
-
 
         {/* User footer */}
         <div className={cn("py-4 border-t border-[hsl(var(--sidebar-border))]", collapsed ? "px-1.5" : "px-3")}>
@@ -293,7 +281,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             <Menu className="h-5 w-5 text-foreground" />
           </button>
           
-          {/* Page title breadcrumb */}
           {currentPageTitle && (
             <div className="hidden sm:flex items-center gap-2 text-sm">
               <span className="text-muted-foreground">VSA</span>
@@ -304,8 +291,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex-1" />
 
-
-          {/* Dark mode toggle */}
           <button
             className="relative p-2 rounded-lg hover:bg-muted transition-colors"
             onClick={() => {
@@ -319,7 +304,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <NotificationBell />
 
-          {/* User avatar in header */}
           <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-1 ring-border">
             <span className="text-xs font-semibold text-primary">
               {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
