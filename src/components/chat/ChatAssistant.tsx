@@ -1,10 +1,11 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Send, Bot, User, Loader2 } from "lucide-react";
+import { Send, Bot, User, Loader2, Mic, MicOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -16,7 +17,8 @@ interface Message {
 const WELCOME: Message = {
   id: "welcome",
   role: "assistant",
-  content: "👋 Hi! I'm your VSA assistant. I can help you navigate the platform, answer questions about your services, or give marketing tips. How can I help?",
+  content:
+    "👋 Hi! I'm your VSA assistant. I can help you navigate the platform, answer questions, create support tickets, or give marketing tips. Try saying **\"Create a ticket for...\"** to get started!",
 };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
@@ -26,11 +28,24 @@ interface ChatAssistantProps {
   onOpenChange: (open: boolean) => void;
 }
 
+// Web Speech API types
+interface SpeechRecognitionEvent {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+  message: string;
+}
+
 export function ChatAssistant({ open, onOpenChange }: ChatAssistantProps) {
   const [messages, setMessages] = useState<Message[]>([WELCOME]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isListening, setIsListening] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const recognitionRef = useRef<any>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -38,9 +53,80 @@ export function ChatAssistant({ open, onOpenChange }: ChatAssistantProps) {
     }
   }, [messages]);
 
+  // Cleanup speech recognition on unmount
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
+
+  const toggleVoice = useCallback(() => {
+    const SpeechRecognition =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      toast.error("Voice dictation is not supported in this browser. Try Chrome or Edge.");
+      return;
+    }
+
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognitionRef.current = recognition;
+
+    let finalTranscript = "";
+
+    recognition.onstart = () => setIsListening(true);
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      let interim = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript + " ";
+        } else {
+          interim = transcript;
+        }
+      }
+      setInput(finalTranscript + interim);
+    };
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error("Speech recognition error:", event.error);
+      if (event.error === "not-allowed") {
+        toast.error("Microphone access denied. Please enable it in your browser settings.");
+      } else if (event.error !== "aborted") {
+        toast.error("Voice recognition error. Please try again.");
+      }
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+      recognitionRef.current = null;
+    };
+
+    recognition.start();
+  }, [isListening]);
+
   const handleSend = async () => {
     const text = input.trim();
     if (!text || isLoading) return;
+
+    // Stop listening if active
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
 
     const userMsg: Message = { id: crypto.randomUUID(), role: "user", content: text };
     const updatedMessages = [...messages, userMsg];
@@ -52,6 +138,12 @@ export function ChatAssistant({ open, onOpenChange }: ChatAssistantProps) {
     const apiMessages = updatedMessages
       .filter((m) => m.id !== "welcome")
       .map((m) => ({ role: m.role, content: m.content }));
+
+    // Get user's auth token
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    const authToken = session?.access_token;
 
     let assistantSoFar = "";
 
@@ -72,7 +164,9 @@ export function ChatAssistant({ open, onOpenChange }: ChatAssistantProps) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          ...(authToken
+            ? { Authorization: `Bearer ${authToken}` }
+            : { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` }),
         },
         body: JSON.stringify({ messages: apiMessages }),
       });
@@ -135,7 +229,9 @@ export function ChatAssistant({ open, onOpenChange }: ChatAssistantProps) {
             const parsed = JSON.parse(jsonStr);
             const content = parsed.choices?.[0]?.delta?.content as string | undefined;
             if (content) upsertAssistant(content);
-          } catch { /* ignore */ }
+          } catch {
+            /* ignore */
+          }
         }
       }
     } catch (e) {
@@ -161,25 +257,32 @@ export function ChatAssistant({ open, onOpenChange }: ChatAssistantProps) {
         {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
           {messages.map((msg) => (
-            <div key={msg.id} className={cn("flex gap-2.5", msg.role === "user" && "flex-row-reverse")}>
-              <div className={cn(
-                "h-7 w-7 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-                msg.role === "assistant" ? "bg-primary/10" : "bg-muted"
-              )}>
+            <div
+              key={msg.id}
+              className={cn("flex gap-2.5", msg.role === "user" && "flex-row-reverse")}
+            >
+              <div
+                className={cn(
+                  "h-7 w-7 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+                  msg.role === "assistant" ? "bg-primary/10" : "bg-muted"
+                )}
+              >
                 {msg.role === "assistant" ? (
                   <Bot className="h-3.5 w-3.5 text-primary" />
                 ) : (
                   <User className="h-3.5 w-3.5 text-muted-foreground" />
                 )}
               </div>
-              <div className={cn(
-                "rounded-xl px-3.5 py-2.5 text-sm max-w-[80%] leading-relaxed",
-                msg.role === "assistant"
-                  ? "bg-muted text-foreground"
-                  : "bg-primary text-primary-foreground"
-              )}>
+              <div
+                className={cn(
+                  "rounded-xl px-3.5 py-2.5 text-sm max-w-[80%] leading-relaxed",
+                  msg.role === "assistant"
+                    ? "bg-muted text-foreground"
+                    : "bg-primary text-primary-foreground"
+                )}
+              >
                 {msg.role === "assistant" ? (
-                  <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1">
+                  <div className="prose prose-sm dark:prose-invert max-w-none [&>p]:my-1 [&>ul]:my-1 [&>ol]:my-1 [&>p:first-child]:mt-0 [&>p:last-child]:mb-0">
                     <ReactMarkdown>{msg.content}</ReactMarkdown>
                   </div>
                 ) : (
@@ -202,14 +305,28 @@ export function ChatAssistant({ open, onOpenChange }: ChatAssistantProps) {
 
         {/* Input */}
         <div className="shrink-0 border-t border-border p-4">
-          <form
-            onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-            className="flex gap-2"
-          >
+          {isListening && (
+            <div className="flex items-center gap-2 mb-2 px-1">
+              <div className="h-2 w-2 rounded-full bg-destructive animate-pulse" />
+              <span className="text-xs text-muted-foreground">Listening… speak now</span>
+            </div>
+          )}
+          <form onSubmit={(e) => { e.preventDefault(); handleSend(); }} className="flex gap-2">
+            <Button
+              type="button"
+              size="icon"
+              variant={isListening ? "destructive" : "outline"}
+              onClick={toggleVoice}
+              disabled={isLoading}
+              className="shrink-0"
+              title={isListening ? "Stop dictation" : "Voice dictation"}
+            >
+              {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
             <Input
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Type a message…"
+              placeholder={isListening ? "Listening…" : "Type a message…"}
               className="flex-1"
               disabled={isLoading}
             />
