@@ -5,6 +5,7 @@ import { Search, LayoutDashboard, Ticket, MessageSquare, FileText, Upload, Trend
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
+import { UploadsTab } from "@/components/department/UploadsTab";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
