@@ -10,6 +10,7 @@ import { NewTicketDialog } from "./NewTicketDialog";
 interface TicketsTabProps {
   department: string;
   services: string[];
+  clinicId?: string;
 }
 
 const statusFilters = [
