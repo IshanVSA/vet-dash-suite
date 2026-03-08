@@ -1,5 +1,9 @@
-import { Building2 } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useState } from "react";
+import { Building2, ChevronsUpDown, Check } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import type { ClinicOption } from "@/hooks/useClinicSelector";
 
 interface ClinicSelectorProps {
@@ -10,10 +14,10 @@ interface ClinicSelectorProps {
 }
 
 export function ClinicSelector({ clinics, selectedClinicId, onSelect, loading }: ClinicSelectorProps) {
+  const [open, setOpen] = useState(false);
+
   if (loading) {
-    return (
-      <div className="h-10 w-64 bg-muted/50 rounded-lg animate-pulse" />
-    );
+    return <div className="h-9 w-64 bg-muted/50 rounded-lg animate-pulse" />;
   }
 
   if (clinics.length === 0) {
@@ -25,21 +29,47 @@ export function ClinicSelector({ clinics, selectedClinicId, onSelect, loading }:
     );
   }
 
+  const selectedName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
+
   return (
     <div className="flex items-center gap-2">
       <Building2 className="h-4 w-4 text-muted-foreground shrink-0" />
-      <Select value={selectedClinicId} onValueChange={onSelect}>
-        <SelectTrigger className="w-[240px] sm:w-[280px] h-9 text-sm">
-          <SelectValue placeholder="Select a clinic" />
-        </SelectTrigger>
-        <SelectContent>
-          {clinics.map((c) => (
-            <SelectItem key={c.id} value={c.id}>
-              {c.clinic_name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-[240px] sm:w-[280px] h-9 justify-between text-sm font-normal"
+          >
+            <span className="truncate">{selectedName || "Select a clinic"}</span>
+            <ChevronsUpDown className="ml-2 h-3.5 w-3.5 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[240px] sm:w-[280px] p-0" align="start">
+          <Command>
+            <CommandInput placeholder="Search clinics..." />
+            <CommandList>
+              <CommandEmpty>No clinic found.</CommandEmpty>
+              <CommandGroup>
+                {clinics.map((c) => (
+                  <CommandItem
+                    key={c.id}
+                    value={c.clinic_name}
+                    onSelect={() => {
+                      onSelect(c.id);
+                      setOpen(false);
+                    }}
+                  >
+                    <Check className={cn("mr-2 h-3.5 w-3.5", selectedClinicId === c.id ? "opacity-100" : "opacity-0")} />
+                    {c.clinic_name}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }
