@@ -88,12 +88,17 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Strip query params from path to avoid capturing PII (e.g. email in ?email=)
+      const cleanPath = (path || "/").split("?")[0].slice(0, 512);
+      // Only store referrer domain, never full URL (may contain PII)
+      const cleanReferrer = referrer_domain ? referrer_domain.slice(0, 255) : null;
+
       const { error } = await supabase.from("website_pageviews").insert({
         clinic_id,
-        path: (path || "/").slice(0, 2048),
-        referrer: referrer ? referrer.slice(0, 2048) : null,
+        path: cleanPath,
+        referrer: cleanReferrer,
         session_id: session_id.slice(0, 128),
-        user_agent: user_agent ? user_agent.slice(0, 512) : null,
+        user_agent: null, // intentionally not stored — PII under PIPEDA/PIPA
       });
 
       if (error) {
