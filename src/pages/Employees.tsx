@@ -85,6 +85,17 @@ export default function Employees() {
     return r === "admin" || r === "concierge";
   });
 
+  const filteredProfiles = staffProfiles.filter(p => {
+    const q = searchQuery.toLowerCase();
+    if (q && !(p.full_name?.toLowerCase().includes(q) || p.email?.toLowerCase().includes(q))) return false;
+    if (filterTeamRole !== "all" && p.team_role !== filterTeamRole) return false;
+    if (filterClinic !== "all") {
+      const clinicIds = getAssignedClinicIds(p.id);
+      if (!clinicIds.includes(filterClinic)) return false;
+    }
+    return true;
+  });
+
   const getRole = (userId: string) => roles.find(r => r.user_id === userId)?.role || "unknown";
   const getAssignedClinics = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_names || [];
   const getAssignedClinicIds = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_ids || [];
