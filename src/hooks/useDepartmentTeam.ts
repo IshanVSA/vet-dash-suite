@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 interface TeamMember {
   name: string;
   role: string;
+  teamRole: string | null;
 }
 
 export function useDepartmentTeam(department: string): { team: TeamMember[]; loading: boolean } {
