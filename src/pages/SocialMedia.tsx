@@ -57,6 +57,8 @@ export default function SocialMedia() {
     }, { replace: true });
   };
 
+  const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
+
   return (
     <DashboardLayout>
       <div className="space-y-4 sm:space-y-6">
@@ -68,7 +70,12 @@ export default function SocialMedia() {
               <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center shrink-0">
                 <Share2 className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
-              <h1 className="text-xl sm:text-2xl font-bold">Social Media</h1>
+              <div>
+                <h1 className="text-xl sm:text-2xl font-bold">Social Media</h1>
+                {selectedClinicName && (
+                  <p className="text-primary-foreground/70 text-xs sm:text-sm font-medium -mt-0.5">{selectedClinicName}</p>
+                )}
+              </div>
             </div>
             <p className="text-primary-foreground/80 text-xs sm:text-sm max-w-lg">
               Manage content creation, scheduling, and performance across all your social channels.
