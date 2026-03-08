@@ -285,6 +285,39 @@ export default function Employees() {
             </Table>
           </Card>
         )}
+
+        {/* Assign Clinics Dialog */}
+        <Dialog open={!!assignDialogUser} onOpenChange={(open) => { if (!open) setAssignDialogUser(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign Clinics — {assignDialogUser?.full_name || "User"}</DialogTitle>
+              <DialogDescription>Select which clinics this team member is assigned to.</DialogDescription>
+            </DialogHeader>
+            <div className="max-h-64 overflow-y-auto space-y-2 py-2">
+              {allClinics.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No active clinics found.</p>
+              ) : allClinics.map(c => (
+                <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer">
+                  <Checkbox
+                    checked={assignedClinicIds.includes(c.id)}
+                    onCheckedChange={(checked) => {
+                      setAssignedClinicIds(prev =>
+                        checked ? [...prev, c.id] : prev.filter(id => id !== c.id)
+                      );
+                    }}
+                  />
+                  <span className="text-sm">{c.clinic_name}</span>
+                </label>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAssignDialogUser(null)}>Cancel</Button>
+              <Button disabled={savingAssign} onClick={handleSaveAssignments}>
+                {savingAssign ? "Saving…" : "Save"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
