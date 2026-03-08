@@ -21,7 +21,7 @@ const statusFilters = [
   { value: "emergency", label: "Emergency" },
 ];
 
-export function TicketsTab({ department, services }: TicketsTabProps) {
+export function TicketsTab({ department, services, clinicId }: TicketsTabProps) {
   const [filter, setFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
 
