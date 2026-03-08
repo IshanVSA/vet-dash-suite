@@ -122,7 +122,7 @@ export function SocialOverview() {
         const { data: conciergeRoles } = await supabase
           .from("user_roles")
           .select("user_id, role")
-          .in("role", ["concierge", "admin"]);
+          .in("role", ["concierge"]);
         if (conciergeRoles && conciergeRoles.length > 0) {
           const userIds = conciergeRoles.map(r => r.user_id);
           const { data: profiles } = await supabase
