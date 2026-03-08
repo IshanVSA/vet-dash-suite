@@ -336,6 +336,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <div className="flex-1" />
 
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs font-medium"
+            onClick={() => setDeptPickerOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">New Ticket</span>
+          </Button>
+
           <button
             className="relative p-2 rounded-lg hover:bg-muted transition-colors"
             onClick={() => {
