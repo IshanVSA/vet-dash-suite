@@ -258,5 +258,6 @@ export function SocialOverview() {
           </CardContent>
         </Card>
       </div>
+    </div>
   );
 }
