@@ -108,10 +108,10 @@ Deno.serve(async (req) => {
         .eq("user_id", newUser.user.id);
     }
 
-    // Update profile email
+    // Update profile email and team_role
     await supabaseAdmin
       .from("profiles")
-      .update({ email })
+      .update({ email, ...(team_role ? { team_role } : {}) })
       .eq("id", newUser.user.id);
 
     return new Response(JSON.stringify({ id: newUser.user.id }), {
