@@ -65,8 +65,10 @@ const conciergeSections: NavSection[] = [
   {
     title: "DEPARTMENTS",
     items: [
-      { label: "Social Media", icon: Share2, path: "/social" },
+      { label: "Website", icon: Globe, path: "/website" },
+      { label: "SEO", icon: Search, path: "/seo" },
       { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
+      { label: "Social Media", icon: Share2, path: "/social" },
     ],
   },
   {
