@@ -14,6 +14,28 @@ import { Button } from "@/components/ui/button";
 import vsaLogo from "@/assets/vsa-logo.jpg";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { PageTransition } from "@/components/PageTransition";
+import { NewTicketDialog } from "@/components/department/NewTicketDialog";
+import { ChatAssistant } from "@/components/chat/ChatAssistant";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+
+const departmentServices: Record<string, { label: string; services: string[] }> = {
+  website: {
+    label: "Website",
+    services: ["Time Changes", "Pop-up Offers", "Theme Updates", "Add/Remove Team Members", "New Forms", "Paper-to-Digital Conversion", "Price List Updates", "Tech Issues", "Others"],
+  },
+  seo: {
+    label: "SEO",
+    services: ["Backlinking", "Ranking Reports", "Keyword Research", "Manual Work Reports", "Search Atlas Integration", "SEO Thread Updates", "Others"],
+  },
+  google_ads: {
+    label: "Google Ads",
+    services: ["Dashboard Access", "Analytics Review", "Monthly Performance Report", "Call Volume Issues", "Wrong Call Tracking", "Campaign Adjustments", "Others"],
+  },
+  social_media: {
+    label: "Social Media",
+    services: ["Content Calendar", "Post Approval", "Analytics", "Campaign Planning", "Others"],
+  },
+};
 
 interface NavItem {
   label: string;
@@ -111,6 +133,21 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [clientClinicId, setClientClinicId] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const { pendingRequests, pendingReview } = usePendingCounts();
+
+  // Global ticket dialog state
+  const [deptPickerOpen, setDeptPickerOpen] = useState(false);
+  const [globalTicketOpen, setGlobalTicketOpen] = useState(false);
+  const [globalTicketDept, setGlobalTicketDept] = useState("website");
+
+  // Chat assistant state
+  const [chatOpen, setChatOpen] = useState(false);
+
+  // Listen for global new-ticket event
+  useEffect(() => {
+    const handler = () => setDeptPickerOpen(true);
+    window.addEventListener("open-new-ticket", handler);
+    return () => window.removeEventListener("open-new-ticket", handler);
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -278,6 +315,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               {!collapsed && "New Ticket"}
             </button>
             <button
+              onClick={() => setChatOpen(true)}
               title={collapsed ? "Chat Assistant" : undefined}
               className={cn(
                 "flex items-center rounded-lg font-medium transition-all duration-200 group w-full",
@@ -367,6 +405,44 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </PageTransition>
         </div>
       </main>
+
+      {/* Department Picker Dialog */}
+      <Dialog open={deptPickerOpen} onOpenChange={setDeptPickerOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Select Department</DialogTitle>
+            <DialogDescription>Choose a department for your new ticket.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 py-2">
+            {Object.entries(departmentServices).map(([key, { label }]) => (
+              <Button
+                key={key}
+                variant="outline"
+                className="h-auto py-3 flex flex-col gap-1"
+                onClick={() => {
+                  setGlobalTicketDept(key);
+                  setDeptPickerOpen(false);
+                  setGlobalTicketOpen(true);
+                }}
+              >
+                <span className="text-sm font-medium">{label}</span>
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Global New Ticket Dialog */}
+      <NewTicketDialog
+        open={globalTicketOpen}
+        onOpenChange={setGlobalTicketOpen}
+        department={globalTicketDept}
+        services={departmentServices[globalTicketDept]?.services ?? []}
+        onCreated={() => {}}
+      />
+
+      {/* Chat Assistant */}
+      <ChatAssistant open={chatOpen} onOpenChange={setChatOpen} />
     </div>
   );
 }
