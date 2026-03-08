@@ -404,6 +404,30 @@ export type Database = {
           },
         ]
       }
+      department_members: {
+        Row: {
+          created_at: string
+          department: Database["public"]["Enums"]["department_type"]
+          department_role: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          department: Database["public"]["Enums"]["department_type"]
+          department_role: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          department?: Database["public"]["Enums"]["department_type"]
+          department_role?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       department_tickets: {
         Row: {
           assigned_to: string | null

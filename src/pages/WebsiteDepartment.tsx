@@ -6,6 +6,7 @@ import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
+import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { Eye, TrendingDown, Clock, Layers } from "lucide-react";
 
 const tabs = [
@@ -36,14 +37,10 @@ const trafficData = [
   { label: "Sun", value: 210 },
 ];
 
-const team = [
-  { name: "Alex Johnson", role: "Web Developer" },
-  { name: "Maria Chen", role: "Designer" },
-];
-
 export default function WebsiteDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
+  const { team } = useDepartmentTeam("website");
 
   return (
     <DashboardLayout>

@@ -6,6 +6,7 @@ import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
+import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -36,10 +37,6 @@ const trafficData = [
   { label: "Mar", value: 8400 },
 ];
 
-const team = [
-  { name: "David Park", role: "SEO Specialist" },
-  { name: "Sarah Kim", role: "Content Strategist" },
-];
 
 const topKeywords = [
   { rank: 1, keyword: "veterinary clinic near me", position: 3, change: "+2" },
@@ -89,6 +86,7 @@ function TopKeywordsCard() {
 export default function SeoDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
+  const { team } = useDepartmentTeam("seo");
 
   return (
     <DashboardLayout>

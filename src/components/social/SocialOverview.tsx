@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
+import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
@@ -10,12 +11,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { format, subDays, startOfDay } from "date-fns";
 
-interface TeamMember {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  role: string;
-}
 
 interface RequestSummary {
   generated: number;
@@ -54,7 +49,7 @@ export function SocialOverview() {
   const [totalRequests, setTotalRequests] = useState(0);
   const [activeClinics, setActiveClinics] = useState(0);
   const [weeklyData, setWeeklyData] = useState<{ day: string; posts: number }[]>([]);
-  const [team, setTeam] = useState<TeamMember[]>([]);
+  const { team: departmentTeam } = useDepartmentTeam("social_media");
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [prefilledService, setPrefilledService] = useState("");
   const [requestSummary, setRequestSummary] = useState<RequestSummary>({
@@ -117,27 +112,6 @@ export function SocialOverview() {
       });
       setWeeklyData(days.map(d => ({ day: d.label, posts: countMap[d.date] || 0 })));
 
-      // Team (concierges)
-      if (role === "admin") {
-        const { data: conciergeRoles } = await supabase
-          .from("user_roles")
-          .select("user_id, role")
-          .in("role", ["concierge"]);
-        if (conciergeRoles && conciergeRoles.length > 0) {
-          const userIds = conciergeRoles.map(r => r.user_id);
-          const { data: profiles } = await supabase
-            .from("profiles")
-            .select("id, full_name, email")
-            .in("id", userIds);
-          const roleMap = Object.fromEntries(conciergeRoles.map(r => [r.user_id, r.role]));
-          setTeam((profiles || []).map(p => ({
-            id: p.id,
-            full_name: p.full_name,
-            email: p.email,
-            role: roleMap[p.id] || "concierge",
-          })));
-        }
-      }
 
       setLoading(false);
     };
@@ -233,7 +207,7 @@ export function SocialOverview() {
         </Card>
 
         {/* Team */}
-        {role === "admin" && team.length > 0 ? (
+        {departmentTeam.length > 0 ? (
           <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
             <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
               <CardTitle className="text-base flex items-center gap-2">
@@ -243,15 +217,15 @@ export function SocialOverview() {
             </CardHeader>
             <CardContent className="pt-4">
               <div className="space-y-3">
-                {team.map(m => (
-                  <div key={m.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                {departmentTeam.map(m => (
+                  <div key={m.name} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                     <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-1 ring-border">
                       <span className="text-xs font-bold text-primary">
-                        {m.full_name?.charAt(0)?.toUpperCase() || "?"}
+                        {m.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate">{m.full_name || m.email}</p>
+                      <p className="text-sm font-medium text-foreground truncate">{m.name}</p>
                       <p className="text-xs text-muted-foreground capitalize">{m.role}</p>
                     </div>
                   </div>

@@ -6,6 +6,7 @@ import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
+import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -36,10 +37,6 @@ const trafficData = [
   { label: "Sun", value: 310 },
 ];
 
-const team = [
-  { name: "James Wilson", role: "PPC Specialist" },
-  { name: "Lisa Brown", role: "Account Manager" },
-];
 
 const campaigns = [
   { name: "Brand Awareness", spend: "$1,200", clicks: "1,020", conversions: 62, ctr: "6.2%" },
@@ -89,6 +86,7 @@ function CampaignsCard() {
 export default function GoogleAdsDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
+  const { team } = useDepartmentTeam("google_ads");
 
   return (
     <DashboardLayout>
