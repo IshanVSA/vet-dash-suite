@@ -55,6 +55,7 @@ export function SocialOverview() {
   const [requestSummary, setRequestSummary] = useState<RequestSummary>({
     generated: 0, concierge_preferred: 0, admin_approved: 0, client_selected: 0, final_approved: 0,
   });
+  const [ticketSummary, setTicketSummary] = useState({ open: 0, inProgress: 0, completed: 0, emergency: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
