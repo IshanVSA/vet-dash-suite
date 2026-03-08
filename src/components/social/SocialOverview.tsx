@@ -112,27 +112,6 @@ export function SocialOverview() {
       });
       setWeeklyData(days.map(d => ({ day: d.label, posts: countMap[d.date] || 0 })));
 
-      // Team (concierges)
-      if (role === "admin") {
-        const { data: conciergeRoles } = await supabase
-          .from("user_roles")
-          .select("user_id, role")
-          .in("role", ["concierge"]);
-        if (conciergeRoles && conciergeRoles.length > 0) {
-          const userIds = conciergeRoles.map(r => r.user_id);
-          const { data: profiles } = await supabase
-            .from("profiles")
-            .select("id, full_name, email")
-            .in("id", userIds);
-          const roleMap = Object.fromEntries(conciergeRoles.map(r => [r.user_id, r.role]));
-          setTeam((profiles || []).map(p => ({
-            id: p.id,
-            full_name: p.full_name,
-            email: p.email,
-            role: roleMap[p.id] || "concierge",
-          })));
-        }
-      }
 
       setLoading(false);
     };
