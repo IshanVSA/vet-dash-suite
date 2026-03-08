@@ -207,7 +207,7 @@ export function SocialOverview() {
         </Card>
 
         {/* Team */}
-        {departmentTeam.length > 0 ? (
+        {departmentTeam.length > 0 && (
           <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
             <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
               <CardTitle className="text-base flex items-center gap-2">
@@ -233,57 +233,30 @@ export function SocialOverview() {
               </div>
             </CardContent>
           </Card>
-        ) : (
-          <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
-            <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                Request Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="space-y-3">
-                {Object.entries(requestSummary).map(([status, count]) => (
-                  <div key={status} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`h-2.5 w-2.5 rounded-full ${statusColors[status]}`} />
-                      <span className="text-sm text-foreground">{statusLabels[status]}</span>
-                    </div>
-                    <span className="text-sm font-bold text-foreground tabular-nums">{count}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
         )}
-      </div>
 
-      {/* Request Summary (for admin, shown below team) */}
-      {role === "admin" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "400ms", animationFillMode: "both" }}>
-            <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-primary" />
-                Request Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
-              <div className="space-y-3">
-                {Object.entries(requestSummary).map(([status, count]) => (
-                  <div key={status} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <div className={`h-2.5 w-2.5 rounded-full ${statusColors[status]}`} />
-                      <span className="text-sm text-foreground">{statusLabels[status]}</span>
-                    </div>
-                    <span className="text-sm font-bold text-foreground tabular-nums">{count}</span>
+        {/* Request Summary */}
+        <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
+          <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              Request Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-3">
+              {Object.entries(requestSummary).map(([status, count]) => (
+                <div key={status} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className={`h-2.5 w-2.5 rounded-full ${statusColors[status]}`} />
+                    <span className="text-sm text-foreground">{statusLabels[status]}</span>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+                  <span className="text-sm font-bold text-foreground tabular-nums">{count}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
     </div>
   );
 }
