@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Users } from "lucide-react";
+import { Plus, Trash2, Users, Building2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const TEAM_ROLES = [
   "Developer",
@@ -25,17 +26,22 @@ const TEAM_ROLES = [
 
 interface Profile { id: string; full_name: string | null; email: string | null; team_role: string | null; }
 interface UserRole { user_id: string; role: string; }
-interface ClinicAssignment { user_id: string; clinic_names: string[]; }
+interface ClinicAssignment { user_id: string; clinic_names: string[]; clinic_ids: string[]; }
+interface ClinicOption { id: string; clinic_name: string; }
 
 export default function Employees() {
   const { role } = useUserRole();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [assignments, setAssignments] = useState<ClinicAssignment[]>([]);
+  const [allClinics, setAllClinics] = useState<ClinicOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", password: "", role: "concierge", team_role: "" });
   const [creating, setCreating] = useState(false);
+  const [assignDialogUser, setAssignDialogUser] = useState<Profile | null>(null);
+  const [assignedClinicIds, setAssignedClinicIds] = useState<string[]>([]);
+  const [savingAssign, setSavingAssign] = useState(false);
 
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes, teamAssignRes] = await Promise.all([
@@ -47,20 +53,22 @@ export default function Employees() {
     setProfiles((profilesRes.data as Profile[]) || []);
     setRoles(rolesRes.data || []);
 
-    const clinics = (clinicsRes.data || []) as { id: string; clinic_name: string }[];
+    const clinics = (clinicsRes.data || []) as ClinicOption[];
+    setAllClinics(clinics);
     const clinicMap = Object.fromEntries(clinics.map(c => [c.id, c.clinic_name]));
     const teamData = (teamAssignRes.data || []) as { user_id: string; clinic_id: string }[];
 
-    const assignMap = new Map<string, string[]>();
+    const assignMap = new Map<string, { names: string[]; ids: string[] }>();
     teamData.forEach((a: { user_id: string; clinic_id: string }) => {
       const name = clinicMap[a.clinic_id];
       if (name) {
-        const existing = assignMap.get(a.user_id) || [];
-        existing.push(name);
+        const existing = assignMap.get(a.user_id) || { names: [], ids: [] };
+        existing.names.push(name);
+        existing.ids.push(a.clinic_id);
         assignMap.set(a.user_id, existing);
       }
     });
-    setAssignments(Array.from(assignMap.entries()).map(([user_id, clinic_names]) => ({ user_id, clinic_names })));
+    setAssignments(Array.from(assignMap.entries()).map(([user_id, { names, ids }]) => ({ user_id, clinic_names: names, clinic_ids: ids })));
     setLoading(false);
   };
 
@@ -76,6 +84,32 @@ export default function Employees() {
 
   const getRole = (userId: string) => roles.find(r => r.user_id === userId)?.role || "unknown";
   const getAssignedClinics = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_names || [];
+  const getAssignedClinicIds = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_ids || [];
+
+  const openAssignDialog = (user: Profile) => {
+    setAssignDialogUser(user);
+    setAssignedClinicIds(getAssignedClinicIds(user.id));
+  };
+
+  const handleSaveAssignments = async () => {
+    if (!assignDialogUser) return;
+    setSavingAssign(true);
+    const userId = assignDialogUser.id;
+    const currentIds = getAssignedClinicIds(userId);
+    const toAdd = assignedClinicIds.filter(id => !currentIds.includes(id));
+    const toRemove = currentIds.filter(id => !assignedClinicIds.includes(id));
+
+    for (const clinicId of toRemove) {
+      await (supabase.from("clinic_team_members" as any).delete().eq("user_id", userId).eq("clinic_id", clinicId) as any);
+    }
+    for (const clinicId of toAdd) {
+      await (supabase.from("clinic_team_members" as any).insert({ user_id: userId, clinic_id: clinicId } as any) as any);
+    }
+    setSavingAssign(false);
+    setAssignDialogUser(null);
+    toast.success("Clinic assignments updated");
+    await fetchData();
+  };
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     const { error } = await supabase.from("user_roles").update({ role: newRole as any }).eq("user_id", userId);
@@ -236,7 +270,10 @@ export default function Employees() {
                           </div>
                         ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right space-x-1">
+                        <Button variant="ghost" size="sm" className="h-8" onClick={() => openAssignDialog(p)} title="Assign clinics">
+                          <Building2 className="h-3.5 w-3.5" />
+                        </Button>
                         <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => handleDelete(p.id, p.full_name || "User")}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
@@ -248,6 +285,39 @@ export default function Employees() {
             </Table>
           </Card>
         )}
+
+        {/* Assign Clinics Dialog */}
+        <Dialog open={!!assignDialogUser} onOpenChange={(open) => { if (!open) setAssignDialogUser(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Assign Clinics — {assignDialogUser?.full_name || "User"}</DialogTitle>
+              <DialogDescription>Select which clinics this team member is assigned to.</DialogDescription>
+            </DialogHeader>
+            <div className="max-h-64 overflow-y-auto space-y-2 py-2">
+              {allClinics.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No active clinics found.</p>
+              ) : allClinics.map(c => (
+                <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer">
+                  <Checkbox
+                    checked={assignedClinicIds.includes(c.id)}
+                    onCheckedChange={(checked) => {
+                      setAssignedClinicIds(prev =>
+                        checked ? [...prev, c.id] : prev.filter(id => id !== c.id)
+                      );
+                    }}
+                  />
+                  <span className="text-sm">{c.clinic_name}</span>
+                </label>
+              ))}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAssignDialogUser(null)}>Cancel</Button>
+              <Button disabled={savingAssign} onClick={handleSaveAssignments}>
+                {savingAssign ? "Saving…" : "Save"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
