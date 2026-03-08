@@ -204,7 +204,14 @@ export function DepartmentOverview({
                     </span>
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-foreground truncate">{m.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-medium text-foreground truncate">{m.name}</p>
+                      {m.teamRole && (
+                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-full shrink-0">
+                          {m.teamRole}
+                        </Badge>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">{m.role}</p>
                   </div>
                 </div>
