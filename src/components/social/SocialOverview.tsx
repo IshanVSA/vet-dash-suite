@@ -59,26 +59,30 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!clinicId) return;
     const fetchAll = async () => {
       setLoading(true);
 
       // Total posts
       const { count: postCount } = await supabase
         .from("content_posts")
-        .select("*", { count: "exact", head: true });
+        .select("*", { count: "exact", head: true })
+        .eq("clinic_id", clinicId);
       setTotalPosts(postCount || 0);
 
       // Pending review posts
       const { count: pendCount } = await supabase
         .from("content_posts")
         .select("*", { count: "exact", head: true })
+        .eq("clinic_id", clinicId)
         .in("status", ["draft", "pending", "flagged"]);
       setPendingReview(pendCount || 0);
 
       // Content requests
       const { data: reqData } = await supabase
         .from("content_requests")
-        .select("status");
+        .select("status")
+        .eq("clinic_id", clinicId);
       const reqs = reqData || [];
       setTotalRequests(reqs.length);
 
@@ -90,12 +94,8 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
       });
       setRequestSummary(summary);
 
-      // Active clinics
-      const { count: clinicCount } = await supabase
-        .from("clinics")
-        .select("*", { count: "exact", head: true })
-        .eq("status", "active");
-      setActiveClinics(clinicCount || 0);
+      // Active clinics - just show 1 since we're filtered
+      setActiveClinics(1);
 
       // Weekly post trend (last 7 days)
       const days = Array.from({ length: 7 }, (_, i) => {
@@ -105,6 +105,7 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
       const { data: weekPosts } = await supabase
         .from("content_posts")
         .select("scheduled_date")
+        .eq("clinic_id", clinicId)
         .gte("scheduled_date", days[0].date)
         .lte("scheduled_date", days[6].date);
       const countMap: Record<string, number> = {};
@@ -113,12 +114,11 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
       });
       setWeeklyData(days.map(d => ({ day: d.label, posts: countMap[d.date] || 0 })));
 
-
       setLoading(false);
     };
 
     fetchAll();
-  }, [role, user]);
+  }, [role, user, clinicId]);
 
   // Ticket counts with realtime
   useEffect(() => {
