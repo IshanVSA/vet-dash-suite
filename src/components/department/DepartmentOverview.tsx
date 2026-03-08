@@ -19,6 +19,7 @@ interface KPI {
 interface TeamMember {
   name: string;
   role: string;
+  teamRole?: string | null;
 }
 
 interface TicketSummary {
