@@ -130,13 +130,28 @@ export function DepartmentOverview({
         <CardContent className="pt-4">
           <div className="flex flex-wrap gap-2">
             {services.map(s => (
-              <Badge key={s} variant="secondary" className="text-xs font-medium px-3 py-1.5">
+              <Badge
+                key={s}
+                variant="secondary"
+                className="text-xs font-medium px-3 py-1.5 cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
+                onClick={() => { setPrefilledService(s); setTicketDialogOpen(true); }}
+              >
                 {s}
               </Badge>
             ))}
           </div>
+          <p className="text-[11px] text-muted-foreground mt-3">Click a service to create a ticket</p>
         </CardContent>
       </Card>
+
+      <NewTicketDialog
+        open={ticketDialogOpen}
+        onOpenChange={setTicketDialogOpen}
+        department={department}
+        services={services}
+        onCreated={() => {}}
+        defaultType={prefilledService}
+      />
 
       {/* Charts + Team Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
