@@ -31,7 +31,7 @@ interface ContentVersion {
   created_at: string;
 }
 
-export default function ContentRequestsContent() {
+export default function ContentRequestsContent({ clinicId }: { clinicId?: string }) {
   const { role } = useUserRole();
   const { user } = useAuth();
   const [requests, setRequests] = useState<ContentRequest[]>([]);

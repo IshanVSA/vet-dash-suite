@@ -25,7 +25,7 @@ const STATUS_OPTIONS = ["all", "draft", "scheduled", "posted", "flagged", "faile
 const PLATFORM_OPTIONS = ["all", "facebook", "instagram", "tiktok"] as const;
 const CONTENT_TYPE_OPTIONS = ["all", "IMAGE", "VIDEO", "REEL", "CAROUSEL", "STORY"] as const;
 
-export default function ContentCalendarContent() {
+export default function ContentCalendarContent({ clinicId: externalClinicId }: { clinicId?: string }) {
   const { role } = useUserRole();
   const { user } = useAuth();
   const [clinics, setClinics] = useState<Clinic[]>([]);

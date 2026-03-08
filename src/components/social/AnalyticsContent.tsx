@@ -8,7 +8,7 @@ import { BarChart3 } from "lucide-react";
 
 interface ChartPoint { date: string; records: number; }
 
-export default function AnalyticsContent() {
+export default function AnalyticsContent({ clinicId }: { clinicId?: string }) {
   const { role } = useUserRole();
   const { user } = useAuth();
   const [data, setData] = useState<any[]>([]);
