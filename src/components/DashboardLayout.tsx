@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
   ShieldCheck, LayoutDashboard, UserCheck,
-  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Search,
+  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Search, Plus,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -288,34 +288,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           ))}
         </nav>
 
-        {/* Quick Actions */}
-        <div className={cn("py-4 border-t border-[hsl(var(--sidebar-border))]", collapsed ? "px-1.5" : "px-3")}>
-          {!collapsed && (
-            <p className="px-3 mb-2.5 text-[10px] font-bold tracking-[0.15em] text-[hsl(var(--sidebar-muted))]/60 uppercase select-none">
-              Quick Actions
-            </p>
-          )}
-          <div className="space-y-0.5">
-            <button
-              onClick={() => {
-                // Dispatch a custom event that TicketsTab can listen for
-                window.dispatchEvent(new CustomEvent("open-new-ticket"));
-              }}
-              title={collapsed ? "New Ticket" : undefined}
-              className={cn(
-                "flex items-center rounded-lg font-medium transition-all duration-200 group w-full",
-                collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5 text-[13px]",
-                "text-[hsl(var(--sidebar-muted))] hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]/50"
-              )}
-            >
-              <div className="relative shrink-0">
-                <div className="h-[7px] w-[7px] rounded-full bg-destructive" />
-              </div>
-              {!collapsed && "New Ticket"}
-            </button>
-          </div>
-        </div>
-
         {/* User footer */}
         <div className={cn("py-4 border-t border-[hsl(var(--sidebar-border))]", collapsed ? "px-1.5" : "px-3")}>
           {!collapsed && (
@@ -363,6 +335,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           )}
 
           <div className="flex-1" />
+
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 gap-1.5 text-xs font-medium"
+            onClick={() => setDeptPickerOpen(true)}
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">New Ticket</span>
+          </Button>
 
           <button
             className="relative p-2 rounded-lg hover:bg-muted transition-colors"
