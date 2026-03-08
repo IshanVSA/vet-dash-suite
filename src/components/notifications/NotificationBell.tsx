@@ -15,11 +15,28 @@ interface Notification {
   created_at: string;
 }
 
+import { Bell, Check, FileText, MessageSquare, AlertTriangle, CheckCircle, Ticket } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { formatDistanceToNow } from "date-fns";
+
+interface Notification {
+  id: string;
+  type: "post_approved" | "post_flagged" | "comment_added" | "status_changed" | "ticket_created";
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+}
+
 const typeConfig = {
   post_approved: { icon: CheckCircle, color: "text-success", bg: "bg-success/10" },
   post_flagged: { icon: AlertTriangle, color: "text-warning", bg: "bg-warning/10" },
   comment_added: { icon: MessageSquare, color: "text-primary", bg: "bg-primary/10" },
   status_changed: { icon: FileText, color: "text-muted-foreground", bg: "bg-muted" },
+  ticket_created: { icon: Ticket, color: "text-amber-500", bg: "bg-amber-500/10" },
 };
 
 export function NotificationBell() {
