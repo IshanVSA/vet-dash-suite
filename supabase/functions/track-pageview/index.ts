@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
   if (req.method === "POST") {
     try {
       const body = await req.json();
-      const { clinic_id, path, referrer, session_id, user_agent } = body;
+      const { clinic_id, path, referrer_domain, session_id } = body;
 
       if (!clinic_id || !session_id) {
         return new Response(JSON.stringify({ error: "Missing clinic_id or session_id" }), {
