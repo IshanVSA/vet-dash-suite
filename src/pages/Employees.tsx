@@ -312,7 +312,7 @@ export default function Employees() {
                           <span className="text-xs text-muted-foreground italic">N/A</span>
                         ) : (
                           <Select value={p.team_role || ""} onValueChange={v => handleTeamRoleChange(p.id, v)}>
-                            <SelectTrigger className="w-[160px] h-8 text-xs text-left"><SelectValue placeholder="Assign role" /></SelectTrigger>
+                            <SelectTrigger className="w-[180px] h-8 text-xs [&>span]:text-left [&>span]:truncate"><SelectValue placeholder="Assign role" /></SelectTrigger>
                             <SelectContent>
                               {TEAM_ROLES.map(r => (
                                 <SelectItem key={r} value={r}>{r}</SelectItem>
