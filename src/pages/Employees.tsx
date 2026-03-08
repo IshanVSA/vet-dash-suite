@@ -38,21 +38,26 @@ export default function Employees() {
   const [creating, setCreating] = useState(false);
 
   const fetchData = async () => {
-    const [profilesRes, rolesRes, clinicsRes] = await Promise.all([
+    const [profilesRes, rolesRes, clinicsRes, teamAssignRes] = await Promise.all([
       supabase.from("profiles").select("id, full_name, email, team_role"),
       supabase.from("user_roles").select("user_id, role"),
-      supabase.from("clinics").select("assigned_concierge_id, clinic_name"),
+      supabase.from("clinics").select("id, clinic_name"),
+      (supabase.from("clinic_team_members" as any).select("user_id, clinic_id") as any),
     ]);
     setProfiles((profilesRes.data as Profile[]) || []);
     setRoles(rolesRes.data || []);
 
-    const clinics = clinicsRes.data || [];
+    const clinics = (clinicsRes.data || []) as { id: string; clinic_name: string }[];
+    const clinicMap = Object.fromEntries(clinics.map(c => [c.id, c.clinic_name]));
+    const teamData = (teamAssignRes.data || []) as { user_id: string; clinic_id: string }[];
+
     const assignMap = new Map<string, string[]>();
-    clinics.forEach(c => {
-      if (c.assigned_concierge_id) {
-        const existing = assignMap.get(c.assigned_concierge_id) || [];
-        existing.push(c.clinic_name);
-        assignMap.set(c.assigned_concierge_id, existing);
+    teamData.forEach((a: { user_id: string; clinic_id: string }) => {
+      const name = clinicMap[a.clinic_id];
+      if (name) {
+        const existing = assignMap.get(a.user_id) || [];
+        existing.push(name);
+        assignMap.set(a.user_id, existing);
       }
     });
     setAssignments(Array.from(assignMap.entries()).map(([user_id, clinic_names]) => ({ user_id, clinic_names })));
