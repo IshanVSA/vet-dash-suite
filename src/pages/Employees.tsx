@@ -130,7 +130,7 @@ export default function Employees() {
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="concierge">Concierge</SelectItem>
+                          <SelectItem value="concierge">Member</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
