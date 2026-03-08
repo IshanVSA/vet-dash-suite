@@ -33,6 +33,7 @@ const allTabs = [
   { value: "calendar", label: "Calendar", icon: CalendarDays },
   { value: "intake", label: "Intake", icon: ClipboardList },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
+  { value: "uploads", label: "Uploads", icon: Upload },
 ];
 
 export default function SocialMedia() {
