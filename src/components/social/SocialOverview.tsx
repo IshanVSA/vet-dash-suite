@@ -120,6 +120,31 @@ export function SocialOverview() {
     fetchAll();
   }, [role, user]);
 
+  // Ticket counts with realtime
+  useEffect(() => {
+    const fetchTickets = async () => {
+      const { data, error } = await supabase
+        .from("department_tickets")
+        .select("status")
+        .eq("department", "social_media" as any);
+      if (error || !data) return;
+      const s = { open: 0, inProgress: 0, completed: 0, emergency: 0 };
+      for (const row of data) {
+        if (row.status === "open") s.open++;
+        else if (row.status === "in_progress") s.inProgress++;
+        else if (row.status === "completed") s.completed++;
+        else if (row.status === "emergency") s.emergency++;
+      }
+      setTicketSummary(s);
+    };
+    fetchTickets();
+    const channel = supabase
+      .channel("social-ticket-counts")
+      .on("postgres_changes", { event: "*", schema: "public", table: "department_tickets", filter: "department=eq.social_media" }, fetchTickets)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
   const tooltipStyle = {
     backgroundColor: "hsl(var(--card))",
     border: "1px solid hsl(var(--border))",
