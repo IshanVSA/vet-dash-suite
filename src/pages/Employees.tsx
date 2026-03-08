@@ -42,6 +42,9 @@ export default function Employees() {
   const [assignDialogUser, setAssignDialogUser] = useState<Profile | null>(null);
   const [assignedClinicIds, setAssignedClinicIds] = useState<string[]>([]);
   const [savingAssign, setSavingAssign] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterTeamRole, setFilterTeamRole] = useState("all");
+  const [filterClinic, setFilterClinic] = useState("all");
 
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes, teamAssignRes] = await Promise.all([
