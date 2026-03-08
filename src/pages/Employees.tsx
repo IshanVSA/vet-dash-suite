@@ -84,6 +84,32 @@ export default function Employees() {
 
   const getRole = (userId: string) => roles.find(r => r.user_id === userId)?.role || "unknown";
   const getAssignedClinics = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_names || [];
+  const getAssignedClinicIds = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_ids || [];
+
+  const openAssignDialog = (user: Profile) => {
+    setAssignDialogUser(user);
+    setAssignedClinicIds(getAssignedClinicIds(user.id));
+  };
+
+  const handleSaveAssignments = async () => {
+    if (!assignDialogUser) return;
+    setSavingAssign(true);
+    const userId = assignDialogUser.id;
+    const currentIds = getAssignedClinicIds(userId);
+    const toAdd = assignedClinicIds.filter(id => !currentIds.includes(id));
+    const toRemove = currentIds.filter(id => !assignedClinicIds.includes(id));
+
+    for (const clinicId of toRemove) {
+      await (supabase.from("clinic_team_members" as any).delete().eq("user_id", userId).eq("clinic_id", clinicId) as any);
+    }
+    for (const clinicId of toAdd) {
+      await (supabase.from("clinic_team_members" as any).insert({ user_id: userId, clinic_id: clinicId } as any) as any);
+    }
+    setSavingAssign(false);
+    setAssignDialogUser(null);
+    toast.success("Clinic assignments updated");
+    await fetchData();
+  };
 
   const handleRoleChange = async (userId: string, newRole: string) => {
     const { error } = await supabase.from("user_roles").update({ role: newRole as any }).eq("user_id", userId);
