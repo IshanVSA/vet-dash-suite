@@ -405,6 +405,44 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
           </PageTransition>
         </div>
       </main>
+
+      {/* Department Picker Dialog */}
+      <Dialog open={deptPickerOpen} onOpenChange={setDeptPickerOpen}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Select Department</DialogTitle>
+            <DialogDescription>Choose a department for your new ticket.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-2 gap-2 py-2">
+            {Object.entries(departmentServices).map(([key, { label }]) => (
+              <Button
+                key={key}
+                variant="outline"
+                className="h-auto py-3 flex flex-col gap-1"
+                onClick={() => {
+                  setGlobalTicketDept(key);
+                  setDeptPickerOpen(false);
+                  setGlobalTicketOpen(true);
+                }}
+              >
+                <span className="text-sm font-medium">{label}</span>
+              </Button>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Global New Ticket Dialog */}
+      <NewTicketDialog
+        open={globalTicketOpen}
+        onOpenChange={setGlobalTicketOpen}
+        department={globalTicketDept}
+        services={departmentServices[globalTicketDept]?.services ?? []}
+        onCreated={() => {}}
+      />
+
+      {/* Chat Assistant */}
+      <ChatAssistant open={chatOpen} onOpenChange={setChatOpen} />
     </div>
   );
 }
