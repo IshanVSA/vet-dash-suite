@@ -11,7 +11,7 @@ const PIXEL_JS = (clinicId: string, endpoint: string) => `
   var sid = sessionStorage.getItem('_vsa_sid');
   if(!sid){sid=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('_vsa_sid',sid);}
   function track(){
-    var d={clinic_id:"${clinicId}",path:location.pathname+location.search,referrer:document.referrer,session_id:sid,user_agent:navigator.userAgent};
+    var d={clinic_id:"${clinicId}",path:location.pathname,referrer_domain:document.referrer?new URL(document.referrer).hostname:"",session_id:sid};
     if(navigator.sendBeacon){navigator.sendBeacon("${endpoint}",JSON.stringify(d));}
     else{fetch("${endpoint}",{method:"POST",body:JSON.stringify(d),keepalive:true}).catch(function(){});}
   }
