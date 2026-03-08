@@ -134,6 +134,21 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const { pendingRequests, pendingReview } = usePendingCounts();
 
+  // Global ticket dialog state
+  const [deptPickerOpen, setDeptPickerOpen] = useState(false);
+  const [globalTicketOpen, setGlobalTicketOpen] = useState(false);
+  const [globalTicketDept, setGlobalTicketDept] = useState("website");
+
+  // Chat assistant state
+  const [chatOpen, setChatOpen] = useState(false);
+
+  // Listen for global new-ticket event
+  useEffect(() => {
+    const handler = () => setDeptPickerOpen(true);
+    window.addEventListener("open-new-ticket", handler);
+    return () => window.removeEventListener("open-new-ticket", handler);
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
