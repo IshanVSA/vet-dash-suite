@@ -5,6 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { Users, BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, LucideIcon } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 
 interface KPI {
   label: string;
