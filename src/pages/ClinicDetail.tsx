@@ -17,6 +17,7 @@ import { PageSelectionDialog } from "@/components/clinic-detail/PageSelectionDia
 import { FacebookInsightCard } from "@/components/clinic-detail/FacebookInsightCard";
 import { GoogleAdsConnectionCard } from "@/components/clinic-detail/GoogleAdsConnectionCard";
 import { GoogleAccountSelectionDialog } from "@/components/clinic-detail/GoogleAccountSelectionDialog";
+import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 
 interface ClinicData { clinic_name: string; }
 interface ClinicCredentials {
