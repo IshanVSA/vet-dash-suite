@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface KPICardProps {
   label: string;
@@ -9,6 +10,7 @@ interface KPICardProps {
   icon: LucideIcon;
   index?: number;
   gradient?: "blue" | "green" | "amber" | "purple";
+  href?: string;
 }
 
 const gradientMap = {
