@@ -207,7 +207,7 @@ export function SocialOverview() {
         </Card>
 
         {/* Team */}
-        {role === "admin" && team.length > 0 ? (
+        {departmentTeam.length > 0 ? (
           <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
             <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
               <CardTitle className="text-base flex items-center gap-2">
@@ -217,15 +217,15 @@ export function SocialOverview() {
             </CardHeader>
             <CardContent className="pt-4">
               <div className="space-y-3">
-                {team.map(m => (
-                  <div key={m.id} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                {departmentTeam.map(m => (
+                  <div key={m.name} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
                     <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-1 ring-border">
                       <span className="text-xs font-bold text-primary">
-                        {m.full_name?.charAt(0)?.toUpperCase() || "?"}
+                        {m.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-foreground truncate">{m.full_name || m.email}</p>
+                      <p className="text-sm font-medium text-foreground truncate">{m.name}</p>
                       <p className="text-xs text-muted-foreground capitalize">{m.role}</p>
                     </div>
                   </div>
