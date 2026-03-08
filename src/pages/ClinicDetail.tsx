@@ -48,6 +48,7 @@ export default function ClinicDetail() {
   const [googleAdsData, setGoogleAdsData] = useState<any[]>([]);
   const [metaPages, setMetaPages] = useState<any[] | null>(null);
   const [googleAccounts, setGoogleAccounts] = useState<{ accounts: any[]; refresh_token: string } | null>(null);
+  const [teamMembers, setTeamMembers] = useState<{ full_name: string | null; team_role: string | null }[]>([]);
   useEffect(() => {
     if (!id) return;
     supabase.from("clinics").select("clinic_name").eq("id", id).maybeSingle().then(({ data }) => setClinic(data));
