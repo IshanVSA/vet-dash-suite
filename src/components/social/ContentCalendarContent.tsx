@@ -53,6 +53,10 @@ export default function ContentCalendarContent({ clinicId: externalClinicId }: {
   const hasActiveFilters = filterStatus !== "all" || filterPlatform !== "all" || filterContentType !== "all";
 
   useEffect(() => {
+    if (externalClinicId) {
+      setSelectedClinicId(externalClinicId);
+      return;
+    }
     const fetchClinics = async () => {
       let query = supabase.from("clinics").select("id, clinic_name");
       if (role === "concierge") query = query.eq("assigned_concierge_id", user?.id);
@@ -62,7 +66,7 @@ export default function ContentCalendarContent({ clinicId: externalClinicId }: {
       if (data && data.length > 0 && !selectedClinicId) setSelectedClinicId(data[0].id);
     };
     fetchClinics();
-  }, [role, user]);
+  }, [role, user, externalClinicId]);
 
   useEffect(() => {
     if (!selectedClinicId) return;
