@@ -1,53 +1,106 @@
 
 
-## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
+## Plan: Pulse-Style Dashboard with Department Tabs and Reorganized Sidebar
 
-### Summary
-Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
+### What We're Building
+Restructure the app to use a Pulse-like department model. The sidebar gets department entries (Social Media, Google Ads) that each open a tabbed view. Content Requests, Calendar, Intake, and Analytics all become tabs under "Social Media" instead of separate pages. The MANAGE section stays as-is.
 
-### Changes
+### Sidebar Changes (`DashboardLayout.tsx`)
 
-**1. Edge Function: `supabase/functions/generate-content/index.ts`**
-- Remove the `callClaude` function entirely
-- Remove the Claude API key lookup and Claude execution block
-- Keep only the OpenAI call
-- This means only one `content_version` row is created per request
+**Admin sidebar:**
+```
+OVERVIEW
+  Dashboard
 
-**2. `src/components/content-requests/ContentRequestCard.tsx`**
-- Remove the `ModelToggleView` component (no longer needed with single version)
-- Render the single `ContentVersionCard` directly when versions exist
-- Rename `onConciergePrefer` prop to `onSendForReview`
+DEPARTMENTS
+  Social Media  [badge count]
+  Google Ads
 
-**3. `src/components/content-requests/ContentVersionCard.tsx`**
-- Remove the "Concierge Pick" badge references
-- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
-- Rename `onConciergePrefer` prop to `onSendForReview`
-- Remove Claude-specific badge styling
-- Simplify the model name badge (just show "AI Generated" or "OpenAI")
+MANAGE
+  Clinics
+  Employees
+  Clients
+  Admin Review
+  Settings
+```
 
-**4. `src/pages/ContentRequests.tsx`**
-- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
-- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
-- Update prop names passed to `ContentRequestCard`
+**Concierge sidebar:** Same but without Employees, Clients, Admin Review.
+**Client sidebar:** Dashboard, Social Media (limited tabs), My Clinic.
 
-**5. `src/pages/AdminReview.tsx`**
-- Remove reference to "Client selected: {model_name}" badge since there's only one model now
-- Keep everything else the same (final approve logic is unchanged)
+- Remove separate nav items for Content Calendar, Content Requests, Intake Forms, Analytics
+- Add "Social Media" as a single sidebar item that routes to `/social`
+- Add "Google Ads" as a sidebar item routing to `/google-ads` (future, or links to clinic analytics)
+- Badge on Social Media shows pending content request count
 
-**6. Status labels in `ContentRequestCard.tsx`**
-- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
+### New Social Media Department Page (`src/pages/SocialMedia.tsx`)
+
+A tabbed page inspired by Pulse, with tabs:
+- **Overview** -- KPI cards (total posts, pending review, content requests), traffic/content trend chart, upcoming posts, recent activity, team list (assigned concierges), services summary
+- **Content Requests** -- embed existing ContentRequests page content (without DashboardLayout wrapper)
+- **Calendar** -- embed existing ContentCalendar content
+- **Intake** -- embed existing IntakeForms content
+- **Analytics** -- embed existing Analytics content
+
+Uses URL search params (`?tab=overview`) to persist tab state. Each tab renders the core content from existing pages (extract inner content into reusable components).
+
+### Refactor Existing Pages
+
+Extract the inner content (without `<DashboardLayout>` wrapper) from these pages into standalone components:
+- `ContentRequests.tsx` -> `ContentRequestsContent.tsx`
+- `ContentCalendar.tsx` -> `ContentCalendarContent.tsx`
+- `IntakeForms.tsx` -> `IntakeFormsContent.tsx`
+- `Analytics.tsx` -> `AnalyticsContent.tsx`
+
+The original page files can either redirect to `/social?tab=X` or be kept as wrappers for backward compatibility.
+
+### Routing Changes (`App.tsx`)
+
+- Add route `/social` -> `SocialMedia` page
+- Redirect `/content`, `/content-requests`, `/intake-forms`, `/analytics` to `/social?tab=calendar`, `/social?tab=requests`, `/social?tab=intake`, `/social?tab=analytics`
+
+### Dashboard Page Update
+
+- Keep the dashboard as the overview/home page
+- Remove widgets that will now live under Social Media Overview tab (optional -- or keep dashboard as a high-level summary)
+
+### Overview Tab Design (Pulse-inspired)
+
+```text
++------------------+------------------+------------------+------------------+
+| TOTAL POSTS      | PENDING REVIEW   | CONTENT REQUESTS | CLINICS ACTIVE   |
+| 142              | 5                | 12               | 8                |
+| +12.3%           | -2               | +3 this week     |                  |
++------------------+------------------+------------------+------------------+
+| CONTENT TREND (bar chart)          | TEAM                               |
+| Mon Tue Wed Thu Fri Sat Sun        | Devraj - Concierge                 |
+|  ██  ██  ██  ██  ██  ██  ██        | Sarah  - Concierge                 |
++------------------------------------+------------------------------------+
+| SERVICES / CONTENT TYPES           | REQUEST SUMMARY                    |
+| [Dental] [Wellness] [Promos] ...   | Generated    3                     |
+|                                    | Under Review 2                     |
+|                                    | Approved     5                     |
+|                                    | Completed    12                    |
++------------------------------------+------------------------------------+
+```
+
+### Files to Create/Modify
+
+1. **Create** `src/pages/SocialMedia.tsx` -- main tabbed department page
+2. **Create** `src/components/social/SocialOverview.tsx` -- overview tab with KPIs, charts, team, request summary
+3. **Modify** `src/pages/ContentRequests.tsx` -- extract inner content to a separate component
+4. **Modify** `src/pages/ContentCalendar.tsx` -- extract inner content
+5. **Modify** `src/pages/IntakeForms.tsx` -- extract inner content
+6. **Modify** `src/pages/Analytics.tsx` -- extract inner content
+7. **Modify** `src/components/DashboardLayout.tsx` -- restructure sidebar sections
+8. **Modify** `src/App.tsx` -- add `/social` route, add redirects
+9. **Modify** `src/hooks/usePendingCounts.ts` -- ensure badge works for Social Media nav item
 
 ### Technical Details
 
-- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
-- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
-- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
-- No database schema changes needed
-
-### Files to modify
-1. `supabase/functions/generate-content/index.ts` -- remove Claude
-2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
-3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
-4. `src/pages/ContentRequests.tsx` -- rename function
-5. `src/pages/AdminReview.tsx` -- remove model name badge
+- Tabs implemented with Radix `Tabs` component (already installed)
+- Tab state synced with URL search params via `useSearchParams`
+- Each tab lazily renders existing page content components
+- No database changes needed
+- Sidebar page title map updated to include `/social`
+- The Social Media page wraps content in `DashboardLayout`; extracted content components do not
 
