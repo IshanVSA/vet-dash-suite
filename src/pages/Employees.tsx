@@ -312,7 +312,7 @@ export default function Employees() {
                           <span className="text-xs text-muted-foreground italic">N/A</span>
                         ) : (
                           <Select value={p.team_role || ""} onValueChange={v => handleTeamRoleChange(p.id, v)}>
-                            <SelectTrigger className="w-[160px] h-8 text-xs text-left"><SelectValue placeholder="Assign role" /></SelectTrigger>
+                            <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Assign role" /></SelectTrigger>
                             <SelectContent>
                               {TEAM_ROLES.map(r => (
                                 <SelectItem key={r} value={r}>{r}</SelectItem>
@@ -328,19 +328,10 @@ export default function Employees() {
                           </div>
                         ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {assignedClinics.length > 0 ? (
-                            <div className="flex flex-wrap gap-1 flex-1">
-                              {assignedClinics.map((name, i) => (<Badge key={i} variant="secondary" className="text-[11px] rounded-full">{name}</Badge>))}
-                            </div>
-                          ) : (<span className="text-muted-foreground text-xs italic flex-1">None</span>)}
-                          <Button variant="ghost" size="sm" className="h-8 shrink-0" onClick={() => openAssignDialog(p)} title="Assign clinics">
-                            <Building2 className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right space-x-1">
+                        <Button variant="ghost" size="sm" className="h-8" onClick={() => openAssignDialog(p)} title="Assign clinics">
+                          <Building2 className="h-3.5 w-3.5" />
+                        </Button>
                         <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => handleDelete(p.id, p.full_name || "User")}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
