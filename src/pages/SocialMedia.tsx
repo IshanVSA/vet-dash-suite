@@ -112,6 +112,10 @@ export default function SocialMedia() {
               <AnalyticsContent />
             </Suspense>
           </TabsContent>
+
+          <TabsContent value="uploads" className="mt-4">
+            <UploadsTab department="social_media" />
+          </TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
