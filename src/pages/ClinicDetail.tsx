@@ -54,6 +54,7 @@ export default function ClinicDetail() {
     supabase.from("clinics").select("clinic_name").eq("id", id).maybeSingle().then(({ data }) => setClinic(data));
     fetchCredentials();
     fetchAnalytics();
+    fetchTeamMembers();
 
     // Check for meta_pages URL parameter (page selection after OAuth)
     const metaPagesParam = searchParams.get("meta_pages");
