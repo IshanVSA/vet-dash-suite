@@ -178,6 +178,37 @@ export function SocialOverview() {
         <StatsCard title="Active Clinics" value={activeClinics} icon={Building2} index={3} />
       </div>
 
+      {/* Services */}
+      <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: "160ms", animationFillMode: "both" }}>
+        <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+          <CardTitle className="text-base">Services</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="flex flex-wrap gap-2">
+            {socialServices.map(s => (
+              <Badge
+                key={s}
+                variant="secondary"
+                className="text-xs font-medium px-3 py-1.5 cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
+                onClick={() => { setPrefilledService(s); setTicketDialogOpen(true); }}
+              >
+                {s}
+              </Badge>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-3">Click a service to create a ticket</p>
+        </CardContent>
+      </Card>
+
+      <NewTicketDialog
+        open={ticketDialogOpen}
+        onOpenChange={setTicketDialogOpen}
+        department="social_media"
+        services={socialServices}
+        onCreated={() => {}}
+        defaultType={prefilledService}
+      />
+
       {/* Charts + Panels Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Weekly Content Trend */}
