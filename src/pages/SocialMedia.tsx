@@ -20,9 +20,15 @@ const TabFallback = () => (
   </div>
 );
 
+const socialServices = [
+  "Content Creation", "Post Scheduling", "Engagement Management",
+  "Analytics Review", "Campaign Strategy", "Others",
+];
+
 const allTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "requests", label: "Content Requests", icon: FileCheck },
+  { value: "tickets", label: "Tickets", icon: Ticket },
   { value: "calendar", label: "Calendar", icon: CalendarDays },
   { value: "intake", label: "Intake", icon: ClipboardList },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
