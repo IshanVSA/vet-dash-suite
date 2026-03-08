@@ -98,7 +98,6 @@ Deno.serve(async (req) => {
         path: cleanPath,
         referrer: cleanReferrer,
         session_id: session_id.slice(0, 128),
-        user_agent: null, // intentionally not stored — PII under PIPEDA/PIPA
       });
 
       if (error) {
