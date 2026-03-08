@@ -3,16 +3,18 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import KPICard from "./KPICard";
-import { Building2, FileText, BarChart3, UserCheck, UserCircle, Eye, TrendingUp, Clock } from "lucide-react";
+import { Building2, FileText, UserCheck, UserCircle, TrendingUp, Clock, Ticket, AlertTriangle, Globe, Search, Megaphone, Share2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { motion } from "framer-motion";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
+import { cn } from "@/lib/utils";
+import { Eye } from "lucide-react";
 
 interface Clinic {
   id: string;
@@ -31,11 +33,34 @@ interface TrendPoint {
   posts: number;
 }
 
+interface TicketSummary {
+  department: string;
+  open: number;
+  in_progress: number;
+  total: number;
+}
+
+const deptConfig: Record<string, { icon: React.ElementType; label: string; path: string; color: string }> = {
+  website: { icon: Globe, label: "Website", path: "/website?tab=tickets", color: "text-primary" },
+  seo: { icon: Search, label: "SEO", path: "/seo?tab=tickets", color: "text-emerald-500" },
+  google_ads: { icon: Megaphone, label: "Google Ads", path: "/google-ads?tab=tickets", color: "text-amber-500" },
+  social_media: { icon: Share2, label: "Social Media", path: "/social?tab=tickets", color: "text-violet-500" },
+};
+
 export default function AdminDashboard() {
   const { user } = useAuth();
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const [roleCounts, setRoleCounts] = useState({ concierges: 0, clients: 0 });
+  const [totalPosts, setTotalPosts] = useState(0);
+  const [pendingPosts, setPendingPosts] = useState(0);
+  const [openTickets, setOpenTickets] = useState(0);
+  const [urgentTickets, setUrgentTickets] = useState(0);
+  const [ticketSummary, setTicketSummary] = useState<TicketSummary[]>([]);
+  const [trendData, setTrendData] = useState<TrendPoint[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
@@ -43,21 +68,15 @@ export default function AdminDashboard() {
       .then(({ data }) => { if (data) setUserName(data.full_name); });
   }, [user]);
 
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
-  const [roleCounts, setRoleCounts] = useState({ concierges: 0, clients: 0 });
-  const [totalPosts, setTotalPosts] = useState(0);
-  const [pendingPosts, setPendingPosts] = useState(0);
-  const [trendData, setTrendData] = useState<TrendPoint[]>([]);
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     const fetchAll = async () => {
-      const [clinicsRes, profilesRes, rolesRes, postsRes, pendingRes] = await Promise.all([
+      const [clinicsRes, profilesRes, rolesRes, postsRes, pendingRes, ticketsRes] = await Promise.all([
         supabase.from("clinics").select("*"),
         supabase.from("profiles").select("id, full_name"),
         supabase.from("user_roles").select("user_id, role"),
         supabase.from("content_posts").select("id, scheduled_date"),
         supabase.from("content_posts").select("id").eq("status", "pending"),
+        supabase.from("department_tickets").select("id, department, status, priority"),
       ]);
 
       setClinics(clinicsRes.data || []);
@@ -71,6 +90,24 @@ export default function AdminDashboard() {
         clients: roles.filter(r => r.role === "client").length,
       });
 
+      // Tickets
+      const tickets = ticketsRes.data || [];
+      setOpenTickets(tickets.filter(t => t.status === "open" || t.status === "in_progress").length);
+      setUrgentTickets(tickets.filter(t => t.priority === "urgent" || t.priority === "emergency").length);
+
+      // Ticket summary by department
+      const deptMap: Record<string, { open: number; in_progress: number; total: number }> = {};
+      tickets.forEach(t => {
+        if (!deptMap[t.department]) deptMap[t.department] = { open: 0, in_progress: 0, total: 0 };
+        deptMap[t.department].total++;
+        if (t.status === "open") deptMap[t.department].open++;
+        if (t.status === "in_progress") deptMap[t.department].in_progress++;
+      });
+      setTicketSummary(
+        Object.entries(deptMap).map(([department, counts]) => ({ department, ...counts }))
+      );
+
+      // Posts trend
       const posts = postsRes.data || [];
       const monthMap: Record<string, number> = {};
       posts.forEach(p => {
@@ -111,21 +148,77 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* KPI Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Primary KPI Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <KPICard label="Active Clinics" value={clinics.filter(c => c.status === "active").length} change={`${clinics.length} total`} changeType="neutral" icon={Building2} index={0} gradient="blue" />
         <KPICard label="Total Posts" value={totalPosts} icon={FileText} index={1} gradient="purple" />
-        <KPICard label="Total Concierges" value={roleCounts.concierges} icon={UserCheck} index={2} gradient="green" />
-        <KPICard label="Total Clients" value={roleCounts.clients} icon={UserCircle} index={3} gradient="amber" />
+        <KPICard label="Concierges" value={roleCounts.concierges} icon={UserCheck} index={2} gradient="green" />
+        <KPICard label="Clients" value={roleCounts.clients} icon={UserCircle} index={3} gradient="amber" />
       </div>
 
-      {/* Secondary KPI */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {/* Secondary KPI Row */}
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
         <KPICard label="Pending Review" value={pendingPosts} icon={Clock} index={4} gradient="amber" />
+        <KPICard label="Open Tickets" value={openTickets} change={urgentTickets > 0 ? `${urgentTickets} urgent` : undefined} changeType={urgentTickets > 0 ? "negative" : "neutral"} icon={Ticket} index={5} gradient="blue" />
+        {urgentTickets > 0 && (
+          <KPICard label="Urgent / Emergency" value={urgentTickets} icon={AlertTriangle} index={6} gradient="amber" />
+        )}
       </div>
 
-      {/* Chart */}
-      {trendData.length > 0 && (
+      {/* Department Tickets Summary + Content Trend */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Department Tickets */}
+        <Card className="overflow-hidden border-border/60 animate-fade-in" style={{ animationDelay: "180ms", animationFillMode: "both" }}>
+          <CardHeader className="border-b border-border/40 bg-muted/30 pb-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                  <Ticket className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <CardTitle className="text-base font-semibold">Tickets by Department</CardTitle>
+                  <p className="text-xs text-muted-foreground">Active support tickets</p>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {ticketSummary.length === 0 ? (
+              <div className="py-10 text-center text-muted-foreground">
+                <Ticket className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                <p className="text-sm">No tickets yet</p>
+              </div>
+            ) : (
+              <ul className="divide-y divide-border/40">
+                {ticketSummary.map((dept, i) => {
+                  const cfg = deptConfig[dept.department] || { icon: Ticket, label: dept.department, path: "/", color: "text-muted-foreground" };
+                  const DeptIcon = cfg.icon;
+                  return (
+                    <li key={dept.department} className="flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-muted/30 transition-colors animate-fade-in" style={{ animationDelay: `${220 + i * 40}ms`, animationFillMode: "both" }}>
+                      <div className="flex items-center gap-3">
+                        <DeptIcon className={cn("h-4 w-4", cfg.color)} />
+                        <div>
+                          <p className="text-sm font-medium text-foreground">{cfg.label}</p>
+                          <p className="text-xs text-muted-foreground">{dept.open} open · {dept.in_progress} in progress</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary" className="rounded-full text-[11px]">{dept.total} total</Badge>
+                        <Link to={cfg.path}>
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
+                            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Content Trend Chart */}
         <Card className="overflow-hidden border-border/60 animate-fade-in" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
           <CardHeader className="border-b border-border/40 bg-muted/30 pb-4">
             <div className="flex items-center gap-2">
@@ -139,32 +232,36 @@ export default function AdminDashboard() {
             </div>
           </CardHeader>
           <CardContent className="pt-6 pb-4">
-            <ResponsiveContainer width="100%" height={260}>
-              <AreaChart data={trendData}>
-                <defs>
-                  <linearGradient id="colorPosts" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15}/>
-                    <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: "hsl(var(--card))",
-                    border: "1px solid hsl(var(--border))",
-                    borderRadius: "0.75rem",
-                    boxShadow: "0 8px 24px -4px hsl(var(--foreground) / 0.1)",
-                    fontSize: "13px",
-                  }}
-                />
-                <Area type="monotone" dataKey="posts" stroke="hsl(var(--primary))" strokeWidth={2.5} fill="url(#colorPosts)" dot={{ r: 4, fill: "hsl(var(--card))", stroke: "hsl(var(--primary))", strokeWidth: 2 }} activeDot={{ r: 6 }} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {trendData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={trendData}>
+                  <defs>
+                    <linearGradient id="colorPosts" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15}/>
+                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
+                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: "hsl(var(--card))",
+                      border: "1px solid hsl(var(--border))",
+                      borderRadius: "0.75rem",
+                      boxShadow: "0 8px 24px -4px hsl(var(--foreground) / 0.1)",
+                      fontSize: "13px",
+                    }}
+                  />
+                  <Area type="monotone" dataKey="posts" stroke="hsl(var(--primary))" strokeWidth={2.5} fill="url(#colorPosts)" dot={{ r: 4, fill: "hsl(var(--card))", stroke: "hsl(var(--primary))", strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="py-10 text-center text-muted-foreground text-sm">No post data yet</div>
+            )}
           </CardContent>
         </Card>
-      )}
+      </div>
 
       {/* Upcoming Posts & Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -188,14 +285,7 @@ export default function AdminDashboard() {
             <Button variant="outline" size="sm" className="rounded-lg w-full sm:w-auto">View All</Button>
           </Link>
         </div>
-        {loading ? (
-          <div className="p-12 text-center text-muted-foreground">
-            <div className="inline-flex items-center gap-2">
-              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              Loading clinics...
-            </div>
-          </div>
-        ) : clinics.length === 0 ? (
+        {clinics.length === 0 ? (
           <div className="p-12 text-center">
             <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
               <Building2 className="h-5 w-5 text-muted-foreground" />
