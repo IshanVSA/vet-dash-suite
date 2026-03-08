@@ -5,6 +5,7 @@ import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload } from "luc
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
+import { UploadsTab } from "@/components/department/UploadsTab";
 import { Eye, TrendingDown, Clock, Layers } from "lucide-react";
 
 const tabs = [
