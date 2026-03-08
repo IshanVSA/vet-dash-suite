@@ -19,17 +19,17 @@ export function TrackingSetupCard({ clinicId }: TrackingSetupCardProps) {
 
   useEffect(() => {
     const fetchStats = async () => {
-      const { count } = await supabase
-        .from("website_pageviews" as any)
+      const { count } = await (supabase as any)
+        .from("website_pageviews")
         .select("*", { count: "exact", head: true })
         .eq("clinic_id", clinicId);
 
-      const { data: latest } = await supabase
-        .from("website_pageviews" as any)
+      const { data: latest } = await (supabase as any)
+        .from("website_pageviews")
         .select("created_at")
         .eq("clinic_id", clinicId)
         .order("created_at", { ascending: false })
-        .limit(1);
+        .limit(1) as { data: { created_at: string }[] | null };
 
       setStats({
         total: count || 0,

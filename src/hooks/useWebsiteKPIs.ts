@@ -37,12 +37,12 @@ export function useWebsiteKPIs(clinicId?: string): WebsiteKPIs {
       const fourteenDaysAgo = new Date(now.getTime() - 14 * 86400000).toISOString();
 
       // Fetch last 14 days of data for comparisons
-      const { data: rows } = await supabase
-        .from("website_pageviews" as any)
+      const { data: rows } = await (supabase as any)
+        .from("website_pageviews")
         .select("session_id, path, created_at")
         .eq("clinic_id", clinicId)
         .gte("created_at", fourteenDaysAgo)
-        .order("created_at", { ascending: true });
+        .order("created_at", { ascending: true }) as { data: unknown[] | null };
 
       const pageviews = (rows || []) as { session_id: string; path: string; created_at: string }[];
 
