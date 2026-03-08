@@ -51,7 +51,6 @@ interface NavSection {
 
 const adminSections: NavSection[] = [
   {
-    title: "OVERVIEW",
     items: [
       { label: "Dashboard", icon: LayoutDashboard, path: "/" },
     ],
@@ -66,12 +65,17 @@ const adminSections: NavSection[] = [
     ],
   },
   {
-    title: "MANAGE",
+    title: "WORKSPACE",
     items: [
       { label: "Clinics", icon: Building2, path: "/clinics" },
-      { label: "Employees", icon: Users, path: "/employees" },
+      { label: "Team", icon: Users, path: "/employees" },
       { label: "Clients", icon: UserCheck, path: "/clients" },
-      { label: "Admin Review", icon: ShieldCheck, path: "/review" },
+    ],
+  },
+  {
+    title: "ADMIN",
+    items: [
+      { label: "Review Queue", icon: ShieldCheck, path: "/review" },
       { label: "Settings", icon: Settings, path: "/settings" },
     ],
   },
@@ -79,7 +83,6 @@ const adminSections: NavSection[] = [
 
 const conciergeSections: NavSection[] = [
   {
-    title: "OVERVIEW",
     items: [
       { label: "Dashboard", icon: LayoutDashboard, path: "/" },
     ],
@@ -94,7 +97,7 @@ const conciergeSections: NavSection[] = [
     ],
   },
   {
-    title: "MANAGE",
+    title: "WORKSPACE",
     items: [
       { label: "My Clinics", icon: Building2, path: "/clinics" },
       { label: "Settings", icon: Settings, path: "/settings" },
