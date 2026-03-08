@@ -26,17 +26,22 @@ const TEAM_ROLES = [
 
 interface Profile { id: string; full_name: string | null; email: string | null; team_role: string | null; }
 interface UserRole { user_id: string; role: string; }
-interface ClinicAssignment { user_id: string; clinic_names: string[]; }
+interface ClinicAssignment { user_id: string; clinic_names: string[]; clinic_ids: string[]; }
+interface ClinicOption { id: string; clinic_name: string; }
 
 export default function Employees() {
   const { role } = useUserRole();
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [assignments, setAssignments] = useState<ClinicAssignment[]>([]);
+  const [allClinics, setAllClinics] = useState<ClinicOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", password: "", role: "concierge", team_role: "" });
   const [creating, setCreating] = useState(false);
+  const [assignDialogUser, setAssignDialogUser] = useState<Profile | null>(null);
+  const [assignedClinicIds, setAssignedClinicIds] = useState<string[]>([]);
+  const [savingAssign, setSavingAssign] = useState(false);
 
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes, teamAssignRes] = await Promise.all([
