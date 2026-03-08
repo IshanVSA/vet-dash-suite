@@ -17,19 +17,6 @@ interface UnifiedActivity {
   color: string;
 }
 
-const postActionConfig: Record<string, { icon: React.ElementType; label: string; color: string }> = {
-  created: { icon: Sparkles, label: "Post created", color: "text-primary" },
-  status_change: { icon: Clock, label: "Status changed", color: "text-amber-500" },
-  approved: { icon: CheckCircle2, label: "Approved", color: "text-emerald-500" },
-  admin_approved: { icon: CheckCircle2, label: "Admin approved", color: "text-emerald-500" },
-  client_approved: { icon: CheckCircle2, label: "Client approved", color: "text-emerald-500" },
-  final_approved: { icon: CheckCircle2, label: "Final approved", color: "text-emerald-500" },
-  sent_to_client: { icon: Send, label: "Sent to client", color: "text-sky-500" },
-  sent_to_admin: { icon: Send, label: "Sent to admin", color: "text-sky-500" },
-  edited: { icon: PenLine, label: "Edited", color: "text-violet-500" },
-  flagged: { icon: Flag, label: "Flagged", color: "text-destructive" },
-  comment: { icon: MessageSquare, label: "Comment added", color: "text-muted-foreground" },
-};
 
 const priorityLabels: Record<string, string> = {
   regular: "",
