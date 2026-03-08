@@ -91,8 +91,10 @@ const defaultClientSections: NavSection[] = [
 // Page title map
 const pageTitles: Record<string, string> = {
   "/": "Dashboard",
-  "/social": "Social Media",
+  "/website": "Website",
+  "/seo": "SEO",
   "/google-ads": "Google Ads",
+  "/social": "Social Media",
   "/review": "Admin Review",
   "/clinics": "Clinics",
   "/employees": "Team Members",
