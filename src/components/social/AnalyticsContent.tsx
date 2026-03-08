@@ -36,7 +36,7 @@ export default function AnalyticsContent({ clinicId }: { clinicId?: string }) {
       setLoading(false);
     };
     if (role) fetchAnalytics();
-  }, [role, user]);
+  }, [role, user, clinicId]);
 
   const summaryStats = [
     { label: "Total Records", value: data.length, accent: "border-l-primary" },

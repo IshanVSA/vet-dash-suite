@@ -95,7 +95,7 @@ export default function ContentRequestsContent({ clinicId }: { clinicId?: string
       });
     }
     setLoading(false);
-  }, [role]);
+  }, [role, clinicId]);
 
   useEffect(() => {
     fetchData();
