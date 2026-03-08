@@ -122,11 +122,13 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
 
   // Ticket counts with realtime
   useEffect(() => {
+    if (!clinicId) return;
     const fetchTickets = async () => {
       const { data, error } = await supabase
         .from("department_tickets")
         .select("status")
-        .eq("department", "social_media" as any);
+        .eq("department", "social_media" as any)
+        .eq("clinic_id", clinicId);
       if (error || !data) return;
       const s = { open: 0, inProgress: 0, completed: 0, emergency: 0 };
       for (const row of data) {
@@ -139,11 +141,11 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
     };
     fetchTickets();
     const channel = supabase
-      .channel("social-ticket-counts")
+      .channel(`social-ticket-counts-${clinicId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "department_tickets", filter: "department=eq.social_media" }, fetchTickets)
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, []);
+  }, [clinicId]);
 
   const tooltipStyle = {
     backgroundColor: "hsl(var(--card))",
