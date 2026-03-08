@@ -124,7 +124,7 @@ export default function GoogleAdsDepartment() {
               trafficData={trafficData}
               trafficLabel="Weekly Click Trend"
               team={team}
-              ticketSummary={{ open: 0, inProgress: 0, completed: 0, emergency: 0 }}
+              department="google_ads"
               accentColor="hsl(var(--primary))"
               extraSection={<CampaignsCard />}
             />

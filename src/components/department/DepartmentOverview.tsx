@@ -89,10 +89,11 @@ export function DepartmentOverview({
   trafficData,
   trafficLabel = "Traffic Trend",
   team,
-  ticketSummary,
+  department,
   accentColor = "hsl(var(--primary))",
   extraSection,
 }: DepartmentOverviewProps) {
+  const ticketSummary = useTicketCounts(department);
   const ticketRows = [
     { label: "Open", count: ticketSummary.open, icon: Inbox, color: "text-blue-500" },
     { label: "In Progress", count: ticketSummary.inProgress, icon: Clock, color: "text-warning" },

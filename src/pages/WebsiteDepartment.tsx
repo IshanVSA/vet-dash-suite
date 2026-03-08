@@ -80,7 +80,7 @@ export default function WebsiteDepartment() {
               trafficData={trafficData}
               trafficLabel="Weekly Traffic"
               team={team}
-              ticketSummary={{ open: 0, inProgress: 0, completed: 0, emergency: 0 }}
+              department="website"
               accentColor="hsl(25, 95%, 53%)"
             />
           </TabsContent>
