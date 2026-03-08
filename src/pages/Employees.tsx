@@ -270,7 +270,10 @@ export default function Employees() {
                           </div>
                         ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right space-x-1">
+                        <Button variant="ghost" size="sm" className="h-8" onClick={() => openAssignDialog(p)} title="Assign clinics">
+                          <Building2 className="h-3.5 w-3.5" />
+                        </Button>
                         <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => handleDelete(p.id, p.full_name || "User")}>
                           <Trash2 className="h-3.5 w-3.5" />
                         </Button>
