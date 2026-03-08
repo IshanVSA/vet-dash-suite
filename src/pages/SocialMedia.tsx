@@ -1,6 +1,8 @@
 import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useUserRole } from "@/hooks/useUserRole";
+import { useClinicSelector } from "@/hooks/useClinicSelector";
+import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload } from "lucide-react";
 import { SocialOverview } from "@/components/social/SocialOverview";
@@ -39,6 +41,7 @@ const allTabs = [
 export default function SocialMedia() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { role } = useUserRole();
+  const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const currentTab = searchParams.get("tab") || "overview";
 
   // Client sees fewer tabs
@@ -47,7 +50,11 @@ export default function SocialMedia() {
     : allTabs;
 
   const handleTabChange = (value: string) => {
-    setSearchParams({ tab: value }, { replace: true });
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set("tab", value);
+      return next;
+    }, { replace: true });
   };
 
   return (
@@ -69,6 +76,14 @@ export default function SocialMedia() {
           </div>
         </div>
 
+        {/* Clinic Selector */}
+        <ClinicSelector
+          clinics={clinics}
+          selectedClinicId={selectedClinicId}
+          onSelect={setSelectedClinicId}
+          loading={clinicsLoading}
+        />
+
         {/* Tabs */}
         <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="w-full justify-start bg-muted/50 h-11 p-1 overflow-x-auto">
@@ -82,39 +97,39 @@ export default function SocialMedia() {
           </TabsList>
 
           <TabsContent value="overview" className="mt-4">
-            <SocialOverview />
+            <SocialOverview clinicId={selectedClinicId} />
           </TabsContent>
 
           <TabsContent value="requests" className="mt-4">
             <Suspense fallback={<TabFallback />}>
-              <ContentRequestsContent />
+              <ContentRequestsContent clinicId={selectedClinicId} />
             </Suspense>
           </TabsContent>
 
           <TabsContent value="tickets" className="mt-4">
-            <TicketsTab department="social_media" services={socialServices} />
+            <TicketsTab department="social_media" services={socialServices} clinicId={selectedClinicId} />
           </TabsContent>
 
           <TabsContent value="calendar" className="mt-4">
             <Suspense fallback={<TabFallback />}>
-              <ContentCalendarContent />
+              <ContentCalendarContent clinicId={selectedClinicId} />
             </Suspense>
           </TabsContent>
 
           <TabsContent value="intake" className="mt-4">
             <Suspense fallback={<TabFallback />}>
-              <IntakeFormsContent />
+              <IntakeFormsContent clinicId={selectedClinicId} />
             </Suspense>
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-4">
             <Suspense fallback={<TabFallback />}>
-              <AnalyticsContent />
+              <AnalyticsContent clinicId={selectedClinicId} />
             </Suspense>
           </TabsContent>
 
           <TabsContent value="uploads" className="mt-4">
-            <UploadsTab department="social_media" />
+            <UploadsTab department="social_media" clinicId={selectedClinicId} />
           </TabsContent>
         </Tabs>
       </div>

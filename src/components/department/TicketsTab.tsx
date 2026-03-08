@@ -10,6 +10,7 @@ import { NewTicketDialog } from "./NewTicketDialog";
 interface TicketsTabProps {
   department: string;
   services: string[];
+  clinicId?: string;
 }
 
 const statusFilters = [
@@ -20,18 +21,22 @@ const statusFilters = [
   { value: "emergency", label: "Emergency" },
 ];
 
-export function TicketsTab({ department, services }: TicketsTabProps) {
+export function TicketsTab({ department, services, clinicId }: TicketsTabProps) {
   const [filter, setFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const { data: tickets = [], refetch, isLoading } = useQuery({
-    queryKey: ["department-tickets", department, filter],
+    queryKey: ["department-tickets", department, filter, clinicId],
     queryFn: async () => {
       let query = supabase
         .from("department_tickets" as any)
         .select("*")
         .eq("department", department)
         .order("created_at", { ascending: false });
+
+      if (clinicId) {
+        query = query.eq("clinic_id", clinicId);
+      }
 
       if (filter !== "all") {
         query = query.eq("status", filter);

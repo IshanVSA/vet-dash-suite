@@ -6,7 +6,9 @@ import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
+import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
+import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -36,7 +38,6 @@ const trafficData = [
   { label: "Jan", value: 7200 }, { label: "Feb", value: 7800 },
   { label: "Mar", value: 8400 },
 ];
-
 
 const topKeywords = [
   { rank: 1, keyword: "veterinary clinic near me", position: 3, change: "+2" },
@@ -87,6 +88,7 @@ export default function SeoDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
   const { team } = useDepartmentTeam("seo");
+  const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
 
   return (
     <DashboardLayout>
@@ -106,7 +108,15 @@ export default function SeoDepartment() {
           </div>
         </div>
 
-        <Tabs value={currentTab} onValueChange={(v) => setSearchParams({ tab: v }, { replace: true })} className="w-full">
+        {/* Clinic Selector */}
+        <ClinicSelector
+          clinics={clinics}
+          selectedClinicId={selectedClinicId}
+          onSelect={setSelectedClinicId}
+          loading={clinicsLoading}
+        />
+
+        <Tabs value={currentTab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true })} className="w-full">
           <TabsList className="w-full justify-start bg-muted/50 h-11 p-1 overflow-x-auto">
             {tabs.map(tab => (
               <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs sm:text-sm data-[state=active]:shadow-sm">
@@ -126,12 +136,13 @@ export default function SeoDepartment() {
               department="seo"
               accentColor="hsl(166, 72%, 40%)"
               extraSection={<TopKeywordsCard />}
+              clinicId={selectedClinicId}
             />
           </TabsContent>
-          <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={services} /></TabsContent>
+          <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={services} clinicId={selectedClinicId} /></TabsContent>
           <TabsContent value="seo-thread" className="mt-4"><ComingSoonTab label="SEO Thread" /></TabsContent>
           <TabsContent value="reports" className="mt-4"><ComingSoonTab label="Reports" /></TabsContent>
-          <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" /></TabsContent>
+          <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>

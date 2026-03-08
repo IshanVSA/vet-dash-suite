@@ -25,7 +25,7 @@ const STATUS_OPTIONS = ["all", "draft", "scheduled", "posted", "flagged", "faile
 const PLATFORM_OPTIONS = ["all", "facebook", "instagram", "tiktok"] as const;
 const CONTENT_TYPE_OPTIONS = ["all", "IMAGE", "VIDEO", "REEL", "CAROUSEL", "STORY"] as const;
 
-export default function ContentCalendarContent() {
+export default function ContentCalendarContent({ clinicId: externalClinicId }: { clinicId?: string }) {
   const { role } = useUserRole();
   const { user } = useAuth();
   const [clinics, setClinics] = useState<Clinic[]>([]);
@@ -53,6 +53,10 @@ export default function ContentCalendarContent() {
   const hasActiveFilters = filterStatus !== "all" || filterPlatform !== "all" || filterContentType !== "all";
 
   useEffect(() => {
+    if (externalClinicId) {
+      setSelectedClinicId(externalClinicId);
+      return;
+    }
     const fetchClinics = async () => {
       let query = supabase.from("clinics").select("id, clinic_name");
       if (role === "concierge") query = query.eq("assigned_concierge_id", user?.id);
@@ -62,7 +66,7 @@ export default function ContentCalendarContent() {
       if (data && data.length > 0 && !selectedClinicId) setSelectedClinicId(data[0].id);
     };
     fetchClinics();
-  }, [role, user]);
+  }, [role, user, externalClinicId]);
 
   useEffect(() => {
     if (!selectedClinicId) return;

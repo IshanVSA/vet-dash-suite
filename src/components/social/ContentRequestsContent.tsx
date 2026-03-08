@@ -31,7 +31,7 @@ interface ContentVersion {
   created_at: string;
 }
 
-export default function ContentRequestsContent() {
+export default function ContentRequestsContent({ clinicId }: { clinicId?: string }) {
   const { role } = useUserRole();
   const { user } = useAuth();
   const [requests, setRequests] = useState<ContentRequest[]>([]);
@@ -50,6 +50,10 @@ export default function ContentRequestsContent() {
       .from("content_requests")
       .select("*")
       .order("created_at", { ascending: false });
+
+    if (clinicId) {
+      query = query.eq("clinic_id", clinicId);
+    }
 
     if (role === "admin") {
       query = query.in("status", ["concierge_preferred", "admin_approved", "client_selected", "final_approved"]);
@@ -91,7 +95,7 @@ export default function ContentRequestsContent() {
       });
     }
     setLoading(false);
-  }, [role]);
+  }, [role, clinicId]);
 
   useEffect(() => {
     fetchData();

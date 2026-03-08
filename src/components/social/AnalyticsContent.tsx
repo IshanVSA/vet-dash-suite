@@ -8,7 +8,7 @@ import { BarChart3 } from "lucide-react";
 
 interface ChartPoint { date: string; records: number; }
 
-export default function AnalyticsContent() {
+export default function AnalyticsContent({ clinicId }: { clinicId?: string }) {
   const { role } = useUserRole();
   const { user } = useAuth();
   const [data, setData] = useState<any[]>([]);
@@ -18,7 +18,9 @@ export default function AnalyticsContent() {
   useEffect(() => {
     const fetchAnalytics = async () => {
       let query = supabase.from("analytics").select("*").order("recorded_at", { ascending: true });
-      if (role === "concierge" && user) {
+      if (clinicId) {
+        query = query.eq("clinic_id", clinicId);
+      } else if (role === "concierge" && user) {
         const { data: clinics } = await supabase.from("clinics").select("id").eq("assigned_concierge_id", user.id);
         if (clinics?.length) query = query.in("clinic_id", clinics.map(c => c.id));
       }
@@ -34,7 +36,7 @@ export default function AnalyticsContent() {
       setLoading(false);
     };
     if (role) fetchAnalytics();
-  }, [role, user]);
+  }, [role, user, clinicId]);
 
   const summaryStats = [
     { label: "Total Records", value: data.length, accent: "border-l-primary" },

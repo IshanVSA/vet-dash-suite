@@ -42,17 +42,22 @@ interface DepartmentOverviewProps {
   department: string;
   accentColor?: string;
   extraSection?: ReactNode;
+  clinicId?: string;
 }
 
-function useTicketCounts(department: string): TicketSummary {
+function useTicketCounts(department: string, clinicId?: string): TicketSummary {
   const [counts, setCounts] = useState<TicketSummary>({ open: 0, inProgress: 0, completed: 0, emergency: 0 });
 
   useEffect(() => {
     const fetchCounts = async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("department_tickets")
         .select("status")
         .eq("department", department as any);
+      if (clinicId) {
+        query = query.eq("clinic_id", clinicId);
+      }
+      const { data, error } = await query;
       if (error || !data) return;
       const summary = { open: 0, inProgress: 0, completed: 0, emergency: 0 };
       for (const row of data) {
@@ -67,12 +72,12 @@ function useTicketCounts(department: string): TicketSummary {
     fetchCounts();
 
     const channel = supabase
-      .channel(`ticket-counts-${department}`)
+      .channel(`ticket-counts-${department}-${clinicId || "all"}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "department_tickets", filter: `department=eq.${department}` }, fetchCounts)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-  }, [department]);
+  }, [department, clinicId]);
 
   return counts;
 }
@@ -93,10 +98,11 @@ export function DepartmentOverview({
   department,
   accentColor = "hsl(var(--primary))",
   extraSection,
+  clinicId,
 }: DepartmentOverviewProps) {
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [prefilledService, setPrefilledService] = useState("");
-  const ticketSummary = useTicketCounts(department);
+  const ticketSummary = useTicketCounts(department, clinicId);
   const ticketRows = [
     { label: "Open", count: ticketSummary.open, icon: Inbox, color: "text-blue-500" },
     { label: "In Progress", count: ticketSummary.inProgress, icon: Clock, color: "text-warning" },

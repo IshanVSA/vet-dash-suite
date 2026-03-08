@@ -6,7 +6,9 @@ import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
+import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
+import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -36,7 +38,6 @@ const trafficData = [
   { label: "Fri", value: 610 }, { label: "Sat", value: 380 },
   { label: "Sun", value: 310 },
 ];
-
 
 const campaigns = [
   { name: "Brand Awareness", spend: "$1,200", clicks: "1,020", conversions: 62, ctr: "6.2%" },
@@ -87,6 +88,7 @@ export default function GoogleAdsDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
   const { team } = useDepartmentTeam("google_ads");
+  const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
 
   return (
     <DashboardLayout>
@@ -106,7 +108,15 @@ export default function GoogleAdsDepartment() {
           </div>
         </div>
 
-        <Tabs value={currentTab} onValueChange={(v) => setSearchParams({ tab: v }, { replace: true })} className="w-full">
+        {/* Clinic Selector */}
+        <ClinicSelector
+          clinics={clinics}
+          selectedClinicId={selectedClinicId}
+          onSelect={setSelectedClinicId}
+          loading={clinicsLoading}
+        />
+
+        <Tabs value={currentTab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true })} className="w-full">
           <TabsList className="w-full justify-start bg-muted/50 h-11 p-1 overflow-x-auto">
             {tabs.map(tab => (
               <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs sm:text-sm data-[state=active]:shadow-sm">
@@ -126,12 +136,13 @@ export default function GoogleAdsDepartment() {
               department="google_ads"
               accentColor="hsl(var(--primary))"
               extraSection={<CampaignsCard />}
+              clinicId={selectedClinicId}
             />
           </TabsContent>
-          <TabsContent value="tickets" className="mt-4"><TicketsTab department="google_ads" services={services} /></TabsContent>
+          <TabsContent value="tickets" className="mt-4"><TicketsTab department="google_ads" services={services} clinicId={selectedClinicId} /></TabsContent>
           <TabsContent value="analytics" className="mt-4"><ComingSoonTab label="Analytics" /></TabsContent>
           <TabsContent value="reports" className="mt-4"><ComingSoonTab label="Reports" /></TabsContent>
-          <TabsContent value="uploads" className="mt-4"><UploadsTab department="google_ads" /></TabsContent>
+          <TabsContent value="uploads" className="mt-4"><UploadsTab department="google_ads" clinicId={selectedClinicId} /></TabsContent>
         </Tabs>
       </div>
     </DashboardLayout>
