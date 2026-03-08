@@ -1,0 +1,1 @@
+ALTER TABLE public.website_pageviews DROP COLUMN user_agent;

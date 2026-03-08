@@ -11,7 +11,7 @@ const PIXEL_JS = (clinicId: string, endpoint: string) => `
   var sid = sessionStorage.getItem('_vsa_sid');
   if(!sid){sid=Math.random().toString(36).slice(2)+Date.now().toString(36);sessionStorage.setItem('_vsa_sid',sid);}
   function track(){
-    var d={clinic_id:"${clinicId}",path:location.pathname+location.search,referrer:document.referrer,session_id:sid,user_agent:navigator.userAgent};
+    var d={clinic_id:"${clinicId}",path:location.pathname,referrer_domain:document.referrer?new URL(document.referrer).hostname:"",session_id:sid};
     if(navigator.sendBeacon){navigator.sendBeacon("${endpoint}",JSON.stringify(d));}
     else{fetch("${endpoint}",{method:"POST",body:JSON.stringify(d),keepalive:true}).catch(function(){});}
   }
@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
   if (req.method === "POST") {
     try {
       const body = await req.json();
-      const { clinic_id, path, referrer, session_id, user_agent } = body;
+      const { clinic_id, path, referrer_domain, session_id } = body;
 
       if (!clinic_id || !session_id) {
         return new Response(JSON.stringify({ error: "Missing clinic_id or session_id" }), {
@@ -88,12 +88,16 @@ Deno.serve(async (req) => {
         });
       }
 
+      // Strip query params from path to avoid capturing PII (e.g. email in ?email=)
+      const cleanPath = (path || "/").split("?")[0].slice(0, 512);
+      // Only store referrer domain, never full URL (may contain PII)
+      const cleanReferrer = referrer_domain ? referrer_domain.slice(0, 255) : null;
+
       const { error } = await supabase.from("website_pageviews").insert({
         clinic_id,
-        path: (path || "/").slice(0, 2048),
-        referrer: referrer ? referrer.slice(0, 2048) : null,
+        path: cleanPath,
+        referrer: cleanReferrer,
         session_id: session_id.slice(0, 128),
-        user_agent: user_agent ? user_agent.slice(0, 512) : null,
       });
 
       if (error) {

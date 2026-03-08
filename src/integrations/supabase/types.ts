@@ -680,7 +680,6 @@ export type Database = {
           path: string
           referrer: string | null
           session_id: string
-          user_agent: string | null
         }
         Insert: {
           clinic_id: string
@@ -689,7 +688,6 @@ export type Database = {
           path?: string
           referrer?: string | null
           session_id: string
-          user_agent?: string | null
         }
         Update: {
           clinic_id?: string
@@ -698,7 +696,6 @@ export type Database = {
           path?: string
           referrer?: string | null
           session_id?: string
-          user_agent?: string | null
         }
         Relationships: [
           {
