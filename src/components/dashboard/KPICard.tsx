@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import { Link } from "react-router-dom";
 
 interface KPICardProps {
   label: string;
@@ -9,6 +10,7 @@ interface KPICardProps {
   icon: LucideIcon;
   index?: number;
   gradient?: "blue" | "green" | "amber" | "purple";
+  href?: string;
 }
 
 const gradientMap = {
@@ -42,13 +44,14 @@ const gradientMap = {
   },
 };
 
-export default function KPICard({ label, value, change, changeType = "neutral", icon: Icon, index = 0, gradient = "blue" }: KPICardProps) {
+export default function KPICard({ label, value, change, changeType = "neutral", icon: Icon, index = 0, gradient = "blue", href }: KPICardProps) {
   const g = gradientMap[gradient];
 
-  return (
+  const content = (
     <div
       className={cn(
         "relative overflow-hidden rounded-xl border border-border/60 bg-card p-4 sm:p-5 hover-lift animate-fade-in group",
+        href && "cursor-pointer",
         g.bg
       )}
       style={{ animationDelay: `${index * 80}ms`, animationFillMode: "both" }}
@@ -81,4 +84,10 @@ export default function KPICard({ label, value, change, changeType = "neutral", 
       </div>
     </div>
   );
+
+  if (href) {
+    return <Link to={href}>{content}</Link>;
+  }
+
+  return content;
 }
