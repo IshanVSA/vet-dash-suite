@@ -51,6 +51,10 @@ export default function ContentRequestsContent({ clinicId }: { clinicId?: string
       .select("*")
       .order("created_at", { ascending: false });
 
+    if (clinicId) {
+      query = query.eq("clinic_id", clinicId);
+    }
+
     if (role === "admin") {
       query = query.in("status", ["concierge_preferred", "admin_approved", "client_selected", "final_approved"]);
     }

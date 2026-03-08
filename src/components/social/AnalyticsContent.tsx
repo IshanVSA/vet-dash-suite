@@ -18,7 +18,9 @@ export default function AnalyticsContent({ clinicId }: { clinicId?: string }) {
   useEffect(() => {
     const fetchAnalytics = async () => {
       let query = supabase.from("analytics").select("*").order("recorded_at", { ascending: true });
-      if (role === "concierge" && user) {
+      if (clinicId) {
+        query = query.eq("clinic_id", clinicId);
+      } else if (role === "concierge" && user) {
         const { data: clinics } = await supabase.from("clinics").select("id").eq("assigned_concierge_id", user.id);
         if (clinics?.length) query = query.in("clinic_id", clinics.map(c => c.id));
       }
