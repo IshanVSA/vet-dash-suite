@@ -1,53 +1,42 @@
 
 
-## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
+## Plan: Global New Ticket Dialog + Chat Assistant Slide-Over
 
-### Summary
-Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
+### 1. Global New Ticket Dialog
 
-### Changes
+**Problem**: The "New Ticket" quick action dispatches a custom event, but `NewTicketDialog` only lives inside `TicketsTab` on department pages. Clicking it from Dashboard or other pages does nothing.
 
-**1. Edge Function: `supabase/functions/generate-content/index.ts`**
-- Remove the `callClaude` function entirely
-- Remove the Claude API key lookup and Claude execution block
-- Keep only the OpenAI call
-- This means only one `content_version` row is created per request
+**Solution**: Add a global `NewTicketDialog` instance inside `DashboardLayout.tsx` that listens for the `open-new-ticket` custom event.
 
-**2. `src/components/content-requests/ContentRequestCard.tsx`**
-- Remove the `ModelToggleView` component (no longer needed with single version)
-- Render the single `ContentVersionCard` directly when versions exist
-- Rename `onConciergePrefer` prop to `onSendForReview`
+- Add state `globalTicketOpen` and `globalTicketDepartment` to `DashboardLayout`
+- Add a department selector step: when clicked, show a small dialog/select letting the user pick which department (Website, SEO, Google Ads, Social Media) before opening the full ticket form
+- Listen for the `open-new-ticket` event via `useEffect` to trigger the dialog
+- Import and render `NewTicketDialog` at the layout level with the selected department and its services list
+- Define a `departmentServices` map in the layout matching the existing per-page service arrays
 
-**3. `src/components/content-requests/ContentVersionCard.tsx`**
-- Remove the "Concierge Pick" badge references
-- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
-- Rename `onConciergePrefer` prop to `onSendForReview`
-- Remove Claude-specific badge styling
-- Simplify the model name badge (just show "AI Generated" or "OpenAI")
+**Files**: `src/components/DashboardLayout.tsx` (add global dialog + event listener)
 
-**4. `src/pages/ContentRequests.tsx`**
-- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
-- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
-- Update prop names passed to `ContentRequestCard`
+### 2. Chat Assistant Slide-Over Panel
 
-**5. `src/pages/AdminReview.tsx`**
-- Remove reference to "Client selected: {model_name}" badge since there's only one model now
-- Keep everything else the same (final approve logic is unchanged)
+**What it is**: A slide-over panel (using shadcn `Sheet`) that opens from the right side when clicking "Chat Assistant" in the sidebar. It provides a simple chat UI for quick support queries.
 
-**6. Status labels in `ContentRequestCard.tsx`**
-- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
+**Implementation**:
+- Create `src/components/chat/ChatAssistant.tsx` — a `Sheet` component containing:
+  - Header with title "Chat Assistant" and close button
+  - Scrollable message area with mock welcome message
+  - Input bar at bottom with send button
+  - Messages stored in local state (no backend/AI integration yet — just a placeholder UI that echoes or shows a "coming soon" response)
+- Wire the "Chat Assistant" sidebar button in `DashboardLayout` to toggle the sheet open
+- Style to match the dark sidebar aesthetic
 
-### Technical Details
+**Files**:
+- Create `src/components/chat/ChatAssistant.tsx`
+- Modify `src/components/DashboardLayout.tsx` (add sheet state + trigger)
 
-- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
-- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
-- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
-- No database schema changes needed
+### Files Summary
 
-### Files to modify
-1. `supabase/functions/generate-content/index.ts` -- remove Claude
-2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
-3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
-4. `src/pages/ContentRequests.tsx` -- rename function
-5. `src/pages/AdminReview.tsx` -- remove model name badge
+| Action | File |
+|--------|------|
+| Create | `src/components/chat/ChatAssistant.tsx` |
+| Modify | `src/components/DashboardLayout.tsx` — global ticket dialog + chat assistant trigger |
 
