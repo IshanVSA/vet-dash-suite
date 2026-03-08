@@ -28,17 +28,18 @@ export function useDepartmentTeam(department: string): { team: TeamMember[]; loa
       const userIds = (data as any[]).map((d: any) => d.user_id);
       const { data: profiles } = await supabase
         .from("profiles")
-        .select("id, full_name, email")
+        .select("id, full_name, email, team_role")
         .in("id", userIds);
 
       const profileMap = Object.fromEntries(
-        (profiles || []).map(p => [p.id, p.full_name || p.email || "Unknown"])
+        (profiles || []).map((p: any) => [p.id, { name: p.full_name || p.email || "Unknown", teamRole: p.team_role || null }])
       );
 
       setTeam(
         (data as any[]).map((d: any) => ({
-          name: profileMap[d.user_id] || "Unknown",
+          name: profileMap[d.user_id]?.name || "Unknown",
           role: d.department_role,
+          teamRole: profileMap[d.user_id]?.teamRole || null,
         }))
       );
       setLoading(false);
