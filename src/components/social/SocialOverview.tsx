@@ -11,12 +11,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { format, subDays, startOfDay } from "date-fns";
 
-interface TeamMember {
-  id: string;
-  full_name: string | null;
-  email: string | null;
-  role: string;
-}
 
 interface RequestSummary {
   generated: number;
