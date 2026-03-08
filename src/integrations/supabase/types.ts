@@ -407,6 +407,7 @@ export type Database = {
       department_tickets: {
         Row: {
           assigned_to: string | null
+          attachments: string[] | null
           clinic_id: string | null
           created_at: string
           created_by: string | null
@@ -422,6 +423,7 @@ export type Database = {
         }
         Insert: {
           assigned_to?: string | null
+          attachments?: string[] | null
           clinic_id?: string | null
           created_at?: string
           created_by?: string | null
@@ -437,6 +439,7 @@ export type Database = {
         }
         Update: {
           assigned_to?: string | null
+          attachments?: string[] | null
           clinic_id?: string | null
           created_at?: string
           created_by?: string | null

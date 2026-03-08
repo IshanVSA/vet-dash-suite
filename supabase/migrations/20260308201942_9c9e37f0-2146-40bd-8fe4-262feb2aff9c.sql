@@ -1,0 +1,1 @@
+ALTER TABLE public.department_tickets ADD COLUMN attachments text[] DEFAULT '{}'::text[];
