@@ -124,7 +124,7 @@ export default function SeoDepartment() {
               trafficData={trafficData}
               trafficLabel="Organic Traffic Trend"
               team={team}
-              ticketSummary={{ open: 0, inProgress: 0, completed: 0, emergency: 0 }}
+              department="seo"
               accentColor="hsl(166, 72%, 40%)"
               extraSection={<TopKeywordsCard />}
             />
