@@ -14,6 +14,28 @@ import { Button } from "@/components/ui/button";
 import vsaLogo from "@/assets/vsa-logo.jpg";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { PageTransition } from "@/components/PageTransition";
+import { NewTicketDialog } from "@/components/department/NewTicketDialog";
+import { ChatAssistant } from "@/components/chat/ChatAssistant";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+
+const departmentServices: Record<string, { label: string; services: string[] }> = {
+  website: {
+    label: "Website",
+    services: ["Time Changes", "Pop-up Offers", "Theme Updates", "Add/Remove Team Members", "New Forms", "Paper-to-Digital Conversion", "Price List Updates", "Tech Issues", "Others"],
+  },
+  seo: {
+    label: "SEO",
+    services: ["Backlinking", "Ranking Reports", "Keyword Research", "Manual Work Reports", "Search Atlas Integration", "SEO Thread Updates", "Others"],
+  },
+  google_ads: {
+    label: "Google Ads",
+    services: ["Dashboard Access", "Analytics Review", "Monthly Performance Report", "Call Volume Issues", "Wrong Call Tracking", "Campaign Adjustments", "Others"],
+  },
+  social_media: {
+    label: "Social Media",
+    services: ["Content Calendar", "Post Approval", "Analytics", "Campaign Planning", "Others"],
+  },
+};
 
 interface NavItem {
   label: string;
