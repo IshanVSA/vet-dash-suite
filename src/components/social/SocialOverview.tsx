@@ -41,7 +41,7 @@ const socialServices = [
   "Analytics Review", "Campaign Strategy", "Others",
 ];
 
-export function SocialOverview() {
+export function SocialOverview({ clinicId }: { clinicId?: string }) {
   const { role } = useUserRole();
   const { user } = useAuth();
   const [totalPosts, setTotalPosts] = useState(0);
