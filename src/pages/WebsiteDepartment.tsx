@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
+import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { Eye, TrendingDown, Clock, Layers } from "lucide-react";
 
@@ -83,7 +84,7 @@ export default function WebsiteDepartment() {
               accentColor="hsl(25, 95%, 53%)"
             />
           </TabsContent>
-          <TabsContent value="tickets" className="mt-4"><ComingSoonTab label="Tickets" /></TabsContent>
+          <TabsContent value="tickets" className="mt-4"><TicketsTab department="website" services={services} /></TabsContent>
           <TabsContent value="analytics" className="mt-4"><ComingSoonTab label="Analytics" /></TabsContent>
           <TabsContent value="reports" className="mt-4"><ComingSoonTab label="Reports" /></TabsContent>
           <TabsContent value="uploads" className="mt-4"><ComingSoonTab label="Uploads" /></TabsContent>

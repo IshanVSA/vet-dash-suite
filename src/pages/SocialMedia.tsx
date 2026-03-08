@@ -2,11 +2,13 @@ import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3 } from "lucide-react";
+import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket } from "lucide-react";
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
 
 // Lazy load tab content to avoid importing everything upfront
+import { TicketsTab } from "@/components/department/TicketsTab";
+
 const ContentRequestsContent = lazy(() => import("@/components/social/ContentRequestsContent"));
 const ContentCalendarContent = lazy(() => import("@/components/social/ContentCalendarContent"));
 const IntakeFormsContent = lazy(() => import("@/components/social/IntakeFormsContent"));
@@ -18,9 +20,15 @@ const TabFallback = () => (
   </div>
 );
 
+const socialServices = [
+  "Content Creation", "Post Scheduling", "Engagement Management",
+  "Analytics Review", "Campaign Strategy", "Others",
+];
+
 const allTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "requests", label: "Content Requests", icon: FileCheck },
+  { value: "tickets", label: "Tickets", icon: Ticket },
   { value: "calendar", label: "Calendar", icon: CalendarDays },
   { value: "intake", label: "Intake", icon: ClipboardList },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
@@ -33,7 +41,7 @@ export default function SocialMedia() {
 
   // Client sees fewer tabs
   const visibleTabs = role === "client"
-    ? allTabs.filter(t => ["overview", "requests"].includes(t.value))
+    ? allTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value))
     : allTabs;
 
   const handleTabChange = (value: string) => {
@@ -79,6 +87,10 @@ export default function SocialMedia() {
             <Suspense fallback={<TabFallback />}>
               <ContentRequestsContent />
             </Suspense>
+          </TabsContent>
+
+          <TabsContent value="tickets" className="mt-4">
+            <TicketsTab department="social_media" services={socialServices} />
           </TabsContent>
 
           <TabsContent value="calendar" className="mt-4">

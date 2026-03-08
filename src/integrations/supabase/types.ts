@@ -404,6 +404,62 @@ export type Database = {
           },
         ]
       }
+      department_tickets: {
+        Row: {
+          assigned_to: string | null
+          clinic_id: string | null
+          created_at: string
+          created_by: string | null
+          department: Database["public"]["Enums"]["department_type"]
+          description: string | null
+          id: string
+          notes: string | null
+          priority: Database["public"]["Enums"]["ticket_priority"]
+          status: Database["public"]["Enums"]["ticket_status"]
+          ticket_type: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_to?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          department: Database["public"]["Enums"]["department_type"]
+          description?: string | null
+          id?: string
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_type: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to?: string | null
+          clinic_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          department?: Database["public"]["Enums"]["department_type"]
+          description?: string | null
+          id?: string
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["ticket_priority"]
+          status?: Database["public"]["Enums"]["ticket_status"]
+          ticket_type?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "department_tickets_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_activity_log: {
         Row: {
           action: string
@@ -576,6 +632,9 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "concierge" | "client"
+      department_type: "website" | "seo" | "google_ads" | "social_media"
+      ticket_priority: "regular" | "urgent" | "emergency"
+      ticket_status: "open" | "in_progress" | "completed" | "emergency"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -704,6 +763,9 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "concierge", "client"],
+      department_type: ["website", "seo", "google_ads", "social_media"],
+      ticket_priority: ["regular", "urgent", "emergency"],
+      ticket_status: ["open", "in_progress", "completed", "emergency"],
     },
   },
 } as const
