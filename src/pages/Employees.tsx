@@ -292,7 +292,7 @@ export default function Employees() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {staffProfiles.map((p) => {
+                {filteredProfiles.map((p) => {
                   const userRole = getRole(p.id);
                   const assignedClinics = getAssignedClinics(p.id);
                   return (
