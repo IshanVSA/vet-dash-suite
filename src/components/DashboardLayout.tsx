@@ -139,8 +139,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [globalTicketOpen, setGlobalTicketOpen] = useState(false);
   const [globalTicketDept, setGlobalTicketDept] = useState("website");
 
-  // Chat assistant state
-  const [chatOpen, setChatOpen] = useState(false);
+  // Chat assistant is now a self-contained floating widget
 
   // Listen for global new-ticket event
   useEffect(() => {
