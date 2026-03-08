@@ -6,7 +6,7 @@ import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
-import { FileCheck, CalendarDays, BarChart3, Building2, Users, CheckCircle2, Clock, Sparkles } from "lucide-react";
+import { FileCheck, CalendarDays, BarChart3, Building2, Users, CheckCircle2, Clock, Sparkles, Inbox, AlertTriangle, Ticket } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { format, subDays, startOfDay } from "date-fns";
