@@ -3,7 +3,8 @@ import { Badge } from "@/components/ui/badge";
 import KPICard from "@/components/dashboard/KPICard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Users, BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, LucideIcon } from "lucide-react";
-import { ReactNode } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface KPI {
   label: string;
@@ -37,9 +38,42 @@ interface DepartmentOverviewProps {
   trafficData: TrafficDataPoint[];
   trafficLabel?: string;
   team: TeamMember[];
-  ticketSummary: TicketSummary;
+  department: string;
   accentColor?: string;
   extraSection?: ReactNode;
+}
+
+function useTicketCounts(department: string): TicketSummary {
+  const [counts, setCounts] = useState<TicketSummary>({ open: 0, inProgress: 0, completed: 0, emergency: 0 });
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      const { data, error } = await supabase
+        .from("department_tickets")
+        .select("status")
+        .eq("department", department as any);
+      if (error || !data) return;
+      const summary = { open: 0, inProgress: 0, completed: 0, emergency: 0 };
+      for (const row of data) {
+        if (row.status === "open") summary.open++;
+        else if (row.status === "in_progress") summary.inProgress++;
+        else if (row.status === "completed") summary.completed++;
+        else if (row.status === "emergency") summary.emergency++;
+      }
+      setCounts(summary);
+    };
+
+    fetchCounts();
+
+    const channel = supabase
+      .channel(`ticket-counts-${department}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "department_tickets", filter: `department=eq.${department}` }, fetchCounts)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [department]);
+
+  return counts;
 }
 
 const tooltipStyle = {
