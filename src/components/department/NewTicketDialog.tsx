@@ -16,6 +16,7 @@ interface NewTicketDialogProps {
   department: string;
   services: string[];
   onCreated: () => void;
+  defaultType?: string;
 }
 
 export function NewTicketDialog({ open, onOpenChange, department, services, onCreated }: NewTicketDialogProps) {
