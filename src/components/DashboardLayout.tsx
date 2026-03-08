@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
   ShieldCheck, LayoutDashboard, UserCheck,
-  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone,
+  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -37,8 +37,10 @@ const adminSections: NavSection[] = [
   {
     title: "DEPARTMENTS",
     items: [
-      { label: "Social Media", icon: Share2, path: "/social" },
+      { label: "Website", icon: Globe, path: "/website" },
+      { label: "SEO", icon: Search, path: "/seo" },
       { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
+      { label: "Social Media", icon: Share2, path: "/social" },
     ],
   },
   {
@@ -63,8 +65,10 @@ const conciergeSections: NavSection[] = [
   {
     title: "DEPARTMENTS",
     items: [
-      { label: "Social Media", icon: Share2, path: "/social" },
+      { label: "Website", icon: Globe, path: "/website" },
+      { label: "SEO", icon: Search, path: "/seo" },
       { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
+      { label: "Social Media", icon: Share2, path: "/social" },
     ],
   },
   {
@@ -87,8 +91,10 @@ const defaultClientSections: NavSection[] = [
 // Page title map
 const pageTitles: Record<string, string> = {
   "/": "Dashboard",
-  "/social": "Social Media",
+  "/website": "Website",
+  "/seo": "SEO",
   "/google-ads": "Google Ads",
+  "/social": "Social Media",
   "/review": "Admin Review",
   "/clinics": "Clinics",
   "/employees": "Team Members",
@@ -122,7 +128,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const clientSections: NavSection[] = [
     {
       items: [
-        { label: "Dashboard", icon: LayoutDashboard, path: "/" },
+      { label: "Dashboard", icon: LayoutDashboard, path: "/" },
+        { label: "Website", icon: Globe, path: "/website" },
+        { label: "SEO", icon: Search, path: "/seo" },
+        { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
         { label: "Social Media", icon: Share2, path: "/social" },
         ...(clientClinicId ? [{ label: "My Clinic", icon: Building2, path: `/clinics/${clientClinicId}` }] : []),
       ],
