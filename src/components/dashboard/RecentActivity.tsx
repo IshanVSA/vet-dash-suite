@@ -17,19 +17,6 @@ interface UnifiedActivity {
   color: string;
 }
 
-const postActionConfig: Record<string, { icon: React.ElementType; label: string; color: string }> = {
-  created: { icon: Sparkles, label: "Post created", color: "text-primary" },
-  status_change: { icon: Clock, label: "Status changed", color: "text-amber-500" },
-  approved: { icon: CheckCircle2, label: "Approved", color: "text-emerald-500" },
-  admin_approved: { icon: CheckCircle2, label: "Admin approved", color: "text-emerald-500" },
-  client_approved: { icon: CheckCircle2, label: "Client approved", color: "text-emerald-500" },
-  final_approved: { icon: CheckCircle2, label: "Final approved", color: "text-emerald-500" },
-  sent_to_client: { icon: Send, label: "Sent to client", color: "text-sky-500" },
-  sent_to_admin: { icon: Send, label: "Sent to admin", color: "text-sky-500" },
-  edited: { icon: PenLine, label: "Edited", color: "text-violet-500" },
-  flagged: { icon: Flag, label: "Flagged", color: "text-destructive" },
-  comment: { icon: MessageSquare, label: "Comment added", color: "text-muted-foreground" },
-};
 
 const priorityLabels: Record<string, string> = {
   regular: "",
@@ -51,13 +38,8 @@ export default function RecentActivity() {
       const profileMap = new Map((profilesRes.data || []).map(p => [p.id, p.full_name || "Unknown"]));
       const clinicMap = new Map((clinicsRes.data || []).map(c => [c.id, c.clinic_name]));
 
-      // Fetch all activity sources in parallel
-      const [postActivityRes, ticketsRes, contentRequestsRes] = await Promise.all([
-        supabase
-          .from("post_activity_log")
-          .select("id, action, created_at, metadata, post_id, actor_id, content_posts(title, clinic_id)")
-          .order("created_at", { ascending: false })
-          .limit(15),
+      // Fetch tickets and content requests in parallel
+      const [ticketsRes, contentRequestsRes] = await Promise.all([
         supabase
           .from("department_tickets")
           .select("id, title, department, priority, status, created_at, created_by, clinic_id")
@@ -72,22 +54,29 @@ export default function RecentActivity() {
 
       const activities: UnifiedActivity[] = [];
 
-      // Map post activity
-      (postActivityRes.data || []).forEach((row: any) => {
-        const cfg = postActionConfig[row.action] || { icon: Activity, label: row.action, color: "text-muted-foreground" };
-        const postTitle = row.content_posts?.title || "Untitled post";
-        const clinicName = row.content_posts?.clinic_id ? clinicMap.get(row.content_posts.clinic_id) : null;
-        const actorName = row.actor_id ? profileMap.get(row.actor_id) : null;
-        let desc = postTitle;
-        if (clinicName) desc += ` for ${clinicName}`;
-        if (actorName) desc += ` by ${actorName}`;
+      // Map content requests as monthly calendar events
+      const statusLabels: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+        generated: { label: "Monthly calendar created", color: "text-primary", icon: Sparkles },
+        concierge_preferred: { label: "Calendar sent for review", color: "text-sky-500", icon: Send },
+        admin_approved: { label: "Calendar approved by admin", color: "text-emerald-500", icon: CheckCircle2 },
+        client_selected: { label: "Calendar approved by client", color: "text-violet-500", icon: CheckCircle2 },
+        final_approved: { label: "Calendar finalized", color: "text-emerald-500", icon: CheckCircle2 },
+      };
+
+      (contentRequestsRes.data || []).forEach((cr: any) => {
+        const conciergeName = profileMap.get(cr.created_by_concierge_id) || "A concierge";
+        const clinicName = cr.clinic_id ? clinicMap.get(cr.clinic_id) || "a clinic" : "a clinic";
+        const intake = cr.intake_data as any;
+        const month = intake?.month || "";
+        const cfg = statusLabels[cr.status] || { label: `Calendar ${cr.status.replace(/_/g, " ")}`, color: "text-muted-foreground", icon: FileText };
+        let desc = `${month ? month + " " : ""}for ${clinicName} by ${conciergeName}`;
 
         activities.push({
-          id: `post-${row.id}`,
-          type: "post",
+          id: `cr-${cr.id}`,
+          type: "content_request",
           label: cfg.label,
           description: desc,
-          created_at: row.created_at,
+          created_at: cr.created_at,
           icon: cfg.icon,
           color: cfg.color,
         });
