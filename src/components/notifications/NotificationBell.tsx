@@ -1,20 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { Bell, Check, FileText, MessageSquare, AlertTriangle, CheckCircle } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/hooks/useAuth";
-import { formatDistanceToNow } from "date-fns";
-
-interface Notification {
-  id: string;
-  type: "post_approved" | "post_flagged" | "comment_added" | "status_changed";
-  title: string;
-  message: string;
-  read: boolean;
-  created_at: string;
-}
-
 import { Bell, Check, FileText, MessageSquare, AlertTriangle, CheckCircle, Ticket } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -47,39 +31,60 @@ export function NotificationBell() {
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  // Load notifications from post_activity_log as a proxy
   useEffect(() => {
     if (!user) return;
+
     const fetchNotifications = async () => {
-      const { data } = await supabase
+      // Fetch post activity
+      const { data: activityData } = await supabase
         .from("post_activity_log")
         .select("id, action, metadata, created_at, post_id")
         .order("created_at", { ascending: false })
-        .limit(20);
+        .limit(15);
 
-      if (data) {
-        const mapped: Notification[] = data.map((log: any) => {
-          const meta = typeof log.metadata === "object" ? log.metadata : {};
-          let type: Notification["type"] = "status_changed";
-          if (log.action.includes("approved")) type = "post_approved";
-          else if (log.action.includes("flag")) type = "post_flagged";
-          else if (log.action.includes("comment")) type = "comment_added";
+      const activityNotifs: Notification[] = (activityData || []).map((log: any) => {
+        const meta = typeof log.metadata === "object" ? log.metadata : {};
+        let type: Notification["type"] = "status_changed";
+        if (log.action.includes("approved")) type = "post_approved";
+        else if (log.action.includes("flag")) type = "post_flagged";
+        else if (log.action.includes("comment")) type = "comment_added";
 
-          return {
-            id: log.id,
-            type,
-            title: log.action.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()),
-            message: meta.message || `Post activity: ${log.action}`,
-            read: false,
-            created_at: log.created_at,
-          };
-        });
-        setNotifications(mapped);
-      }
+        return {
+          id: log.id,
+          type,
+          title: log.action.replace(/_/g, " ").replace(/\b\w/g, (l: string) => l.toUpperCase()),
+          message: meta.message || `Post activity: ${log.action}`,
+          read: false,
+          created_at: log.created_at,
+        };
+      });
+
+      // Fetch recent tickets
+      const { data: ticketData } = await supabase
+        .from("department_tickets")
+        .select("id, title, department, priority, created_at")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      const ticketNotifs: Notification[] = (ticketData || []).map((t: any) => ({
+        id: `ticket-${t.id}`,
+        type: "ticket_created" as const,
+        title: "New Ticket",
+        message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
+        read: false,
+        created_at: t.created_at,
+      }));
+
+      // Merge and sort by date
+      const all = [...activityNotifs, ...ticketNotifs]
+        .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+        .slice(0, 25);
+
+      setNotifications(all);
     };
+
     fetchNotifications();
 
-    // Subscribe to realtime changes
     const channel = supabase
       .channel("notifications")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "post_activity_log" }, (payload) => {
@@ -97,6 +102,18 @@ export function NotificationBell() {
           message: meta.message || `Post activity: ${log.action}`,
           read: false,
           created_at: log.created_at,
+        };
+        setNotifications(prev => [newNotif, ...prev].slice(0, 30));
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "department_tickets" }, (payload) => {
+        const t = payload.new as any;
+        const newNotif: Notification = {
+          id: `ticket-${t.id}`,
+          type: "ticket_created",
+          title: "New Ticket",
+          message: `[${t.department}] ${t.title}${t.priority !== "regular" ? ` (${t.priority})` : ""}`,
+          read: false,
+          created_at: t.created_at,
         };
         setNotifications(prev => [newNotif, ...prev].slice(0, 30));
       })
