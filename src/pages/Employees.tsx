@@ -223,6 +223,47 @@ export default function Employees() {
           </div>
         </div>
 
+        {/* Filter Bar */}
+        <Card className="border-border/60">
+          <CardContent className="py-3 px-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative flex-1 min-w-[200px]">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search by name or email…"
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  className="pl-8 h-9"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery("")} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+              <Select value={filterTeamRole} onValueChange={setFilterTeamRole}>
+                <SelectTrigger className="w-[160px] h-9"><SelectValue placeholder="Team Role" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  {TEAM_ROLES.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              <Select value={filterClinic} onValueChange={setFilterClinic}>
+                <SelectTrigger className="w-[180px] h-9"><SelectValue placeholder="Clinic" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Clinics</SelectItem>
+                  {allClinics.map(c => <SelectItem key={c.id} value={c.id}>{c.clinic_name}</SelectItem>)}
+                </SelectContent>
+              </Select>
+              {(searchQuery || filterTeamRole !== "all" || filterClinic !== "all") && (
+                <Button variant="ghost" size="sm" className="h-9 text-xs" onClick={() => { setSearchQuery(""); setFilterTeamRole("all"); setFilterClinic("all"); }}>
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {loading ? (
           <Card><CardContent className="py-12 text-center text-muted-foreground">
             <div className="inline-flex items-center gap-2">
@@ -230,12 +271,12 @@ export default function Employees() {
               Loading team...
             </div>
           </CardContent></Card>
-        ) : staffProfiles.length === 0 ? (
+        ) : filteredProfiles.length === 0 ? (
           <Card><CardContent className="py-12 text-center text-muted-foreground">
             <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
               <Users className="h-5 w-5 text-muted-foreground" />
             </div>
-            <p>No team members found.</p>
+            <p>{staffProfiles.length === 0 ? "No team members found." : "No results match your filters."}</p>
           </CardContent></Card>
         ) : (
           <Card className="overflow-hidden border-border/60">
