@@ -93,6 +93,7 @@ export default function SocialMedia() {
             <TicketsTab department="social_media" services={socialServices} />
           </TabsContent>
 
+          <TabsContent value="calendar" className="mt-4">
             <Suspense fallback={<TabFallback />}>
               <ContentCalendarContent />
             </Suspense>
