@@ -53,20 +53,22 @@ export default function Employees() {
     setProfiles((profilesRes.data as Profile[]) || []);
     setRoles(rolesRes.data || []);
 
-    const clinics = (clinicsRes.data || []) as { id: string; clinic_name: string }[];
+    const clinics = (clinicsRes.data || []) as ClinicOption[];
+    setAllClinics(clinics);
     const clinicMap = Object.fromEntries(clinics.map(c => [c.id, c.clinic_name]));
     const teamData = (teamAssignRes.data || []) as { user_id: string; clinic_id: string }[];
 
-    const assignMap = new Map<string, string[]>();
+    const assignMap = new Map<string, { names: string[]; ids: string[] }>();
     teamData.forEach((a: { user_id: string; clinic_id: string }) => {
       const name = clinicMap[a.clinic_id];
       if (name) {
-        const existing = assignMap.get(a.user_id) || [];
-        existing.push(name);
+        const existing = assignMap.get(a.user_id) || { names: [], ids: [] };
+        existing.names.push(name);
+        existing.ids.push(a.clinic_id);
         assignMap.set(a.user_id, existing);
       }
     });
-    setAssignments(Array.from(assignMap.entries()).map(([user_id, clinic_names]) => ({ user_id, clinic_names })));
+    setAssignments(Array.from(assignMap.entries()).map(([user_id, { names, ids }]) => ({ user_id, clinic_names: names, clinic_ids: ids })));
     setLoading(false);
   };
 
