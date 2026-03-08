@@ -8,6 +8,7 @@ import { lazy, Suspense } from "react";
 
 // Lazy load tab content to avoid importing everything upfront
 import { TicketsTab } from "@/components/department/TicketsTab";
+import { UploadsTab } from "@/components/department/UploadsTab";
 
 const ContentRequestsContent = lazy(() => import("@/components/social/ContentRequestsContent"));
 const ContentCalendarContent = lazy(() => import("@/components/social/ContentCalendarContent"));
