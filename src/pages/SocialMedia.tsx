@@ -2,12 +2,13 @@ import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket } from "lucide-react";
+import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket, Upload } from "lucide-react";
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
 
 // Lazy load tab content to avoid importing everything upfront
 import { TicketsTab } from "@/components/department/TicketsTab";
+import { UploadsTab } from "@/components/department/UploadsTab";
 
 const ContentRequestsContent = lazy(() => import("@/components/social/ContentRequestsContent"));
 const ContentCalendarContent = lazy(() => import("@/components/social/ContentCalendarContent"));
@@ -32,6 +33,7 @@ const allTabs = [
   { value: "calendar", label: "Calendar", icon: CalendarDays },
   { value: "intake", label: "Intake", icon: ClipboardList },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
+  { value: "uploads", label: "Uploads", icon: Upload },
 ];
 
 export default function SocialMedia() {
@@ -109,6 +111,10 @@ export default function SocialMedia() {
             <Suspense fallback={<TabFallback />}>
               <AnalyticsContent />
             </Suspense>
+          </TabsContent>
+
+          <TabsContent value="uploads" className="mt-4">
+            <UploadsTab department="social_media" />
           </TabsContent>
         </Tabs>
       </div>
