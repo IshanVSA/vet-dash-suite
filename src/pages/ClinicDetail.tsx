@@ -121,6 +121,16 @@ export default function ClinicDetail() {
   };
 
 
+  const fetchTeamMembers = async () => {
+    if (!id) return;
+    const { data: assignments } = await (supabase.from("clinic_team_members" as any).select("user_id").eq("clinic_id", id) as any);
+    if (!assignments || assignments.length === 0) { setTeamMembers([]); return; }
+    const userIds = assignments.map((a: any) => a.user_id);
+    const { data: profiles } = await supabase.from("profiles").select("full_name, team_role").in("id", userIds);
+    setTeamMembers(profiles || []);
+  };
+
+
 
 
   const hasGoogleCreds = !!(creds.google_ads_refresh_token && creds.google_ads_customer_id);
