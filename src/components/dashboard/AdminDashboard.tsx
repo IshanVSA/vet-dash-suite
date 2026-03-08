@@ -150,18 +150,18 @@ export default function AdminDashboard() {
 
       {/* Primary KPI Grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <KPICard label="Active Clinics" value={clinics.filter(c => c.status === "active").length} change={`${clinics.length} total`} changeType="neutral" icon={Building2} index={0} gradient="blue" />
-        <KPICard label="Total Posts" value={totalPosts} icon={FileText} index={1} gradient="purple" />
-        <KPICard label="Concierges" value={roleCounts.concierges} icon={UserCheck} index={2} gradient="green" />
-        <KPICard label="Clients" value={roleCounts.clients} icon={UserCircle} index={3} gradient="amber" />
+        <KPICard label="Active Clinics" value={clinics.filter(c => c.status === "active").length} change={`${clinics.length} total`} changeType="neutral" icon={Building2} index={0} gradient="blue" href="/clinics" />
+        <KPICard label="Total Posts" value={totalPosts} icon={FileText} index={1} gradient="purple" href="/social?tab=calendar" />
+        <KPICard label="Concierges" value={roleCounts.concierges} icon={UserCheck} index={2} gradient="green" href="/employees" />
+        <KPICard label="Clients" value={roleCounts.clients} icon={UserCircle} index={3} gradient="amber" href="/clients" />
       </div>
 
       {/* Secondary KPI Row */}
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        <KPICard label="Pending Review" value={pendingPosts} icon={Clock} index={4} gradient="amber" />
-        <KPICard label="Open Tickets" value={openTickets} change={urgentTickets > 0 ? `${urgentTickets} urgent` : undefined} changeType={urgentTickets > 0 ? "negative" : "neutral"} icon={Ticket} index={5} gradient="blue" />
+        <KPICard label="Pending Review" value={pendingPosts} icon={Clock} index={4} gradient="amber" href="/review" />
+        <KPICard label="Open Tickets" value={openTickets} change={urgentTickets > 0 ? `${urgentTickets} urgent` : undefined} changeType={urgentTickets > 0 ? "negative" : "neutral"} icon={Ticket} index={5} gradient="blue" href="/website?tab=tickets" />
         {urgentTickets > 0 && (
-          <KPICard label="Urgent / Emergency" value={urgentTickets} icon={AlertTriangle} index={6} gradient="amber" />
+          <KPICard label="Urgent / Emergency" value={urgentTickets} icon={AlertTriangle} index={6} gradient="amber" href="/website?tab=tickets" />
         )}
       </div>
 
