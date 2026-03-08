@@ -117,6 +117,18 @@ export function NotificationBell() {
         };
         setNotifications(prev => [newNotif, ...prev].slice(0, 30));
       })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "department_tickets" }, (payload) => {
+        const t = payload.new as any;
+        const newNotif: Notification = {
+          id: `ticket-upd-${t.id}-${Date.now()}`,
+          type: "status_changed",
+          title: `Ticket ${t.status.replace(/_/g, " ")}`,
+          message: `[${t.department}] ${t.title}`,
+          read: false,
+          created_at: t.updated_at || new Date().toISOString(),
+        };
+        setNotifications(prev => [newNotif, ...prev].slice(0, 30));
+      })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
