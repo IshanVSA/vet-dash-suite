@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
 import { FileCheck, CalendarDays, BarChart3, Building2, Users, CheckCircle2, Clock, Sparkles } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { format, subDays, startOfDay } from "date-fns";
 
 interface TeamMember {
@@ -39,6 +41,11 @@ const statusLabels: Record<string, string> = {
   final_approved: "Completed",
 };
 
+const socialServices = [
+  "Content Creation", "Post Scheduling", "Engagement Management",
+  "Analytics Review", "Campaign Strategy", "Others",
+];
+
 export function SocialOverview() {
   const { role } = useUserRole();
   const { user } = useAuth();
@@ -48,6 +55,8 @@ export function SocialOverview() {
   const [activeClinics, setActiveClinics] = useState(0);
   const [weeklyData, setWeeklyData] = useState<{ day: string; posts: number }[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
+  const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [prefilledService, setPrefilledService] = useState("");
   const [requestSummary, setRequestSummary] = useState<RequestSummary>({
     generated: 0, concierge_preferred: 0, admin_approved: 0, client_selected: 0, final_approved: 0,
   });
@@ -168,6 +177,37 @@ export function SocialOverview() {
         <StatsCard title="Content Requests" value={totalRequests} icon={FileCheck} index={2} />
         <StatsCard title="Active Clinics" value={activeClinics} icon={Building2} index={3} />
       </div>
+
+      {/* Services */}
+      <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: "160ms", animationFillMode: "both" }}>
+        <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+          <CardTitle className="text-base">Services</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-4">
+          <div className="flex flex-wrap gap-2">
+            {socialServices.map(s => (
+              <Badge
+                key={s}
+                variant="secondary"
+                className="text-xs font-medium px-3 py-1.5 cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
+                onClick={() => { setPrefilledService(s); setTicketDialogOpen(true); }}
+              >
+                {s}
+              </Badge>
+            ))}
+          </div>
+          <p className="text-[11px] text-muted-foreground mt-3">Click a service to create a ticket</p>
+        </CardContent>
+      </Card>
+
+      <NewTicketDialog
+        open={ticketDialogOpen}
+        onOpenChange={setTicketDialogOpen}
+        department="social_media"
+        services={socialServices}
+        onCreated={() => {}}
+        defaultType={prefilledService}
+      />
 
       {/* Charts + Panels Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
