@@ -6,7 +6,7 @@ import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
-import { FileCheck, CalendarDays, BarChart3, Building2, Users, CheckCircle2, Clock, Sparkles } from "lucide-react";
+import { FileCheck, CalendarDays, BarChart3, Building2, Users, CheckCircle2, Clock, Sparkles, Inbox, AlertTriangle, Ticket } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { format, subDays, startOfDay } from "date-fns";
@@ -55,6 +55,7 @@ export function SocialOverview() {
   const [requestSummary, setRequestSummary] = useState<RequestSummary>({
     generated: 0, concierge_preferred: 0, admin_approved: 0, client_selected: 0, final_approved: 0,
   });
+  const [ticketSummary, setTicketSummary] = useState({ open: 0, inProgress: 0, completed: 0, emergency: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -118,6 +119,31 @@ export function SocialOverview() {
 
     fetchAll();
   }, [role, user]);
+
+  // Ticket counts with realtime
+  useEffect(() => {
+    const fetchTickets = async () => {
+      const { data, error } = await supabase
+        .from("department_tickets")
+        .select("status")
+        .eq("department", "social_media" as any);
+      if (error || !data) return;
+      const s = { open: 0, inProgress: 0, completed: 0, emergency: 0 };
+      for (const row of data) {
+        if (row.status === "open") s.open++;
+        else if (row.status === "in_progress") s.inProgress++;
+        else if (row.status === "completed") s.completed++;
+        else if (row.status === "emergency") s.emergency++;
+      }
+      setTicketSummary(s);
+    };
+    fetchTickets();
+    const channel = supabase
+      .channel("social-ticket-counts")
+      .on("postgres_changes", { event: "*", schema: "public", table: "department_tickets", filter: "department=eq.social_media" }, fetchTickets)
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
 
   const tooltipStyle = {
     backgroundColor: "hsl(var(--card))",
@@ -257,6 +283,36 @@ export function SocialOverview() {
                     <span className="text-sm text-foreground">{statusLabels[status]}</span>
                   </div>
                   <span className="text-sm font-bold text-foreground tabular-nums">{count}</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Ticket Summary */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "400ms", animationFillMode: "both" }}>
+          <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Ticket className="h-4 w-4 text-primary" />
+              Ticket Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-3">
+              {[
+                { label: "Open", count: ticketSummary.open, icon: Inbox, color: "text-blue-500" },
+                { label: "In Progress", count: ticketSummary.inProgress, icon: Clock, color: "text-amber-500" },
+                { label: "Completed", count: ticketSummary.completed, icon: CheckCircle2, color: "text-emerald-500" },
+                { label: "Emergency", count: ticketSummary.emergency, icon: AlertTriangle, color: "text-destructive" },
+              ].map(t => (
+                <div key={t.label} className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <t.icon className={`h-4 w-4 ${t.color}`} />
+                    <span className="text-sm text-foreground">{t.label}</span>
+                  </div>
+                  <span className="text-sm font-bold text-foreground tabular-nums">{t.count}</span>
                 </div>
               ))}
             </div>
