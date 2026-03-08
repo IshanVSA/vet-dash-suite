@@ -189,17 +189,17 @@ export default function Clinics() {
     const promises: Promise<any>[] = [];
     if (toAdd.length > 0) {
       promises.push(
-        supabase.from("clinic_team_members" as any).insert(
+        (supabase.from("clinic_team_members" as any).insert(
           toAdd.map(user_id => ({ clinic_id: clinicId, user_id }))
-        )
+        ) as any)
       );
     }
     for (const userId of toRemove) {
       promises.push(
-        supabase.from("clinic_team_members" as any)
+        (supabase.from("clinic_team_members" as any)
           .delete()
           .eq("clinic_id", clinicId)
-          .eq("user_id", userId)
+          .eq("user_id", userId) as any)
       );
     }
 
