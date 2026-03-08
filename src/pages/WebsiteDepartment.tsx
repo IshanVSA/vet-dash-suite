@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
+import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { Eye, TrendingDown, Clock, Layers } from "lucide-react";
 
