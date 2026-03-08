@@ -56,6 +56,7 @@ Deno.serve(async (req) => {
     const email = typeof body.email === "string" ? body.email.trim().slice(0, 255) : "";
     const password = typeof body.password === "string" ? body.password : "";
     const role = typeof body.role === "string" ? body.role : "";
+    const team_role = typeof body.team_role === "string" ? body.team_role.trim().slice(0, 100) : null;
 
     if (!email || !password || !full_name) {
       return new Response(JSON.stringify({ error: "Missing required fields" }), {
@@ -107,10 +108,10 @@ Deno.serve(async (req) => {
         .eq("user_id", newUser.user.id);
     }
 
-    // Update profile email
+    // Update profile email and team_role
     await supabaseAdmin
       .from("profiles")
-      .update({ email })
+      .update({ email, ...(team_role ? { team_role } : {}) })
       .eq("id", newUser.user.id);
 
     return new Response(JSON.stringify({ id: newUser.user.id }), {
