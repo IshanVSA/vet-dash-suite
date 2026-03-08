@@ -6,6 +6,7 @@ import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
+import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { Eye, TrendingDown, Clock, Layers } from "lucide-react";
 
 const tabs = [
