@@ -129,7 +129,7 @@ export default function GoogleAdsDepartment() {
               extraSection={<CampaignsCard />}
             />
           </TabsContent>
-          <TabsContent value="tickets" className="mt-4"><ComingSoonTab label="Tickets" /></TabsContent>
+          <TabsContent value="tickets" className="mt-4"><TicketsTab department="google_ads" services={services} /></TabsContent>
           <TabsContent value="analytics" className="mt-4"><ComingSoonTab label="Analytics" /></TabsContent>
           <TabsContent value="reports" className="mt-4"><ComingSoonTab label="Reports" /></TabsContent>
           <TabsContent value="uploads" className="mt-4"><ComingSoonTab label="Uploads" /></TabsContent>

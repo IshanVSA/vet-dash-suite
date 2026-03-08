@@ -41,7 +41,7 @@ export default function SocialMedia() {
 
   // Client sees fewer tabs
   const visibleTabs = role === "client"
-    ? allTabs.filter(t => ["overview", "requests"].includes(t.value))
+    ? allTabs.filter(t => ["overview", "requests", "tickets"].includes(t.value))
     : allTabs;
 
   const handleTabChange = (value: string) => {
