@@ -98,10 +98,11 @@ export function DepartmentOverview({
   department,
   accentColor = "hsl(var(--primary))",
   extraSection,
+  clinicId,
 }: DepartmentOverviewProps) {
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [prefilledService, setPrefilledService] = useState("");
-  const ticketSummary = useTicketCounts(department);
+  const ticketSummary = useTicketCounts(department, clinicId);
   const ticketRows = [
     { label: "Open", count: ticketSummary.open, icon: Inbox, color: "text-blue-500" },
     { label: "In Progress", count: ticketSummary.inProgress, icon: Clock, color: "text-warning" },
