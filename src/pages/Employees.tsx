@@ -13,7 +13,17 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { toast } from "sonner";
 import { Plus, Trash2, Users } from "lucide-react";
 
-interface Profile { id: string; full_name: string | null; email: string | null; }
+const TEAM_ROLES = [
+  "Developer",
+  "Maintenance",
+  "Ads Strategist",
+  "Ads Analyst",
+  "Social",
+  "Concierge",
+  "SEO Lead",
+] as const;
+
+interface Profile { id: string; full_name: string | null; email: string | null; team_role: string | null; }
 interface UserRole { user_id: string; role: string; }
 interface ClinicAssignment { user_id: string; clinic_names: string[]; }
 
@@ -24,16 +34,16 @@ export default function Employees() {
   const [assignments, setAssignments] = useState<ClinicAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ full_name: "", email: "", password: "", role: "concierge" });
+  const [form, setForm] = useState({ full_name: "", email: "", password: "", role: "concierge", team_role: "" });
   const [creating, setCreating] = useState(false);
 
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes] = await Promise.all([
-      supabase.from("profiles").select("id, full_name, email"),
+      supabase.from("profiles").select("id, full_name, email, team_role"),
       supabase.from("user_roles").select("user_id, role"),
       supabase.from("clinics").select("assigned_concierge_id, clinic_name"),
     ]);
-    setProfiles(profilesRes.data || []);
+    setProfiles((profilesRes.data as Profile[]) || []);
     setRoles(rolesRes.data || []);
 
     const clinics = clinicsRes.data || [];
@@ -65,8 +75,16 @@ export default function Employees() {
   const handleRoleChange = async (userId: string, newRole: string) => {
     const { error } = await supabase.from("user_roles").update({ role: newRole as any }).eq("user_id", userId);
     if (error) { toast.error("Failed to update role"); } else {
-      toast.success("Role updated");
+      toast.success("Access level updated");
       setRoles(prev => prev.map(r => r.user_id === userId ? { ...r, role: newRole } : r));
+    }
+  };
+
+  const handleTeamRoleChange = async (userId: string, newTeamRole: string) => {
+    const { error } = await supabase.from("profiles").update({ team_role: newTeamRole } as any).eq("id", userId);
+    if (error) { toast.error("Failed to update team role"); } else {
+      toast.success("Team role updated");
+      setProfiles(prev => prev.map(p => p.id === userId ? { ...p, team_role: newTeamRole } : p));
     }
   };
 
@@ -105,15 +123,28 @@ export default function Employees() {
                   <div className="space-y-2"><Label>Full Name</Label><Input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="Jane Doe" className="input-glow" /></div>
                   <div className="space-y-2"><Label>Email</Label><Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="jane@example.com" className="input-glow" /></div>
                   <div className="space-y-2"><Label>Password</Label><Input type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} placeholder="Min 8 characters" className="input-glow" /></div>
-                  <div className="space-y-2">
-                    <Label>Role</Label>
-                    <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="admin">Admin</SelectItem>
-                        <SelectItem value="concierge">Concierge</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label>Access Level</Label>
+                      <Select value={form.role} onValueChange={v => setForm(f => ({ ...f, role: v }))}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="concierge">Concierge</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Team Role</Label>
+                      <Select value={form.team_role} onValueChange={v => setForm(f => ({ ...f, team_role: v }))}>
+                        <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+                        <SelectContent>
+                          {TEAM_ROLES.map(r => (
+                            <SelectItem key={r} value={r}>{r}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
                 </div>
                 <DialogFooter>
@@ -121,11 +152,13 @@ export default function Employees() {
                     if (!form.full_name || !form.email || !form.password) { toast.error("All fields are required"); return; }
                     if (form.password.length < 8) { toast.error("Password must be at least 8 characters"); return; }
                     setCreating(true);
-                    const { data, error } = await supabase.functions.invoke("create-team-member", { body: form });
+                    const { data, error } = await supabase.functions.invoke("create-team-member", {
+                      body: { ...form, team_role: form.team_role || null },
+                    });
                     setCreating(false);
                     if (error || data?.error) { toast.error(data?.error || error.message); return; }
                     toast.success("Team member created");
-                    setForm({ full_name: "", email: "", password: "", role: "concierge" });
+                    setForm({ full_name: "", email: "", password: "", role: "concierge", team_role: "" });
                     setDialogOpen(false);
                     await fetchData();
                   }}>
@@ -158,7 +191,8 @@ export default function Employees() {
                 <TableRow className="hover:bg-transparent">
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
+                  <TableHead>Access Level</TableHead>
+                  <TableHead>Team Role</TableHead>
                   <TableHead>Assigned Clinics</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -173,10 +207,20 @@ export default function Employees() {
                       <TableCell className="text-muted-foreground">{p.email || "—"}</TableCell>
                       <TableCell>
                         <Select value={userRole} onValueChange={v => handleRoleChange(p.id, v)}>
-                          <SelectTrigger className="w-[130px] h-8 text-xs"><SelectValue /></SelectTrigger>
+                          <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
                           <SelectContent>
                             <SelectItem value="admin">Admin</SelectItem>
                             <SelectItem value="concierge">Concierge</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Select value={p.team_role || ""} onValueChange={v => handleTeamRoleChange(p.id, v)}>
+                          <SelectTrigger className="w-[140px] h-8 text-xs"><SelectValue placeholder="Assign role" /></SelectTrigger>
+                          <SelectContent>
+                            {TEAM_ROLES.map(r => (
+                              <SelectItem key={r} value={r}>{r}</SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </TableCell>
