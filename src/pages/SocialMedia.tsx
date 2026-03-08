@@ -2,7 +2,7 @@ import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3 } from "lucide-react";
+import { Share2, LayoutDashboard, FileCheck, CalendarDays, ClipboardList, BarChart3, Ticket } from "lucide-react";
 import { SocialOverview } from "@/components/social/SocialOverview";
 import { lazy, Suspense } from "react";
 
