@@ -315,6 +315,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               {!collapsed && "New Ticket"}
             </button>
             <button
+              onClick={() => setChatOpen(true)}
               title={collapsed ? "Chat Assistant" : undefined}
               className={cn(
                 "flex items-center rounded-lg font-medium transition-all duration-200 group w-full",
