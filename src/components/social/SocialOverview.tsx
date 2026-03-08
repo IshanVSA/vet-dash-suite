@@ -41,6 +41,11 @@ const statusLabels: Record<string, string> = {
   final_approved: "Completed",
 };
 
+const socialServices = [
+  "Content Creation", "Post Scheduling", "Engagement Management",
+  "Analytics Review", "Campaign Strategy", "Others",
+];
+
 export function SocialOverview() {
   const { role } = useUserRole();
   const { user } = useAuth();
@@ -50,6 +55,8 @@ export function SocialOverview() {
   const [activeClinics, setActiveClinics] = useState(0);
   const [weeklyData, setWeeklyData] = useState<{ day: string; posts: number }[]>([]);
   const [team, setTeam] = useState<TeamMember[]>([]);
+  const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
+  const [prefilledService, setPrefilledService] = useState("");
   const [requestSummary, setRequestSummary] = useState<RequestSummary>({
     generated: 0, concierge_preferred: 0, admin_approved: 0, client_selected: 0, final_approved: 0,
   });
