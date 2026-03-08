@@ -3,9 +3,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { StatsCard } from "@/components/StatsCard";
 import { FileCheck, CalendarDays, BarChart3, Building2, Users, CheckCircle2, Clock, Sparkles } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { format, subDays, startOfDay } from "date-fns";
 
 interface TeamMember {
