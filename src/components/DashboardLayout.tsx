@@ -313,20 +313,6 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               </div>
               {!collapsed && "New Ticket"}
             </button>
-            <button
-              onClick={() => setChatOpen(true)}
-              title={collapsed ? "Chat Assistant" : undefined}
-              className={cn(
-                "flex items-center rounded-lg font-medium transition-all duration-200 group w-full",
-                collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5 text-[13px]",
-                "text-[hsl(var(--sidebar-muted))] hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]/50"
-              )}
-            >
-              <div className="relative shrink-0">
-                <div className="h-[7px] w-[7px] rounded-full bg-[hsl(var(--sidebar-muted))]/40" />
-              </div>
-              {!collapsed && "Chat Assistant"}
-            </button>
           </div>
         </div>
 
