@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,14 +16,20 @@ interface NewTicketDialogProps {
   department: string;
   services: string[];
   onCreated: () => void;
+  defaultType?: string;
 }
 
-export function NewTicketDialog({ open, onOpenChange, department, services, onCreated }: NewTicketDialogProps) {
+export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "" }: NewTicketDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
-  const [ticketType, setTicketType] = useState("");
+  const [ticketType, setTicketType] = useState(defaultType);
   const [priority, setPriority] = useState<"regular" | "urgent" | "emergency">("regular");
+
+  // Sync defaultType when dialog opens with a new prefilled value
+  useEffect(() => {
+    if (open && defaultType) setTicketType(defaultType);
+  }, [open, defaultType]);
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
 
