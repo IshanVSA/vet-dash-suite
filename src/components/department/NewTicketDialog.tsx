@@ -19,12 +19,17 @@ interface NewTicketDialogProps {
   defaultType?: string;
 }
 
-export function NewTicketDialog({ open, onOpenChange, department, services, onCreated }: NewTicketDialogProps) {
+export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "" }: NewTicketDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
-  const [ticketType, setTicketType] = useState("");
+  const [ticketType, setTicketType] = useState(defaultType);
   const [priority, setPriority] = useState<"regular" | "urgent" | "emergency">("regular");
+
+  // Sync defaultType when dialog opens with a new prefilled value
+  useEffect(() => {
+    if (open && defaultType) setTicketType(defaultType);
+  }, [open, defaultType]);
   const [description, setDescription] = useState("");
   const [notes, setNotes] = useState("");
 
