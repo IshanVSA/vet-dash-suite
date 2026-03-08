@@ -1,64 +1,53 @@
 
 
-## Built-in Website Tracking Pixel
+## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
 
-Replace hardcoded website KPIs with real analytics powered by a lightweight tracking script that clinic websites load, reporting page views back to your Supabase database.
-
-### How it works
-
-```text
-Clinic Website                    Your Dashboard
-┌──────────────┐    POST /track   ┌──────────────────┐
-│  Tracking     │ ──────────────► │  Edge Function    │
-│  Script       │   {clinic_id,   │  track-pageview   │
-│  (1 line JS)  │    path, ref}   │                   │
-└──────────────┘                  └────────┬─────────┘
-                                           │ INSERT
-                                           ▼
-                                  ┌──────────────────┐
-                                  │ website_pageviews │
-                                  │ table (Supabase)  │
-                                  └────────┬─────────┘
-                                           │ SELECT
-                                           ▼
-                                  ┌──────────────────┐
-                                  │ Website Dept page │
-                                  │ (real KPIs)       │
-                                  └──────────────────┘
-```
+### Summary
+Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
 
 ### Changes
 
-**1. Database: New `website_pageviews` table**
-- `id`, `clinic_id` (uuid), `path` (text), `referrer` (text), `user_agent` (text), `session_id` (text — random per visitor session), `created_at` (timestamptz)
-- RLS: public INSERT (no auth — tracking pixel), SELECT for authenticated users
+**1. Edge Function: `supabase/functions/generate-content/index.ts`**
+- Remove the `callClaude` function entirely
+- Remove the Claude API key lookup and Claude execution block
+- Keep only the OpenAI call
+- This means only one `content_version` row is created per request
 
-**2. Edge Function: `track-pageview`**
-- Public endpoint (verify_jwt = false), accepts POST with `clinic_id`, `path`, `referrer`, `user_agent`, `session_id`
-- Validates `clinic_id` exists, inserts row into `website_pageviews`
-- CORS enabled for cross-origin requests from clinic websites
+**2. `src/components/content-requests/ContentRequestCard.tsx`**
+- Remove the `ModelToggleView` component (no longer needed with single version)
+- Render the single `ContentVersionCard` directly when versions exist
+- Rename `onConciergePrefer` prop to `onSendForReview`
 
-**3. Clinic Detail page: "Tracking Setup" card**
-- New card on the clinic detail page showing a copyable JS snippet like:
-  ```html
-  <script src="https://yuyossgquiyuoqbeenri.supabase.co/functions/v1/track-pageview/pixel.js?clinic=CLINIC_ID"></script>
-  ```
-- Shows tracking status (last event received, total page views)
+**3. `src/components/content-requests/ContentVersionCard.tsx`**
+- Remove the "Concierge Pick" badge references
+- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
+- Rename `onConciergePrefer` prop to `onSendForReview`
+- Remove Claude-specific badge styling
+- Simplify the model name badge (just show "AI Generated" or "OpenAI")
 
-**4. Website Department: Real KPIs from `website_pageviews`**
-- Replace hardcoded KPIs with queries on `website_pageviews` for the selected clinic:
-  - **Visitors Today**: count distinct `session_id` for today
-  - **Bounce Rate**: sessions with only 1 page view / total sessions
-  - **Avg. Session Duration**: time between first and last page view per session
-  - **Pages/Session**: total page views / distinct sessions
-- Replace hardcoded traffic chart with real daily page view counts (last 7 days)
+**4. `src/pages/ContentRequests.tsx`**
+- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
+- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
+- Update prop names passed to `ContentRequestCard`
 
-**5. Edge function also serves the JS pixel**
-- GET requests to the function return a small JavaScript file that auto-tracks page views — clinic owners just paste one script tag
+**5. `src/pages/AdminReview.tsx`**
+- Remove reference to "Client selected: {model_name}" badge since there's only one model now
+- Keep everything else the same (final approve logic is unchanged)
 
-### Technical notes
-- No external services or API keys needed
-- The tracking script generates a random `session_id` stored in `sessionStorage` to group page views per visit
-- Change comparisons ("+12.3% vs last week") calculated by comparing current period vs previous period
-- No personally identifiable information collected — just paths, referrers, and user agents
+**6. Status labels in `ContentRequestCard.tsx`**
+- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
+
+### Technical Details
+
+- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
+- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
+- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
+- No database schema changes needed
+
+### Files to modify
+1. `supabase/functions/generate-content/index.ts` -- remove Claude
+2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
+3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
+4. `src/pages/ContentRequests.tsx` -- rename function
+5. `src/pages/AdminReview.tsx` -- remove model name badge
 

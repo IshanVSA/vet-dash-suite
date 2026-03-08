@@ -17,6 +17,7 @@ import { PageSelectionDialog } from "@/components/clinic-detail/PageSelectionDia
 import { FacebookInsightCard } from "@/components/clinic-detail/FacebookInsightCard";
 import { GoogleAdsConnectionCard } from "@/components/clinic-detail/GoogleAdsConnectionCard";
 import { GoogleAccountSelectionDialog } from "@/components/clinic-detail/GoogleAccountSelectionDialog";
+import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 
 interface ClinicData { clinic_name: string; }
 interface ClinicCredentials {
@@ -507,6 +508,7 @@ export default function ClinicDetail() {
                 lastGoogleSyncAt={creds.last_google_sync_at}
                 onRefresh={() => { fetchCredentials(); fetchAnalytics(); }}
               />
+              <TrackingSetupCard clinicId={id!} />
             </TabsContent>
           )}
         </Tabs>

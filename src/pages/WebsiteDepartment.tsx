@@ -9,6 +9,7 @@ import { UploadsTab } from "@/components/department/UploadsTab";
 import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
+import { useWebsiteKPIs } from "@/hooks/useWebsiteKPIs";
 import { Eye, TrendingDown, Clock, Layers } from "lucide-react";
 
 const tabs = [
@@ -19,33 +20,60 @@ const tabs = [
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
 
-const kpis = [
-  { label: "Visitors Today", value: "1,247", change: "+12.3% vs last week", changeType: "positive" as const, icon: Eye, gradient: "blue" as const },
-  { label: "Bounce Rate", value: "34.2%", change: "-2.1%", changeType: "positive" as const, icon: TrendingDown, gradient: "green" as const },
-  { label: "Avg. Session", value: "3m 42s", change: "+18s", changeType: "positive" as const, icon: Clock, gradient: "amber" as const },
-  { label: "Pages/Session", value: "4.8", change: "+0.3", changeType: "positive" as const, icon: Layers, gradient: "purple" as const },
-];
-
 const services = [
   "Time Changes", "Pop-up Offers", "Theme Updates", "Add/Remove Team Members",
   "New Forms", "Paper-to-Digital Conversion", "Price List Updates",
   "3rd-Party Integrations", "Payment Options", "Others",
 ];
 
-const trafficData = [
-  { label: "Mon", value: 320 }, { label: "Tue", value: 410 },
-  { label: "Wed", value: 380 }, { label: "Thu", value: 450 },
-  { label: "Fri", value: 520 }, { label: "Sat", value: 280 },
-  { label: "Sun", value: 210 },
-];
+function formatDuration(seconds: number): string {
+  if (seconds <= 0) return "0s";
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function formatChange(current: number, previous: number, suffix = ""): { text: string; type: "positive" | "negative" | "neutral" } {
+  if (previous === 0 && current === 0) return { text: "No data", type: "neutral" };
+  if (previous === 0) return { text: `+${current}${suffix} (new)`, type: "positive" };
+  const diff = current - previous;
+  const pct = Math.round((diff / previous) * 1000) / 10;
+  const sign = pct >= 0 ? "+" : "";
+  return {
+    text: `${sign}${pct}% vs last week`,
+    type: pct > 0 ? "positive" : pct < 0 ? "negative" : "neutral",
+  };
+}
 
 export default function WebsiteDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
   const { team } = useDepartmentTeam("website");
   const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
+  const kpiData = useWebsiteKPIs(selectedClinicId);
 
   const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
+
+  const visitorsChange = formatChange(kpiData.visitorsToday, kpiData.visitorsLastWeek);
+  // For bounce rate, lower is better so invert the change type
+  const bounceChange = formatChange(kpiData.bounceRate, kpiData.bounceRatePrev, "%");
+  const bounceChangeAdjusted = {
+    ...bounceChange,
+    type: bounceChange.type === "positive" ? "negative" as const : bounceChange.type === "negative" ? "positive" as const : "neutral" as const,
+  };
+  const durationChange = formatChange(kpiData.avgSessionDuration, kpiData.avgSessionDurationPrev);
+  const pagesChange = formatChange(kpiData.pagesPerSession, kpiData.pagesPerSessionPrev);
+
+  const kpis = [
+    { label: "Visitors Today", value: kpiData.loading ? "—" : kpiData.visitorsToday.toLocaleString(), change: kpiData.loading ? "" : visitorsChange.text, changeType: visitorsChange.type, icon: Eye, gradient: "blue" as const },
+    { label: "Bounce Rate", value: kpiData.loading ? "—" : `${kpiData.bounceRate}%`, change: kpiData.loading ? "" : bounceChangeAdjusted.text, changeType: bounceChangeAdjusted.type, icon: TrendingDown, gradient: "green" as const },
+    { label: "Avg. Session", value: kpiData.loading ? "—" : formatDuration(kpiData.avgSessionDuration), change: kpiData.loading ? "" : durationChange.text, changeType: durationChange.type, icon: Clock, gradient: "amber" as const },
+    { label: "Pages/Session", value: kpiData.loading ? "—" : kpiData.pagesPerSession.toString(), change: kpiData.loading ? "" : pagesChange.text, changeType: pagesChange.type, icon: Layers, gradient: "purple" as const },
+  ];
+
+  const trafficData = kpiData.dailyTraffic.length > 0
+    ? kpiData.dailyTraffic
+    : [{ label: "—", value: 0 }];
 
   return (
     <DashboardLayout>
