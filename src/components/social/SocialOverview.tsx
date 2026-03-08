@@ -207,15 +207,20 @@ export function SocialOverview() {
         </Card>
 
         {/* Team */}
-        {departmentTeam.length > 0 && (
-          <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
-            <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Users className="h-4 w-4 text-primary" />
-                Team
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="pt-4">
+        <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
+          <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
+            <CardTitle className="text-base flex items-center gap-2">
+              <Users className="h-4 w-4 text-primary" />
+              Team
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            {departmentTeam.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-6 text-center">
+                <Users className="h-8 w-8 text-muted-foreground/40 mb-2" />
+                <p className="text-sm text-muted-foreground">No team members assigned yet.</p>
+              </div>
+            ) : (
               <div className="space-y-3">
                 {departmentTeam.map(m => (
                   <div key={m.name} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
@@ -231,9 +236,9 @@ export function SocialOverview() {
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            )}
+          </CardContent>
+        </Card>
 
         {/* Request Summary */}
         <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
