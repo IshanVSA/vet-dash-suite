@@ -1,53 +1,103 @@
 
 
-## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
+## Plan: Add Ticketing System to All Departments
 
-### Summary
-Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
+### What We're Building
+A full ticketing system where users can create tickets scoped to a department (Website, SEO, Google Ads, Social Media). Each department's "Tickets" tab shows a list of tickets with filtering by status (Open, In Progress, Completed, Emergency). A "New Ticket" dialog (matching the uploaded reference images) allows creating tickets with title, type (department-specific services list), priority, description, attachments area, and notes.
 
-### Changes
+### Database Changes
 
-**1. Edge Function: `supabase/functions/generate-content/index.ts`**
-- Remove the `callClaude` function entirely
-- Remove the Claude API key lookup and Claude execution block
-- Keep only the OpenAI call
-- This means only one `content_version` row is created per request
+**1. Create `department_tickets` table:**
 
-**2. `src/components/content-requests/ContentRequestCard.tsx`**
-- Remove the `ModelToggleView` component (no longer needed with single version)
-- Render the single `ContentVersionCard` directly when versions exist
-- Rename `onConciergePrefer` prop to `onSendForReview`
+```sql
+create type public.ticket_status as enum ('open', 'in_progress', 'completed', 'emergency');
+create type public.ticket_priority as enum ('regular', 'urgent', 'emergency');
+create type public.department_type as enum ('website', 'seo', 'google_ads', 'social_media');
 
-**3. `src/components/content-requests/ContentVersionCard.tsx`**
-- Remove the "Concierge Pick" badge references
-- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
-- Rename `onConciergePrefer` prop to `onSendForReview`
-- Remove Claude-specific badge styling
-- Simplify the model name badge (just show "AI Generated" or "OpenAI")
+create table public.department_tickets (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  department department_type not null,
+  ticket_type text not null,
+  priority ticket_priority not null default 'regular',
+  status ticket_status not null default 'open',
+  description text,
+  notes text,
+  clinic_id uuid references public.clinics(id) on delete cascade,
+  created_by uuid references auth.users(id) on delete set null,
+  assigned_to uuid references auth.users(id) on delete set null,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
 
-**4. `src/pages/ContentRequests.tsx`**
-- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
-- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
-- Update prop names passed to `ContentRequestCard`
+alter table public.department_tickets enable row level security;
 
-**5. `src/pages/AdminReview.tsx`**
-- Remove reference to "Client selected: {model_name}" badge since there's only one model now
-- Keep everything else the same (final approve logic is unchanged)
+-- RLS: Admins full access, concierges can create/view/update, clients can create and view own
+create policy "Admins full access on tickets" on public.department_tickets for all to authenticated
+  using (has_role(auth.uid(), 'admin')) with check (has_role(auth.uid(), 'admin'));
 
-**6. Status labels in `ContentRequestCard.tsx`**
-- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
+create policy "Concierges can view tickets" on public.department_tickets for select to authenticated
+  using (has_role(auth.uid(), 'concierge'));
 
-### Technical Details
+create policy "Concierges can insert tickets" on public.department_tickets for insert to authenticated
+  with check (has_role(auth.uid(), 'concierge'));
 
-- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
-- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
-- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
-- No database schema changes needed
+create policy "Concierges can update tickets" on public.department_tickets for update to authenticated
+  using (has_role(auth.uid(), 'concierge'));
 
-### Files to modify
-1. `supabase/functions/generate-content/index.ts` -- remove Claude
-2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
-3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
-4. `src/pages/ContentRequests.tsx` -- rename function
-5. `src/pages/AdminReview.tsx` -- remove model name badge
+create policy "Clients can view own tickets" on public.department_tickets for select to authenticated
+  using (has_role(auth.uid(), 'client') and created_by = auth.uid());
+
+create policy "Clients can insert tickets" on public.department_tickets for insert to authenticated
+  with check (has_role(auth.uid(), 'client') and created_by = auth.uid());
+
+-- Trigger for updated_at
+create trigger update_department_tickets_updated_at
+  before update on public.department_tickets
+  for each row execute function update_updated_at_column();
+```
+
+### New Components
+
+**2. `src/components/department/TicketsTab.tsx`** — Main tickets tab component:
+- Props: `department` (string matching enum), `services` (string[] for the Type dropdown)
+- Fetches tickets from `department_tickets` filtered by department
+- Status filter tabs/chips: All, Open, In Progress, Completed, Emergency
+- Ticket list as cards showing title, type, priority badge, status badge, created date, clinic name
+- "New Ticket" button opens the creation dialog
+- Admins/concierges see all tickets; clients see only their own (enforced by RLS)
+
+**3. `src/components/department/NewTicketDialog.tsx`** — Dialog matching the reference images:
+- Fields: Title, Type (select from department services), Priority (Regular 24-48hrs / Urgent / Emergency), Description (textarea), Attachments (placeholder drop zone — no storage bucket yet, shown but disabled), Notes
+- On submit: inserts into `department_tickets` with the current user as `created_by`
+- Styled to match the dark dialog from the reference images
+
+**4. `src/components/department/TicketCard.tsx`** — Individual ticket display card:
+- Shows title, type, priority, status, created time (relative), assigned user
+- Status badge with color coding (blue=Open, amber=In Progress, green=Completed, red=Emergency)
+- Click to expand or view details (simple expand for now)
+
+### Integration into Department Pages
+
+**5. Replace `<ComingSoonTab label="Tickets" />` in all 4 department pages:**
+- `WebsiteDepartment.tsx` → `<TicketsTab department="website" services={services} />`
+- `SeoDepartment.tsx` → `<TicketsTab department="seo" services={services} />`
+- `GoogleAdsDepartment.tsx` → `<TicketsTab department="google_ads" services={services} />`
+- `SocialMedia.tsx` → Add a Tickets tab with `<TicketsTab department="social_media" services={[...]} />`
+
+**6. Update `DepartmentOverview` ticket summary** to pull real counts from the `department_tickets` table per department, replacing the hardcoded zeros.
+
+### Files Summary
+
+| Action | File |
+|--------|------|
+| Create | `src/components/department/TicketsTab.tsx` |
+| Create | `src/components/department/NewTicketDialog.tsx` |
+| Create | `src/components/department/TicketCard.tsx` |
+| Modify | `src/pages/WebsiteDepartment.tsx` — swap ComingSoonTab for TicketsTab |
+| Modify | `src/pages/SeoDepartment.tsx` — swap ComingSoonTab for TicketsTab |
+| Modify | `src/pages/GoogleAdsDepartment.tsx` — swap ComingSoonTab for TicketsTab |
+| Modify | `src/pages/SocialMedia.tsx` — add Tickets tab |
+| Modify | `src/components/department/DepartmentOverview.tsx` — fetch live ticket counts |
+| Migration | Create `department_tickets` table with enums, RLS, and trigger |
 
