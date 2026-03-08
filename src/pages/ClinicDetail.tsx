@@ -153,6 +153,31 @@ export default function ClinicDetail() {
           </div>
         </div>
 
+        {/* Team Members */}
+        {teamMembers.length > 0 && (
+          <Card className="border-border/60">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  Team:
+                </div>
+                {teamMembers.map((m, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                        {(m.full_name || "?").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm">{m.full_name || "Unknown"}</span>
+                    {m.team_role && <Badge variant="secondary" className="text-[10px] rounded-full">{m.team_role}</Badge>}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Tabs defaultValue="instagram">
           <TabsList className="bg-secondary">
             <TabsTrigger value="instagram">Instagram</TabsTrigger>
