@@ -37,10 +37,6 @@ const trafficData = [
   { label: "Mar", value: 8400 },
 ];
 
-const team = [
-  { name: "David Park", role: "SEO Specialist" },
-  { name: "Sarah Kim", role: "Content Strategist" },
-];
 
 const topKeywords = [
   { rank: 1, keyword: "veterinary clinic near me", position: 3, change: "+2" },

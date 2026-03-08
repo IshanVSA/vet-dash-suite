@@ -37,10 +37,6 @@ const trafficData = [
   { label: "Sun", value: 310 },
 ];
 
-const team = [
-  { name: "James Wilson", role: "PPC Specialist" },
-  { name: "Lisa Brown", role: "Account Manager" },
-];
 
 const campaigns = [
   { name: "Brand Awareness", spend: "$1,200", clicks: "1,020", conversions: 62, ctr: "6.2%" },
