@@ -7,7 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, RefreshCw, Loader2 } from "lucide-react";
+import { ArrowLeft, RefreshCw, Loader2, Users } from "lucide-react";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -47,11 +48,13 @@ export default function ClinicDetail() {
   const [googleAdsData, setGoogleAdsData] = useState<any[]>([]);
   const [metaPages, setMetaPages] = useState<any[] | null>(null);
   const [googleAccounts, setGoogleAccounts] = useState<{ accounts: any[]; refresh_token: string } | null>(null);
+  const [teamMembers, setTeamMembers] = useState<{ full_name: string | null; team_role: string | null }[]>([]);
   useEffect(() => {
     if (!id) return;
     supabase.from("clinics").select("clinic_name").eq("id", id).maybeSingle().then(({ data }) => setClinic(data));
     fetchCredentials();
     fetchAnalytics();
+    fetchTeamMembers();
 
     // Check for meta_pages URL parameter (page selection after OAuth)
     const metaPagesParam = searchParams.get("meta_pages");
@@ -118,6 +121,16 @@ export default function ClinicDetail() {
   };
 
 
+  const fetchTeamMembers = async () => {
+    if (!id) return;
+    const { data: assignments } = await (supabase.from("clinic_team_members" as any).select("user_id").eq("clinic_id", id) as any);
+    if (!assignments || assignments.length === 0) { setTeamMembers([]); return; }
+    const userIds = assignments.map((a: any) => a.user_id);
+    const { data: profiles } = await supabase.from("profiles").select("full_name, team_role").in("id", userIds);
+    setTeamMembers(profiles || []);
+  };
+
+
 
 
   const hasGoogleCreds = !!(creds.google_ads_refresh_token && creds.google_ads_customer_id);
@@ -139,6 +152,31 @@ export default function ClinicDetail() {
             <p className="text-muted-foreground">Clinic Analytics & Performance</p>
           </div>
         </div>
+
+        {/* Team Members */}
+        {teamMembers.length > 0 && (
+          <Card className="border-border/60">
+            <CardContent className="py-3 px-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                  <Users className="h-4 w-4" />
+                  Team:
+                </div>
+                {teamMembers.map((m, i) => (
+                  <div key={i} className="flex items-center gap-1.5">
+                    <Avatar className="h-6 w-6">
+                      <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+                        {(m.full_name || "?").split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm">{m.full_name || "Unknown"}</span>
+                    {m.team_role && <Badge variant="secondary" className="text-[10px] rounded-full">{m.team_role}</Badge>}
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Tabs defaultValue="instagram">
           <TabsList className="bg-secondary">
