@@ -121,7 +121,7 @@ const nextYearMonths = Array.from({ length: 6 }, (_, i) => {
 });
 const allMonthOptions = [...monthOptions, ...nextYearMonths];
 
-export default function IntakeFormsContent() {
+export default function IntakeFormsContent({ clinicId }: { clinicId?: string }) {
   const { role } = useUserRole();
   const { user } = useAuth();
   const [clinics, setClinics] = useState<{ id: string; clinic_name: string }[]>([]);
