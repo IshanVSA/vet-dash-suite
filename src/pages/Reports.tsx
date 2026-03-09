@@ -5,7 +5,7 @@ import { UnifiedReportTab } from "@/components/department/UnifiedReportTab";
 import { FileText } from "lucide-react";
 
 export default function Reports() {
-  const { selectedClinicId, setSelectedClinicId, clinics, isLoading: clinicsLoading } = useClinicSelector();
+  const { selectedClinicId, setSelectedClinicId, clinics, loading: clinicsLoading } = useClinicSelector();
 
   return (
     <DashboardLayout>
