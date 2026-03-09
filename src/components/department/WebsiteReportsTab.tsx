@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { format, subDays, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format, subDays, subMonths, startOfMonth, endOfMonth, differenceInMilliseconds } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, Calendar, Eye, Users, TrendingDown, Clock, Globe, BarChart3 } from "lucide-react";
+import { FileText, Download, Eye, Users, TrendingDown, Clock, Globe, BarChart3, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { cn } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
@@ -43,6 +44,13 @@ function getDateRange(period: ReportPeriod): { from: Date; to: Date } {
   }
 }
 
+function getPrevRange(range: { from: Date; to: Date }): { from: Date; to: Date } {
+  const duration = differenceInMilliseconds(range.to, range.from);
+  const prevTo = new Date(range.from.getTime() - 1);
+  const prevFrom = new Date(prevTo.getTime() - duration);
+  return { from: prevFrom, to: prevTo };
+}
+
 function formatDuration(s: number): string {
   if (s <= 0) return "0s";
   const m = Math.floor(s / 60);
@@ -50,7 +58,18 @@ function formatDuration(s: number): string {
   return m > 0 ? `${m}m ${sec}s` : `${sec}s`;
 }
 
-function calcMetrics(views: Pageview[]) {
+interface Metrics {
+  totalViews: number;
+  totalSessions: number;
+  bounceRate: number;
+  avgDuration: number;
+  pagesPerSession: number;
+  topPages: { path: string; views: number; visitors: number }[];
+  topReferrers: { source: string; count: number }[];
+  dailyTraffic: { date: string; count: number }[];
+}
+
+function calcMetrics(views: Pageview[]): Metrics {
   const sessions: Record<string, Pageview[]> = {};
   views.forEach(p => {
     if (!sessions[p.session_id]) sessions[p.session_id] = [];
@@ -70,7 +89,6 @@ function calcMetrics(views: Pageview[]) {
     });
   const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
 
-  // Top pages
   const pageCounts: Record<string, { views: number; visitors: Set<string> }> = {};
   views.forEach(p => {
     if (!pageCounts[p.path]) pageCounts[p.path] = { views: 0, visitors: new Set() };
@@ -82,7 +100,6 @@ function calcMetrics(views: Pageview[]) {
     .sort((a, b) => b.views - a.views)
     .slice(0, 10);
 
-  // Top referrers
   const refCounts: Record<string, number> = {};
   views.forEach(p => {
     const ref = p.referrer || "Direct";
@@ -93,7 +110,6 @@ function calcMetrics(views: Pageview[]) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  // Daily breakdown
   const dailyMap: Record<string, number> = {};
   views.forEach(p => {
     const key = p.created_at.slice(0, 10);
@@ -106,20 +122,32 @@ function calcMetrics(views: Pageview[]) {
   return { totalViews, totalSessions, bounceRate, avgDuration, pagesPerSession, topPages, topReferrers, dailyTraffic };
 }
 
+function pctChange(cur: number, prev: number, invertBetter = false): { pct: number; text: string; type: "positive" | "negative" | "neutral" } {
+  if (prev === 0 && cur === 0) return { pct: 0, text: "No change", type: "neutral" };
+  if (prev === 0) return { pct: 100, text: `+${cur} (new)`, type: invertBetter ? "negative" : "positive" };
+  const pct = Math.round(((cur - prev) / prev) * 1000) / 10;
+  const sign = pct >= 0 ? "+" : "";
+  let type: "positive" | "negative" | "neutral" = pct > 0 ? "positive" : pct < 0 ? "negative" : "neutral";
+  if (invertBetter) type = type === "positive" ? "negative" : type === "negative" ? "positive" : "neutral";
+  return { pct, text: `${sign}${pct}%`, type };
+}
+
 export function WebsiteReportsTab({ clinicId }: Props) {
   const [period, setPeriod] = useState<ReportPeriod>("last30");
   const [pageviews, setPageviews] = useState<Pageview[]>([]);
+  const [prevPageviews, setPrevPageviews] = useState<Pageview[]>([]);
   const [loading, setLoading] = useState(true);
   const [clinicName, setClinicName] = useState("");
   const [generating, setGenerating] = useState(false);
 
   const range = useMemo(() => getDateRange(period), [period]);
+  const prevRange = useMemo(() => getPrevRange(range), [range]);
 
   useEffect(() => {
     if (!clinicId) { setLoading(false); return; }
-    const fetch = async () => {
+    const fetchAll = async () => {
       setLoading(true);
-      const [{ data: pvData }, { data: clinicData }] = await Promise.all([
+      const [{ data: pvData }, { data: prevData }, { data: clinicData }] = await Promise.all([
         supabase
           .from("website_pageviews")
           .select("session_id, path, referrer, created_at")
@@ -127,24 +155,45 @@ export function WebsiteReportsTab({ clinicId }: Props) {
           .gte("created_at", range.from.toISOString())
           .lte("created_at", range.to.toISOString())
           .order("created_at", { ascending: true }),
+        supabase
+          .from("website_pageviews")
+          .select("session_id, path, referrer, created_at")
+          .eq("clinic_id", clinicId)
+          .gte("created_at", prevRange.from.toISOString())
+          .lte("created_at", prevRange.to.toISOString()),
         supabase.from("clinics").select("clinic_name").eq("id", clinicId).single(),
       ]);
       setPageviews((pvData as Pageview[] | null) || []);
+      setPrevPageviews((prevData as Pageview[] | null) || []);
       setClinicName(clinicData?.clinic_name || "Unknown Clinic");
       setLoading(false);
     };
-    fetch();
-  }, [clinicId, range]);
+    fetchAll();
+  }, [clinicId, range, prevRange]);
 
   const metrics = useMemo(() => (pageviews.length > 0 ? calcMetrics(pageviews) : null), [pageviews]);
+  const prevMetrics = useMemo(() => (prevPageviews.length > 0 ? calcMetrics(prevPageviews) : null), [prevPageviews]);
+
+  const changes = useMemo(() => {
+    if (!metrics) return null;
+    const pm = prevMetrics || { totalViews: 0, totalSessions: 0, bounceRate: 0, avgDuration: 0, pagesPerSession: 0 };
+    return {
+      views: pctChange(metrics.totalViews, pm.totalViews),
+      visitors: pctChange(metrics.totalSessions, pm.totalSessions),
+      bounce: pctChange(metrics.bounceRate, pm.bounceRate, true),
+      duration: pctChange(metrics.avgDuration, pm.avgDuration),
+      pages: pctChange(metrics.pagesPerSession, pm.pagesPerSession),
+    };
+  }, [metrics, prevMetrics]);
 
   const generatePDF = useCallback(() => {
-    if (!metrics) return;
+    if (!metrics || !changes) return;
     setGenerating(true);
 
     try {
       const doc = new jsPDF();
       const dateStr = `${format(range.from, "MMM d, yyyy")} – ${format(range.to, "MMM d, yyyy")}`;
+      const prevDateStr = `${format(prevRange.from, "MMM d")} – ${format(prevRange.to, "MMM d")}`;
 
       // Header
       doc.setFontSize(20);
@@ -157,28 +206,46 @@ export function WebsiteReportsTab({ clinicId }: Props) {
       doc.setDrawColor(220, 220, 220);
       doc.line(14, 40, 196, 40);
 
-      // KPI Summary
+      // KPI Summary with comparison
       doc.setFontSize(14);
       doc.setTextColor(40, 40, 40);
       doc.text("Key Metrics", 14, 50);
+      doc.setFontSize(9);
+      doc.setTextColor(130, 130, 130);
+      doc.text(`Compared to previous period (${prevDateStr})`, 14, 56);
+
+      const pm = prevMetrics || { totalViews: 0, totalSessions: 0, bounceRate: 0, avgDuration: 0, pagesPerSession: 0 };
 
       autoTable(doc, {
-        startY: 54,
-        head: [["Metric", "Value"]],
+        startY: 60,
+        head: [["Metric", "Current", "Previous", "Change"]],
         body: [
-          ["Total Page Views", metrics.totalViews.toLocaleString()],
-          ["Unique Visitors", metrics.totalSessions.toLocaleString()],
-          ["Bounce Rate", `${metrics.bounceRate}%`],
-          ["Avg. Session Duration", formatDuration(metrics.avgDuration)],
-          ["Pages per Session", metrics.pagesPerSession.toString()],
+          ["Page Views", metrics.totalViews.toLocaleString(), pm.totalViews.toLocaleString(), changes.views.text],
+          ["Unique Visitors", metrics.totalSessions.toLocaleString(), pm.totalSessions.toLocaleString(), changes.visitors.text],
+          ["Bounce Rate", `${metrics.bounceRate}%`, `${pm.bounceRate}%`, changes.bounce.text],
+          ["Avg. Session Duration", formatDuration(metrics.avgDuration), formatDuration(pm.avgDuration), changes.duration.text],
+          ["Pages per Session", metrics.pagesPerSession.toString(), pm.pagesPerSession.toString(), changes.pages.text],
         ],
         theme: "striped",
         headStyles: { fillColor: [249, 115, 22] },
         styles: { fontSize: 10 },
+        columnStyles: {
+          3: {
+            fontStyle: "bold",
+          },
+        },
+        didParseCell: (data) => {
+          if (data.section === "body" && data.column.index === 3) {
+            const val = data.cell.text[0] || "";
+            if (val.startsWith("+")) data.cell.styles.textColor = [22, 163, 74];
+            else if (val.startsWith("-")) data.cell.styles.textColor = [220, 38, 38];
+            else data.cell.styles.textColor = [120, 120, 120];
+          }
+        },
       });
 
       // Daily Traffic
-      const afterKPI = (doc as any).lastAutoTable?.finalY || 100;
+      const afterKPI = (doc as any).lastAutoTable?.finalY || 110;
       doc.setFontSize(14);
       doc.setTextColor(40, 40, 40);
       doc.text("Daily Traffic", 14, afterKPI + 12);
@@ -243,7 +310,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
     } finally {
       setGenerating(false);
     }
-  }, [metrics, clinicName, range]);
+  }, [metrics, prevMetrics, changes, clinicName, range, prevRange]);
 
   if (!clinicId) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate reports.</p>;
@@ -288,20 +355,25 @@ export function WebsiteReportsTab({ clinicId }: Props) {
       </Card>
 
       {/* Preview */}
-      {metrics && !loading && (
+      {metrics && changes && !loading && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" /> Report Preview — {periodLabels[period]}
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" /> Report Preview — {periodLabels[period]}
+              </CardTitle>
+              <span className="text-[10px] text-muted-foreground">
+                vs {format(prevRange.from, "MMM d")} – {format(prevRange.to, "MMM d")}
+              </span>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-              <PreviewStat icon={Eye} label="Page Views" value={metrics.totalViews.toLocaleString()} />
-              <PreviewStat icon={Users} label="Visitors" value={metrics.totalSessions.toLocaleString()} />
-              <PreviewStat icon={TrendingDown} label="Bounce Rate" value={`${metrics.bounceRate}%`} />
-              <PreviewStat icon={Clock} label="Avg. Session" value={formatDuration(metrics.avgDuration)} />
-              <PreviewStat icon={Globe} label="Pages/Session" value={metrics.pagesPerSession.toString()} />
+              <PreviewStat icon={Eye} label="Page Views" value={metrics.totalViews.toLocaleString()} change={changes.views} />
+              <PreviewStat icon={Users} label="Visitors" value={metrics.totalSessions.toLocaleString()} change={changes.visitors} />
+              <PreviewStat icon={TrendingDown} label="Bounce Rate" value={`${metrics.bounceRate}%`} change={changes.bounce} />
+              <PreviewStat icon={Clock} label="Avg. Session" value={formatDuration(metrics.avgDuration)} change={changes.duration} />
+              <PreviewStat icon={Globe} label="Pages/Session" value={metrics.pagesPerSession.toString()} change={changes.pages} />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -335,12 +407,28 @@ export function WebsiteReportsTab({ clinicId }: Props) {
   );
 }
 
-function PreviewStat({ icon: Icon, label, value }: { icon: React.ElementType; label: string; value: string }) {
+interface ChangeInfo {
+  pct: number;
+  text: string;
+  type: "positive" | "negative" | "neutral";
+}
+
+function PreviewStat({ icon: Icon, label, value, change }: { icon: React.ElementType; label: string; value: string; change: ChangeInfo }) {
+  const ChangeIcon = change.type === "positive" ? ArrowUp : change.type === "negative" ? ArrowDown : Minus;
   return (
     <div className="rounded-lg border border-border/50 bg-muted/30 p-3 text-center">
       <Icon className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
       <p className="text-lg font-bold text-foreground">{value}</p>
-      <p className="text-[10px] text-muted-foreground">{label}</p>
+      <p className="text-[10px] text-muted-foreground mb-1">{label}</p>
+      <div className={cn(
+        "inline-flex items-center gap-0.5 text-[10px] font-medium rounded-full px-1.5 py-0.5",
+        change.type === "positive" && "bg-emerald-500/10 text-emerald-600",
+        change.type === "negative" && "bg-red-500/10 text-red-600",
+        change.type === "neutral" && "bg-muted text-muted-foreground",
+      )}>
+        <ChangeIcon className="h-2.5 w-2.5" />
+        {change.text}
+      </div>
     </div>
   );
 }
