@@ -133,7 +133,7 @@ export default function WebsiteDepartment() {
           </TabsContent>
           <TabsContent value="tickets" className="mt-4"><TicketsTab department="website" services={services} clinicId={selectedClinicId} /></TabsContent>
           <TabsContent value="analytics" className="mt-4"><WebsiteAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
-          <TabsContent value="reports" className="mt-4"><ComingSoonTab label="Reports" /></TabsContent>
+          <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
           <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
         </Tabs>
       </div>
