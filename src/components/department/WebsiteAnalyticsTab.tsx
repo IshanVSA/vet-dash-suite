@@ -131,7 +131,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
     });
 
     return { current, prev, dailyTraffic, topPages, topReferrers, hourly };
-  }, [pageviews]);
+  }, [pageviews, dateRange, totalDays]);
 
   if (loading) {
     return (
