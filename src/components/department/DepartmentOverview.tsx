@@ -212,7 +212,6 @@ export function DepartmentOverview({
                         </Badge>
                       )}
                     </div>
-                    <p className="text-xs text-muted-foreground">{m.role}</p>
                   </div>
                 </div>
               ))}
