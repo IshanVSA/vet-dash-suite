@@ -129,7 +129,7 @@ export default function ContentCalendar() {
       if (!data) return;
       const { default: jsPDF } = await import("jspdf");
       const { default: autoTable } = await import("jspdf-autotable");
-      const { addVSALogo } = await import("@/lib/pdf-logo");
+      const { addVSALogoToAllPages } = await import("@/lib/pdf-logo");
       const doc = new jsPDF({ orientation: "landscape" });
       await addVSALogo(doc, 250, 8, 30, 15);
       const clinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name || "All Clinics";
