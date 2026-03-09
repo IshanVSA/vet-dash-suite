@@ -193,6 +193,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
 
     try {
       const doc = new jsPDF();
+      await addVSALogo(doc);
       const dateStr = `${format(range.from, "MMM d, yyyy")} – ${format(range.to, "MMM d, yyyy")}`;
       const prevDateStr = `${format(prevRange.from, "MMM d")} – ${format(prevRange.to, "MMM d")}`;
 
