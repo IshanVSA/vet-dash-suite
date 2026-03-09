@@ -1,36 +1,53 @@
 
 
-## Website Analytics Tab
+## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
 
-Replace the "Coming Soon" placeholder in the Website Department's Analytics tab with a full analytics dashboard powered by the existing `website_pageviews` data.
+### Summary
+Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
 
-### What it will show
+### Changes
 
-The new `WebsiteAnalyticsTab` component will query `website_pageviews` for the selected clinic (last 30 days) and display:
+**1. Edge Function: `supabase/functions/generate-content/index.ts`**
+- Remove the `callClaude` function entirely
+- Remove the Claude API key lookup and Claude execution block
+- Keep only the OpenAI call
+- This means only one `content_version` row is created per request
 
-1. **Summary KPI cards** (top row, 2x2 grid):
-   - Total Page Views (current vs previous period)
-   - Unique Visitors (distinct session_ids)
-   - Bounce Rate (single-page sessions / total)
-   - Avg. Session Duration
+**2. `src/components/content-requests/ContentRequestCard.tsx`**
+- Remove the `ModelToggleView` component (no longer needed with single version)
+- Render the single `ContentVersionCard` directly when versions exist
+- Rename `onConciergePrefer` prop to `onSendForReview`
 
-2. **Daily Traffic chart** (Area chart, last 30 days) — page views per day
+**3. `src/components/content-requests/ContentVersionCard.tsx`**
+- Remove the "Concierge Pick" badge references
+- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
+- Rename `onConciergePrefer` prop to `onSendForReview`
+- Remove Claude-specific badge styling
+- Simplify the model name badge (just show "AI Generated" or "OpenAI")
 
-3. **Top Pages table** — most visited paths, with view counts and unique visitor counts
+**4. `src/pages/ContentRequests.tsx`**
+- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
+- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
+- Update prop names passed to `ContentRequestCard`
 
-4. **Top Referrers table** — referrer domains driving traffic, with counts
+**5. `src/pages/AdminReview.tsx`**
+- Remove reference to "Client selected: {model_name}" badge since there's only one model now
+- Keep everything else the same (final approve logic is unchanged)
 
-5. **Hourly Heatmap or bar chart** — page views by hour of day (helps clinics see peak traffic times)
+**6. Status labels in `ContentRequestCard.tsx`**
+- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
 
-### Technical approach
+### Technical Details
 
-- Create `src/components/department/WebsiteAnalyticsTab.tsx`
-- Fetch from `website_pageviews` where `clinic_id = selectedClinicId` and `created_at >= 30 days ago`
-- All metrics computed client-side from the raw pageview rows (same pattern as `useWebsiteKPIs`)
-- Uses existing Recharts components (AreaChart, BarChart) and Card/Table UI components
-- Update `WebsiteDepartment.tsx` line 133 to render the new component instead of `ComingSoonTab`
-- Show empty state if no clinic selected or no data available
+- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
+- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
+- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
+- No database schema changes needed
 
-### No database changes needed
-All data already exists in `website_pageviews`. This is purely a frontend component.
+### Files to modify
+1. `supabase/functions/generate-content/index.ts` -- remove Claude
+2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
+3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
+4. `src/pages/ContentRequests.tsx` -- rename function
+5. `src/pages/AdminReview.tsx` -- remove model name badge
 
