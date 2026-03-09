@@ -5,6 +5,7 @@ import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload } from "luc
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
+import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
 import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
