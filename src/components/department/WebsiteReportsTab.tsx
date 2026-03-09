@@ -307,6 +307,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
         doc.text(`Generated on ${format(new Date(), "MMM d, yyyy 'at' h:mm a")}  •  Page ${i} of ${pageCount}`, 14, 290);
       }
 
+      await addVSALogoToAllPages(doc);
       doc.save(`${clinicName.replace(/\s+/g, "_")}_Website_Report_${format(range.from, "yyyy-MM-dd")}.pdf`);
     } finally {
       setGenerating(false);
