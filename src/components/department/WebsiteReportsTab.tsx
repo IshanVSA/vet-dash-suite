@@ -8,7 +8,7 @@ import { FileText, Download, Eye, Users, TrendingDown, Clock, Globe, BarChart3, 
 import { cn } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { addVSALogo } from "@/lib/pdf-logo";
+import { addVSALogoToAllPages } from "@/lib/pdf-logo";
 
 interface Pageview {
   session_id: string;
