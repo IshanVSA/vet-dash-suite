@@ -5,6 +5,7 @@ import { Search, LayoutDashboard, Ticket, MessageSquare, FileText, Upload, Trend
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
+import { SeoReportsTab } from "@/components/department/SeoReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
 import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
