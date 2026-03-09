@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Plus, Trash2, Users, Building2, Search, X } from "lucide-react";
+import { Plus, Trash2, Users, Search, X, Pencil } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 
 const TEAM_ROLES = [
@@ -38,12 +38,14 @@ export default function Employees() {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [form, setForm] = useState({ full_name: "", email: "", password: "", role: "concierge", team_role: "" });
   const [creating, setCreating] = useState(false);
-  const [assignDialogUser, setAssignDialogUser] = useState<Profile | null>(null);
-  const [assignedClinicIds, setAssignedClinicIds] = useState<string[]>([]);
-  const [savingAssign, setSavingAssign] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTeamRole, setFilterTeamRole] = useState("all");
   const [filterClinic, setFilterClinic] = useState("all");
+
+  // Edit dialog state
+  const [editDialogUser, setEditDialogUser] = useState<Profile | null>(null);
+  const [editForm, setEditForm] = useState({ role: "", team_role: "", clinicIds: [] as string[] });
+  const [savingEdit, setSavingEdit] = useState(false);
 
   const fetchData = async () => {
     const [profilesRes, rolesRes, clinicsRes, teamAssignRes] = await Promise.all([
@@ -99,45 +101,50 @@ export default function Employees() {
   const getAssignedClinics = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_names || [];
   const getAssignedClinicIds = (userId: string) => assignments.find(a => a.user_id === userId)?.clinic_ids || [];
 
-  const openAssignDialog = (user: Profile) => {
-    setAssignDialogUser(user);
-    setAssignedClinicIds(getAssignedClinicIds(user.id));
+  const openEditDialog = (user: Profile) => {
+    setEditDialogUser(user);
+    setEditForm({
+      role: getRole(user.id),
+      team_role: user.team_role || "",
+      clinicIds: getAssignedClinicIds(user.id),
+    });
   };
 
-  const handleSaveAssignments = async () => {
-    if (!assignDialogUser) return;
-    setSavingAssign(true);
-    const userId = assignDialogUser.id;
-    const currentIds = getAssignedClinicIds(userId);
-    const toAdd = assignedClinicIds.filter(id => !currentIds.includes(id));
-    const toRemove = currentIds.filter(id => !assignedClinicIds.includes(id));
+  const handleSaveEdit = async () => {
+    if (!editDialogUser) return;
+    setSavingEdit(true);
+    const userId = editDialogUser.id;
+    const currentRole = getRole(userId);
+    const currentTeamRole = editDialogUser.team_role || "";
+    const currentClinicIds = getAssignedClinicIds(userId);
 
+    // Update access level
+    if (editForm.role !== currentRole) {
+      const { error } = await supabase.from("user_roles").update({ role: editForm.role as any }).eq("user_id", userId);
+      if (error) { toast.error("Failed to update access level"); setSavingEdit(false); return; }
+    }
+
+    // Update team role
+    const newTeamRole = editForm.role === "admin" ? null : (editForm.team_role || null);
+    if ((newTeamRole || "") !== currentTeamRole) {
+      const { error } = await supabase.from("profiles").update({ team_role: newTeamRole } as any).eq("id", userId);
+      if (error) { toast.error("Failed to update team role"); setSavingEdit(false); return; }
+    }
+
+    // Update clinic assignments
+    const toAdd = editForm.clinicIds.filter(id => !currentClinicIds.includes(id));
+    const toRemove = currentClinicIds.filter(id => !editForm.clinicIds.includes(id));
     for (const clinicId of toRemove) {
       await (supabase.from("clinic_team_members" as any).delete().eq("user_id", userId).eq("clinic_id", clinicId) as any);
     }
     for (const clinicId of toAdd) {
       await (supabase.from("clinic_team_members" as any).insert({ user_id: userId, clinic_id: clinicId } as any) as any);
     }
-    setSavingAssign(false);
-    setAssignDialogUser(null);
-    toast.success("Clinic assignments updated");
+
+    setSavingEdit(false);
+    setEditDialogUser(null);
+    toast.success("Team member updated");
     await fetchData();
-  };
-
-  const handleRoleChange = async (userId: string, newRole: string) => {
-    const { error } = await supabase.from("user_roles").update({ role: newRole as any }).eq("user_id", userId);
-    if (error) { toast.error("Failed to update role"); } else {
-      toast.success("Access level updated");
-      setRoles(prev => prev.map(r => r.user_id === userId ? { ...r, role: newRole } : r));
-    }
-  };
-
-  const handleTeamRoleChange = async (userId: string, newTeamRole: string) => {
-    const { error } = await supabase.from("profiles").update({ team_role: newTeamRole } as any).eq("id", userId);
-    if (error) { toast.error("Failed to update team role"); } else {
-      toast.success("Team role updated");
-      setProfiles(prev => prev.map(p => p.id === userId ? { ...p, team_role: newTeamRole } : p));
-    }
   };
 
   const handleDelete = async (userId: string, name: string) => {
@@ -299,26 +306,15 @@ export default function Employees() {
                       <TableCell className="font-medium">{p.full_name || "—"}</TableCell>
                       <TableCell className="text-muted-foreground">{p.email || "—"}</TableCell>
                       <TableCell>
-                        <Select value={userRole} onValueChange={v => handleRoleChange(p.id, v)}>
-                          <SelectTrigger className="w-[120px] h-8 text-xs"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="admin">Admin</SelectItem>
-                            <SelectItem value="concierge">Member</SelectItem>
-                          </SelectContent>
-                        </Select>
+                        <Badge variant={userRole === "admin" ? "default" : "secondary"} className="text-[11px]">
+                          {userRole === "admin" ? "Admin" : "Member"}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         {userRole === "admin" ? (
                           <span className="text-xs text-muted-foreground italic">N/A</span>
                         ) : (
-                          <Select value={p.team_role || ""} onValueChange={v => handleTeamRoleChange(p.id, v)}>
-                            <SelectTrigger className="w-[180px] h-8 text-xs [&>span]:text-left [&>span]:truncate"><SelectValue placeholder="Assign role" /></SelectTrigger>
-                            <SelectContent>
-                              {TEAM_ROLES.map(r => (
-                                <SelectItem key={r} value={r}>{r}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <span className="text-sm">{p.team_role || <span className="text-xs text-muted-foreground italic">Unassigned</span>}</span>
                         )}
                       </TableCell>
                       <TableCell>
@@ -329,8 +325,8 @@ export default function Employees() {
                         ) : (<span className="text-muted-foreground text-xs italic">None</span>)}
                       </TableCell>
                       <TableCell className="text-right space-x-1">
-                        <Button variant="ghost" size="sm" className="h-8" onClick={() => openAssignDialog(p)} title="Assign clinics">
-                          <Building2 className="h-3.5 w-3.5" />
+                        <Button variant="ghost" size="sm" className="h-8" onClick={() => openEditDialog(p)} title="Edit member">
+                          <Pencil className="h-3.5 w-3.5" />
                         </Button>
                         <Button variant="ghost" size="sm" className="h-8 text-destructive hover:text-destructive" onClick={() => handleDelete(p.id, p.full_name || "User")}>
                           <Trash2 className="h-3.5 w-3.5" />
@@ -344,34 +340,65 @@ export default function Employees() {
           </Card>
         )}
 
-        {/* Assign Clinics Dialog */}
-        <Dialog open={!!assignDialogUser} onOpenChange={(open) => { if (!open) setAssignDialogUser(null); }}>
+        {/* Edit Member Dialog */}
+        <Dialog open={!!editDialogUser} onOpenChange={(open) => { if (!open) setEditDialogUser(null); }}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Assign Clinics — {assignDialogUser?.full_name || "User"}</DialogTitle>
-              <DialogDescription>Select which clinics this team member is assigned to.</DialogDescription>
+              <DialogTitle>Edit — {editDialogUser?.full_name || "Team Member"}</DialogTitle>
+              <DialogDescription>Update access level, team role, and clinic assignments.</DialogDescription>
             </DialogHeader>
-            <div className="max-h-64 overflow-y-auto space-y-2 py-2">
-              {allClinics.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No active clinics found.</p>
-              ) : allClinics.map(c => (
-                <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer">
-                  <Checkbox
-                    checked={assignedClinicIds.includes(c.id)}
-                    onCheckedChange={(checked) => {
-                      setAssignedClinicIds(prev =>
-                        checked ? [...prev, c.id] : prev.filter(id => id !== c.id)
-                      );
-                    }}
-                  />
-                  <span className="text-sm">{c.clinic_name}</span>
-                </label>
-              ))}
+            <div className="space-y-5 py-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Access Level</Label>
+                  <Select value={editForm.role} onValueChange={v => setEditForm(f => ({ ...f, role: v }))}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="concierge">Member</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                {editForm.role !== "admin" && (
+                  <div className="space-y-2">
+                    <Label>Team Role</Label>
+                    <Select value={editForm.team_role} onValueChange={v => setEditForm(f => ({ ...f, team_role: v }))}>
+                      <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger>
+                      <SelectContent>
+                        {TEAM_ROLES.map(r => (
+                          <SelectItem key={r} value={r}>{r}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label>Assigned Clinics</Label>
+                <div className="max-h-48 overflow-y-auto space-y-1 border rounded-md p-2">
+                  {allClinics.length === 0 ? (
+                    <p className="text-sm text-muted-foreground text-center py-3">No active clinics found.</p>
+                  ) : allClinics.map(c => (
+                    <label key={c.id} className="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-muted cursor-pointer">
+                      <Checkbox
+                        checked={editForm.clinicIds.includes(c.id)}
+                        onCheckedChange={(checked) => {
+                          setEditForm(f => ({
+                            ...f,
+                            clinicIds: checked ? [...f.clinicIds, c.id] : f.clinicIds.filter(id => id !== c.id),
+                          }));
+                        }}
+                      />
+                      <span className="text-sm">{c.clinic_name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setAssignDialogUser(null)}>Cancel</Button>
-              <Button disabled={savingAssign} onClick={handleSaveAssignments}>
-                {savingAssign ? "Saving…" : "Save"}
+              <Button variant="outline" onClick={() => setEditDialogUser(null)}>Cancel</Button>
+              <Button disabled={savingEdit} onClick={handleSaveEdit}>
+                {savingEdit ? "Saving…" : "Save Changes"}
               </Button>
             </DialogFooter>
           </DialogContent>
