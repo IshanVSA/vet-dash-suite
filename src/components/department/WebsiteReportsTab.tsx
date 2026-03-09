@@ -187,7 +187,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
     };
   }, [metrics, prevMetrics]);
 
-  const generatePDF = useCallback(() => {
+  const generatePDF = useCallback(async () => {
     if (!metrics || !changes) return;
     setGenerating(true);
 
