@@ -1,53 +1,25 @@
 
 
-## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
+## Plan: Fix Sidebar Glitch on Navigation
 
-### Summary
-Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
+### Problem
+When clicking a sidebar link, the entire sidebar visually "glitches" — it appears to briefly shift/resize/flicker. This is caused by the `PageTransition` component using `AnimatePresence mode="wait"`, which unmounts the old page before mounting the new one. During the exit animation, the main content area briefly shrinks (no children rendered), causing a layout reflow that affects the sidebar's sticky positioning.
 
-### Changes
+### Root Cause
+- `AnimatePresence mode="wait"` removes old content, then animates in new content
+- During the gap, the `<main>` content area loses height momentarily
+- The sidebar uses `lg:sticky lg:top-0 lg:h-screen` which can be affected by flex container height changes
+- The `transition-all duration-300` on the sidebar also means ANY property change (including subtle layout shifts) gets animated
 
-**1. Edge Function: `supabase/functions/generate-content/index.ts`**
-- Remove the `callClaude` function entirely
-- Remove the Claude API key lookup and Claude execution block
-- Keep only the OpenAI call
-- This means only one `content_version` row is created per request
+### Fix (2 changes)
 
-**2. `src/components/content-requests/ContentRequestCard.tsx`**
-- Remove the `ModelToggleView` component (no longer needed with single version)
-- Render the single `ContentVersionCard` directly when versions exist
-- Rename `onConciergePrefer` prop to `onSendForReview`
+**1. `src/components/DashboardLayout.tsx`** — Change sidebar `transition-all` to only transition `width` and `transform`:
+- Replace `transition-all duration-300` with `transition-[width,transform] duration-300` on the `<aside>` element
+- This prevents the sidebar from animating any accidental layout shifts
 
-**3. `src/components/content-requests/ContentVersionCard.tsx`**
-- Remove the "Concierge Pick" badge references
-- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
-- Rename `onConciergePrefer` prop to `onSendForReview`
-- Remove Claude-specific badge styling
-- Simplify the model name badge (just show "AI Generated" or "OpenAI")
+**2. `src/components/PageTransition.tsx`** — Switch from `mode="wait"` to `mode="popLayout"` or simply remove exit animations:
+- Change to `mode="popLayout"` so old and new pages can overlap briefly (no content gap)
+- Or simpler: remove `AnimatePresence` entirely and just use a fade-in on mount (no exit animation), eliminating the layout gap completely
 
-**4. `src/pages/ContentRequests.tsx`**
-- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
-- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
-- Update prop names passed to `ContentRequestCard`
-
-**5. `src/pages/AdminReview.tsx`**
-- Remove reference to "Client selected: {model_name}" badge since there's only one model now
-- Keep everything else the same (final approve logic is unchanged)
-
-**6. Status labels in `ContentRequestCard.tsx`**
-- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
-
-### Technical Details
-
-- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
-- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
-- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
-- No database schema changes needed
-
-### Files to modify
-1. `supabase/functions/generate-content/index.ts` -- remove Claude
-2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
-3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
-4. `src/pages/ContentRequests.tsx` -- rename function
-5. `src/pages/AdminReview.tsx` -- remove model name badge
+The recommended approach is both changes together: scope the sidebar transition AND use `mode="popLayout"` with `position: absolute` on exiting elements to prevent layout shifts.
 
