@@ -5,6 +5,7 @@ import { Megaphone, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Dollar
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
+import { GoogleAdsAnalyticsTab } from "@/components/department/GoogleAdsAnalyticsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
 import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
