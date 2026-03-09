@@ -4,7 +4,6 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
-import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
 import { WebsiteReportsTab } from "@/components/department/WebsiteReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
@@ -41,10 +40,7 @@ function formatChange(current: number, previous: number, suffix = ""): { text: s
   const diff = current - previous;
   const pct = Math.round((diff / previous) * 1000) / 10;
   const sign = pct >= 0 ? "+" : "";
-  return {
-    text: `${sign}${pct}% vs last week`,
-    type: pct > 0 ? "positive" : pct < 0 ? "negative" : "neutral",
-  };
+  return { text: `${sign}${pct}% vs last week`, type: pct > 0 ? "positive" : pct < 0 ? "negative" : "neutral" };
 }
 
 export default function WebsiteDepartment() {
@@ -57,12 +53,8 @@ export default function WebsiteDepartment() {
   const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
 
   const visitorsChange = formatChange(kpiData.visitorsToday, kpiData.visitorsLastWeek);
-  // For bounce rate, lower is better so invert the change type
   const bounceChange = formatChange(kpiData.bounceRate, kpiData.bounceRatePrev, "%");
-  const bounceChangeAdjusted = {
-    ...bounceChange,
-    type: bounceChange.type === "positive" ? "negative" as const : bounceChange.type === "negative" ? "positive" as const : "neutral" as const,
-  };
+  const bounceChangeAdjusted = { ...bounceChange, type: bounceChange.type === "positive" ? "negative" as const : bounceChange.type === "negative" ? "positive" as const : "neutral" as const };
   const durationChange = formatChange(kpiData.avgSessionDuration, kpiData.avgSessionDurationPrev);
   const pagesChange = formatChange(kpiData.pagesPerSession, kpiData.pagesPerSessionPrev);
 
@@ -73,46 +65,29 @@ export default function WebsiteDepartment() {
     { label: "Pages/Session", value: kpiData.loading ? "—" : kpiData.pagesPerSession.toString(), change: kpiData.loading ? "" : pagesChange.text, changeType: pagesChange.type, icon: Layers, gradient: "purple" as const },
   ];
 
-  const trafficData = kpiData.dailyTraffic.length > 0
-    ? kpiData.dailyTraffic
-    : [{ label: "—", value: 0 }];
+  const trafficData = kpiData.dailyTraffic.length > 0 ? kpiData.dailyTraffic : [{ label: "—", value: 0 }];
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 sm:space-y-6">
-        {/* Hero Header */}
-        <div className="relative overflow-hidden rounded-xl sm:rounded-2xl bg-gradient-to-br from-orange-500 via-orange-500/90 to-amber-500 p-5 sm:p-8 text-primary-foreground shadow-lg">
-          <div className="absolute inset-0 dot-grid opacity-10" />
-          <div className="relative z-10">
-            <div className="flex items-center gap-2.5 sm:gap-3 mb-2">
-              <div className="h-8 w-8 sm:h-10 sm:w-10 rounded-lg sm:rounded-xl bg-primary-foreground/20 backdrop-blur-sm flex items-center justify-center shrink-0">
-                <Globe className="h-4 w-4 sm:h-5 sm:w-5" />
-              </div>
-              <div>
-                <h1 className="text-xl sm:text-2xl font-bold">Website</h1>
-                {selectedClinicName && (
-                  <p className="text-primary-foreground/70 text-xs sm:text-sm font-medium -mt-0.5">{selectedClinicName}</p>
-                )}
-              </div>
+      <div className="space-y-4">
+        {/* Compact page header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-lg bg-[hsl(var(--dept-website))]/10 flex items-center justify-center">
+              <Globe className="h-4 w-4 text-[hsl(var(--dept-website))]" />
             </div>
-            <p className="text-primary-foreground/80 text-xs sm:text-sm max-w-lg">
-              Manage website updates, performance tracking, and client requests.
-            </p>
+            <div>
+              <h1 className="text-lg font-bold text-foreground tracking-tight">Website</h1>
+              {selectedClinicName && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinicName}</p>}
+            </div>
           </div>
+          <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />
         </div>
 
-        {/* Clinic Selector */}
-        <ClinicSelector
-          clinics={clinics}
-          selectedClinicId={selectedClinicId}
-          onSelect={setSelectedClinicId}
-          loading={clinicsLoading}
-        />
-
         <Tabs value={currentTab} onValueChange={(v) => setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true })} className="w-full">
-          <TabsList className="w-full justify-start bg-muted/50 h-11 p-1 overflow-x-auto">
+          <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
             {tabs.map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs sm:text-sm data-[state=active]:shadow-sm">
+              <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
                 <tab.icon className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">{tab.label}</span>
               </TabsTrigger>
@@ -120,16 +95,7 @@ export default function WebsiteDepartment() {
           </TabsList>
 
           <TabsContent value="overview" className="mt-4">
-            <DepartmentOverview
-              kpis={kpis}
-              services={services}
-              trafficData={trafficData}
-              trafficLabel="Weekly Traffic"
-              team={team}
-              department="website"
-              accentColor="hsl(25, 95%, 53%)"
-              clinicId={selectedClinicId}
-            />
+            <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData} trafficLabel="Weekly Traffic" team={team} department="website" accentColor="hsl(var(--dept-website))" clinicId={selectedClinicId} />
           </TabsContent>
           <TabsContent value="tickets" className="mt-4"><TicketsTab department="website" services={services} clinicId={selectedClinicId} /></TabsContent>
           <TabsContent value="analytics" className="mt-4"><WebsiteAnalyticsTab clinicId={selectedClinicId} /></TabsContent>

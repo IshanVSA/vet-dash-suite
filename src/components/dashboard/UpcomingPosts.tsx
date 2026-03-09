@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { CalendarDays, ArrowRight, Facebook, Instagram } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { ArrowRight, Facebook, Instagram } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format, parseISO } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface UpcomingPost {
   id: string;
@@ -16,23 +17,19 @@ interface UpcomingPost {
   clinic_name: string;
 }
 
-const platformIcon = (platform: string) => {
+const platformConfig = (platform: string) => {
   if (platform.toLowerCase().includes("instagram"))
-    return <Instagram className="h-3.5 w-3.5 text-pink-500" />;
-  return <Facebook className="h-3.5 w-3.5 text-blue-500" />;
+    return { icon: Instagram, color: "border-l-pink-500", label: "IG" };
+  return { icon: Facebook, color: "border-l-blue-500", label: "FB" };
 };
 
 const statusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
   switch (status) {
     case "approved":
-    case "published":
-      return "default";
-    case "pending":
-      return "outline";
-    case "rejected":
-      return "destructive";
-    default:
-      return "secondary";
+    case "published": return "default";
+    case "pending": return "outline";
+    case "rejected": return "destructive";
+    default: return "secondary";
   }
 };
 
@@ -67,61 +64,49 @@ export default function UpcomingPosts() {
   if (loading) return null;
 
   return (
-    <Card
-      className="overflow-hidden border-border/60 animate-fade-in"
-      style={{ animationDelay: "250ms", animationFillMode: "both" }}
-    >
-      <CardHeader className="border-b border-border/40 bg-muted/30 pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-              <CalendarDays className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-base font-semibold">Upcoming Posts</CardTitle>
-              <p className="text-xs text-muted-foreground">Next scheduled content</p>
-            </div>
-          </div>
-          <Link to="/content-calendar">
-            <Button variant="outline" size="sm" className="rounded-lg">
-              View Calendar <ArrowRight className="h-3.5 w-3.5 ml-1" />
-            </Button>
-          </Link>
-        </div>
-      </CardHeader>
+    <Card className="border-border/60">
+      <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+        <h3 className="text-sm font-bold text-foreground">Upcoming Posts</h3>
+        <Link to="/content-calendar">
+          <Button variant="ghost" size="sm" className="h-7 text-xs gap-1 text-muted-foreground hover:text-primary">
+            Calendar <ArrowRight className="h-3 w-3" />
+          </Button>
+        </Link>
+      </div>
       <CardContent className="p-0">
         {posts.length === 0 ? (
-          <div className="py-12 text-center">
-            <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-              <CalendarDays className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground text-sm">No upcoming scheduled posts.</p>
+          <div className="py-8 text-center">
+            <p className="text-sm text-muted-foreground mb-2">No upcoming posts scheduled.</p>
+            <Link to="/content-calendar">
+              <Button size="sm" variant="outline" className="text-xs">Schedule a Post</Button>
+            </Link>
           </div>
         ) : (
           <ul className="divide-y divide-border/40">
-            {posts.map((post, i) => (
-              <li
-                key={post.id}
-                className="flex items-center justify-between gap-3 px-4 sm:px-6 py-3 hover:bg-muted/40 transition-colors animate-fade-in"
-                style={{ animationDelay: `${300 + i * 50}ms`, animationFillMode: "both" }}
-              >
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="shrink-0">{platformIcon(post.platform)}</div>
-                  <div className="min-w-0">
-                    <p className="text-sm font-medium text-foreground truncate">{post.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{post.clinic_name}</p>
+            {posts.map((post) => {
+              const pcfg = platformConfig(post.platform);
+              const PIcon = pcfg.icon;
+              return (
+                <li key={post.id} className={cn(
+                  "flex items-center justify-between gap-3 px-4 py-2.5 hover:bg-muted/30 transition-colors border-l-2",
+                  pcfg.color
+                )}>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <PIcon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{post.title}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{post.clinic_name}</p>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs text-muted-foreground hidden sm:inline">
-                    {format(parseISO(post.scheduled_date), "MMM d")}
-                  </span>
-                  <Badge variant={statusVariant(post.status)} className="rounded-full text-[11px]">
-                    {post.status}
-                  </Badge>
-                </div>
-              </li>
-            ))}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="text-[11px] text-muted-foreground hidden sm:inline tabular-nums">
+                      {format(parseISO(post.scheduled_date), "MMM d")}
+                    </span>
+                    <Badge variant={statusVariant(post.status)} className="rounded-full text-[10px]">{post.status}</Badge>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </CardContent>
