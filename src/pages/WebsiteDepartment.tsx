@@ -6,6 +6,7 @@ import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
+import { WebsiteReportsTab } from "@/components/department/WebsiteReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
 import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
