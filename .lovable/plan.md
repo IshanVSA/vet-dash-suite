@@ -1,57 +1,53 @@
 
 
-## Plan: SEO Lead Editable Analytics
+## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
 
-### Problem
-SEO department KPIs (Domain Authority, Backlinks, Keywords Top 10, Organic Traffic) and Top Keywords are all hardcoded static data. The SEO Lead needs a way to update these per clinic.
+### Summary
+Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
 
-### Approach
+### Changes
 
-#### 1. New Database Table: `seo_analytics`
-Store SEO metrics per clinic, updated by the SEO Lead.
+**1. Edge Function: `supabase/functions/generate-content/index.ts`**
+- Remove the `callClaude` function entirely
+- Remove the Claude API key lookup and Claude execution block
+- Keep only the OpenAI call
+- This means only one `content_version` row is created per request
 
-```text
-seo_analytics
-├── id (uuid, PK)
-├── clinic_id (uuid, FK → clinics.id, NOT NULL)
-├── month (text, e.g. "2026-03")
-├── domain_authority (integer)
-├── backlinks (integer)
-├── keywords_top_10 (integer)
-├── organic_traffic (integer)
-├── top_keywords (jsonb) — array of {keyword, position, change}
-├── updated_by (uuid, FK → auth.users)
-├── created_at (timestamptz)
-├── updated_at (timestamptz)
-└── UNIQUE(clinic_id, month)
-```
+**2. `src/components/content-requests/ContentRequestCard.tsx`**
+- Remove the `ModelToggleView` component (no longer needed with single version)
+- Render the single `ContentVersionCard` directly when versions exist
+- Rename `onConciergePrefer` prop to `onSendForReview`
 
-**RLS Policies:**
-- SELECT: authenticated users can read all
-- INSERT/UPDATE: allowed for admins OR users who are concierge/SEO Lead (checked via `department_members` or `profiles.team_role = 'SEO Lead'`)
+**3. `src/components/content-requests/ContentVersionCard.tsx`**
+- Remove the "Concierge Pick" badge references
+- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
+- Rename `onConciergePrefer` prop to `onSendForReview`
+- Remove Claude-specific badge styling
+- Simplify the model name badge (just show "AI Generated" or "OpenAI")
 
-#### 2. New Hook: `useSeoAnalytics`
-- Fetches `seo_analytics` rows for the selected clinic, ordered by month
-- Returns latest record for KPIs, all records for the traffic trend chart, and top keywords from the latest record
-- Provides `upsertSeoAnalytics` mutation function
+**4. `src/pages/ContentRequests.tsx`**
+- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
+- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
+- Update prop names passed to `ContentRequestCard`
 
-#### 3. New Component: `UpdateSeoAnalyticsDialog`
-- A dialog/sheet accessible from the SEO overview tab
-- Shows an "Update Analytics" button (only visible to users with `team_role = 'SEO Lead'` or admin role)
-- Form fields: month selector, Domain Authority, Backlinks, Keywords Top 10, Organic Traffic
-- A repeatable section for Top Keywords (keyword, position, change)
-- On submit, upserts into `seo_analytics` for the selected clinic + month
+**5. `src/pages/AdminReview.tsx`**
+- Remove reference to "Client selected: {model_name}" badge since there's only one model now
+- Keep everything else the same (final approve logic is unchanged)
 
-#### 4. Update `SeoDepartment.tsx`
-- Replace hardcoded `kpis`, `trafficData`, and `topKeywords` with data from `useSeoAnalytics`
-- Show the "Update Analytics" button in the overview tab header area
-- Pass dynamic data to `DepartmentOverview` and `TopKeywordsCard`
+**6. Status labels in `ContentRequestCard.tsx`**
+- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
 
-### File Changes
-| File | Action |
-|------|--------|
-| Migration SQL | Create `seo_analytics` table with RLS |
-| `src/hooks/useSeoAnalytics.ts` | New — fetch + upsert hook |
-| `src/components/department/UpdateSeoAnalyticsDialog.tsx` | New — form dialog for SEO Lead |
-| `src/pages/SeoDepartment.tsx` | Update — use dynamic data, show update button |
+### Technical Details
+
+- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
+- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
+- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
+- No database schema changes needed
+
+### Files to modify
+1. `supabase/functions/generate-content/index.ts` -- remove Claude
+2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
+3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
+4. `src/pages/ContentRequests.tsx` -- rename function
+5. `src/pages/AdminReview.tsx` -- remove model name badge
 
