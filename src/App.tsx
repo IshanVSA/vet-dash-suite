@@ -16,6 +16,7 @@ import AdminReview from "./pages/AdminReview";
 import Employees from "./pages/Employees";
 import ClientsPage from "./pages/Clients";
 import Settings from "./pages/Settings";
+import Reports from "./pages/Reports";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import DataDeletion from "./pages/DataDeletion";
 import NotFound from "./pages/NotFound";
