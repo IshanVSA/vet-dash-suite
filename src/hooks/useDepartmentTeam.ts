@@ -7,45 +7,62 @@ interface TeamMember {
   teamRole: string | null;
 }
 
+const departmentRoleMap: Record<string, string[]> = {
+  website: ["Developer", "Maintenance"],
+  seo: ["SEO Lead"],
+  google_ads: ["Ads Strategist", "Ads Analyst"],
+  social_media: ["Social & Concierge"],
+};
+
 export function useDepartmentTeam(department: string): { team: TeamMember[]; loading: boolean } {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetch = async () => {
+    const fetchTeam = async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("department_members" as any)
-        .select("user_id, department_role")
-        .eq("department", department as any);
-
-      if (error || !data || data.length === 0) {
+      const allowedRoles = departmentRoleMap[department] || [];
+      if (allowedRoles.length === 0) {
         setTeam([]);
         setLoading(false);
         return;
       }
 
-      const userIds = (data as any[]).map((d: any) => d.user_id);
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, full_name, email, team_role")
-        .in("id", userIds);
+        .in("team_role", allowedRoles);
 
-      const profileMap = Object.fromEntries(
-        (profiles || []).map((p: any) => [p.id, { name: p.full_name || p.email || "Unknown", teamRole: p.team_role || null }])
+      if (!profiles || profiles.length === 0) {
+        setTeam([]);
+        setLoading(false);
+        return;
+      }
+
+      // Exclude client-role users
+      const userIds = profiles.map((p) => p.id);
+      const { data: roles } = await supabase
+        .from("user_roles")
+        .select("user_id, role")
+        .in("user_id", userIds);
+
+      const clientIds = new Set(
+        (roles || []).filter((r) => r.role === "client").map((r) => r.user_id)
       );
 
       setTeam(
-        (data as any[]).map((d: any) => ({
-          name: profileMap[d.user_id]?.name || "Unknown",
-          role: d.department_role,
-          teamRole: profileMap[d.user_id]?.teamRole || null,
-        }))
+        profiles
+          .filter((p) => !clientIds.has(p.id))
+          .map((p) => ({
+            name: p.full_name || p.email || "Unknown",
+            role: p.team_role || "Member",
+            teamRole: p.team_role,
+          }))
       );
       setLoading(false);
     };
 
-    fetch();
+    fetchTeam();
   }, [department]);
 
   return { team, loading };
