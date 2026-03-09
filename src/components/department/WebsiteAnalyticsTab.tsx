@@ -54,8 +54,10 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
   const analytics = useMemo(() => {
     if (!pageviews.length) return null;
 
-    const now = Date.now();
-    const fifteenDaysAgo = now - 15 * 86400000;
+    const midpoint = new Date((dateRange.from.getTime() + dateRange.to.getTime()) / 2).getTime();
+
+    const currentPeriod = pageviews.filter(p => new Date(p.created_at).getTime() >= midpoint);
+    const prevPeriod = pageviews.filter(p => new Date(p.created_at).getTime() < midpoint);
 
     const currentPeriod = pageviews.filter(p => new Date(p.created_at).getTime() >= fifteenDaysAgo);
     const prevPeriod = pageviews.filter(p => new Date(p.created_at).getTime() < fifteenDaysAgo);
