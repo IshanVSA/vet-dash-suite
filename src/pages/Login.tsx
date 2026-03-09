@@ -9,29 +9,16 @@ import vsaLogo from "@/assets/vsa-logo.jpg";
 
 export default function Login() {
   const navigate = useNavigate();
-  const [isSignUp, setIsSignUp] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
-    if (isSignUp) {
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin },
-      });
-      if (error) toast.error(error.message);
-      else toast.success("Check your email to confirm your account!");
-    } else {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) toast.error(error.message);
-      else navigate("/");
-    }
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) toast.error(error.message);
+    else navigate("/");
     setLoading(false);
   };
 
@@ -62,21 +49,11 @@ export default function Login() {
           </div>
 
           <div>
-            <h1 className="text-2xl font-bold text-foreground tracking-tight">
-              {isSignUp ? "Create your account" : "Welcome back"}
-            </h1>
-            <p className="text-muted-foreground mt-1 text-sm">
-              {isSignUp ? "Get started with VSA Vet Media" : "Sign in to your dashboard"}
-            </p>
+            <h1 className="text-2xl font-bold text-foreground tracking-tight">Welcome back</h1>
+            <p className="text-muted-foreground mt-1 text-sm">Sign in to your dashboard</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            {isSignUp && (
-              <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Dr. Jane Smith" required className="input-glow" />
-              </div>
-            )}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required className="input-glow" />
@@ -86,16 +63,9 @@ export default function Login() {
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="input-glow" />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Loading..." : isSignUp ? "Create Account" : "Sign In"}
+              {loading ? "Loading..." : "Sign In"}
             </Button>
           </form>
-
-          <p className="text-center text-sm text-muted-foreground">
-            {isSignUp ? "Already have an account?" : "Don't have an account?"}{" "}
-            <button onClick={() => setIsSignUp(!isSignUp)} className="text-primary font-medium hover:underline">
-              {isSignUp ? "Sign In" : "Sign Up"}
-            </button>
-          </p>
         </div>
       </div>
     </div>
