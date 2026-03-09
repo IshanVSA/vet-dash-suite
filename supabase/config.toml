@@ -32,3 +32,6 @@ verify_jwt = false
 
 [functions.track-pageview]
 verify_jwt = false
+
+[functions.ticket-automation]
+verify_jwt = false
