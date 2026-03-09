@@ -19,22 +19,18 @@ import { ChatAssistant } from "@/components/chat/ChatAssistant";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const departmentServices: Record<string, { label: string; services: string[] }> = {
-  website: {
-    label: "Website",
-    services: ["Time Changes", "Pop-up Offers", "Theme Updates", "Add/Remove Team Members", "New Forms", "Paper-to-Digital Conversion", "Price List Updates", "Tech Issues", "Others"],
-  },
-  seo: {
-    label: "SEO",
-    services: ["Backlinking", "Ranking Reports", "Keyword Research", "Manual Work Reports", "Search Atlas Integration", "SEO Thread Updates", "Others"],
-  },
-  google_ads: {
-    label: "Google Ads",
-    services: ["Dashboard Access", "Analytics Review", "Monthly Performance Report", "Call Volume Issues", "Wrong Call Tracking", "Campaign Adjustments", "Others"],
-  },
-  social_media: {
-    label: "Social Media",
-    services: ["Content Calendar", "Post Approval", "Analytics", "Campaign Planning", "Others"],
-  },
+  website: { label: "Website", services: ["Time Changes", "Pop-up Offers", "Theme Updates", "Add/Remove Team Members", "New Forms", "Paper-to-Digital Conversion", "Price List Updates", "Tech Issues", "Others"] },
+  seo: { label: "SEO", services: ["Backlinking", "Ranking Reports", "Keyword Research", "Manual Work Reports", "Search Atlas Integration", "SEO Thread Updates", "Others"] },
+  google_ads: { label: "Google Ads", services: ["Dashboard Access", "Analytics Review", "Monthly Performance Report", "Call Volume Issues", "Wrong Call Tracking", "Campaign Adjustments", "Others"] },
+  social_media: { label: "Social Media", services: ["Content Calendar", "Post Approval", "Analytics", "Campaign Planning", "Others"] },
+};
+
+/* Department color dots for nav */
+const deptDotColors: Record<string, string> = {
+  "/website": "bg-[hsl(var(--dept-website))]",
+  "/seo": "bg-[hsl(var(--dept-seo))]",
+  "/google-ads": "bg-[hsl(var(--dept-ads))]",
+  "/social": "bg-[hsl(var(--dept-social))]",
 };
 
 interface NavItem {
@@ -50,84 +46,44 @@ interface NavSection {
 }
 
 const adminSections: NavSection[] = [
-  {
-    items: [
-      { label: "Dashboard", icon: LayoutDashboard, path: "/" },
-    ],
-  },
-  {
-    title: "DEPARTMENTS",
-    items: [
-      { label: "Website", icon: Globe, path: "/website" },
-      { label: "SEO", icon: Search, path: "/seo" },
-      { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
-      { label: "Social Media", icon: Share2, path: "/social" },
-    ],
-  },
-  {
-    title: "WORKSPACE",
-    items: [
-      { label: "Clinics", icon: Building2, path: "/clinics" },
-      { label: "Team", icon: Users, path: "/employees" },
-      { label: "Clients", icon: UserCheck, path: "/clients" },
-    ],
-  },
-  {
-    title: "ADMIN",
-    items: [
-      { label: "Reports", icon: FileText, path: "/reports" },
-      { label: "Review Queue", icon: ShieldCheck, path: "/review" },
-      { label: "Settings", icon: Settings, path: "/settings" },
-    ],
-  },
+  { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
+  { title: "DEPARTMENTS", items: [
+    { label: "Website", icon: Globe, path: "/website" },
+    { label: "SEO", icon: Search, path: "/seo" },
+    { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
+    { label: "Social Media", icon: Share2, path: "/social" },
+  ]},
+  { title: "WORKSPACE", items: [
+    { label: "Clinics", icon: Building2, path: "/clinics" },
+    { label: "Team", icon: Users, path: "/employees" },
+    { label: "Clients", icon: UserCheck, path: "/clients" },
+  ]},
+  { title: "ADMIN", items: [
+    { label: "Reports", icon: FileText, path: "/reports" },
+    { label: "Review Queue", icon: ShieldCheck, path: "/review" },
+    { label: "Settings", icon: Settings, path: "/settings" },
+  ]},
 ];
 
 const conciergeSections: NavSection[] = [
-  {
-    items: [
-      { label: "Dashboard", icon: LayoutDashboard, path: "/" },
-    ],
-  },
-  {
-    title: "DEPARTMENTS",
-    items: [
-      { label: "Website", icon: Globe, path: "/website" },
-      { label: "SEO", icon: Search, path: "/seo" },
-      { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
-      { label: "Social Media", icon: Share2, path: "/social" },
-    ],
-  },
-  {
-    title: "WORKSPACE",
-    items: [
-      { label: "My Clinics", icon: Building2, path: "/clinics" },
-      { label: "Reports", icon: FileText, path: "/reports" },
-      { label: "Settings", icon: Settings, path: "/settings" },
-    ],
-  },
+  { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
+  { title: "DEPARTMENTS", items: [
+    { label: "Website", icon: Globe, path: "/website" },
+    { label: "SEO", icon: Search, path: "/seo" },
+    { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
+    { label: "Social Media", icon: Share2, path: "/social" },
+  ]},
+  { title: "WORKSPACE", items: [
+    { label: "My Clinics", icon: Building2, path: "/clinics" },
+    { label: "Reports", icon: FileText, path: "/reports" },
+    { label: "Settings", icon: Settings, path: "/settings" },
+  ]},
 ];
 
-const defaultClientSections: NavSection[] = [
-  {
-    items: [
-      { label: "Dashboard", icon: LayoutDashboard, path: "/" },
-    ],
-  },
-];
-
-// Page title map
 const pageTitles: Record<string, string> = {
-  "/": "Dashboard",
-  "/website": "Website",
-  "/seo": "SEO",
-  "/google-ads": "Google Ads",
-  "/social": "Social Media",
-  "/review": "Admin Review",
-  "/clinics": "Clinics",
-  "/employees": "Team Members",
-  "/clients": "Clients",
-  "/reports": "Reports",
-  "/settings": "Settings",
+  "/": "Dashboard", "/website": "Website", "/seo": "SEO", "/google-ads": "Google Ads",
+  "/social": "Social Media", "/review": "Admin Review", "/clinics": "Clinics",
+  "/employees": "Team Members", "/clients": "Clients", "/reports": "Reports", "/settings": "Settings",
 };
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -140,14 +96,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<{ full_name: string | null } | null>(null);
   const { pendingRequests, pendingReview } = usePendingCounts();
 
-  // Global ticket dialog state
   const [deptPickerOpen, setDeptPickerOpen] = useState(false);
   const [globalTicketOpen, setGlobalTicketOpen] = useState(false);
   const [globalTicketDept, setGlobalTicketDept] = useState("website");
 
-  // Chat assistant is now a self-contained floating widget
-
-  // Listen for global new-ticket event
   useEffect(() => {
     const handler = () => setDeptPickerOpen(true);
     window.addEventListener("open-new-ticket", handler);
@@ -168,45 +120,26 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   }, [role, user]);
 
   const clientSections: NavSection[] = [
-    {
-      items: [
-        { label: "Dashboard", icon: LayoutDashboard, path: "/" },
-      ],
-    },
-    {
-      title: "DEPARTMENTS",
-      items: [
-        { label: "Website", icon: Globe, path: "/website" },
-        { label: "SEO", icon: Search, path: "/seo" },
-        { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
-        { label: "Social Media", icon: Share2, path: "/social" },
-      ],
-    },
-    {
-      title: "ACCOUNT",
-      items: [
-        { label: "Settings", icon: Settings, path: "/settings" },
-      ],
-    },
+    { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
+    { title: "DEPARTMENTS", items: [
+      { label: "Website", icon: Globe, path: "/website" },
+      { label: "SEO", icon: Search, path: "/seo" },
+      { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
+      { label: "Social Media", icon: Share2, path: "/social" },
+    ]},
+    { title: "ACCOUNT", items: [{ label: "Settings", icon: Settings, path: "/settings" }] },
   ];
 
-  // Inject badge counts into nav items
   const injectBadges = (sections: NavSection[]): NavSection[] =>
     sections.map(s => ({
       ...s,
       items: s.items.map(item => ({
         ...item,
-        badge:
-          item.path === "/social" ? pendingRequests :
-          item.path === "/review" ? pendingReview :
-          item.badge,
+        badge: item.path === "/social" ? pendingRequests : item.path === "/review" ? pendingReview : item.badge,
       })),
     }));
 
-  const sections = injectBadges(
-    role === "admin" ? adminSections : role === "concierge" ? conciergeSections : clientSections
-  );
-
+  const sections = injectBadges(role === "admin" ? adminSections : role === "concierge" ? conciergeSections : clientSections);
   const currentPageTitle = pageTitles[location.pathname] || "";
 
   const toggleCollapse = () => {
@@ -238,7 +171,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <h1 className="font-bold text-sm tracking-tight">
                 <span className="text-[hsl(var(--sidebar-primary))]">VSA</span> Vetmedia
               </h1>
-              <p className="text-[10px] text-[hsl(var(--sidebar-muted))] tracking-wide">Content Platform</p>
+              <p className="text-[10px] text-[hsl(var(--sidebar-muted))] tracking-wide">
+                {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+              </p>
             </div>
           )}
           <button onClick={toggleCollapse} className="hidden lg:flex p-1.5 rounded-md hover:bg-[hsl(var(--sidebar-accent))]/50 transition-colors shrink-0" title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
@@ -250,17 +185,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Navigation */}
-        <nav className={cn("flex-1 py-4 space-y-6 overflow-y-auto", collapsed ? "px-1.5" : "px-3")}>
+        <nav className={cn("flex-1 py-4 space-y-5 overflow-y-auto", collapsed ? "px-1.5" : "px-3")}>
           {sections.map((section, si) => (
             <div key={si}>
               {section.title && !collapsed && (
-                <p className="px-3 mb-2.5 text-[10px] font-bold tracking-[0.15em] text-[hsl(var(--sidebar-muted))]/60 uppercase select-none">
+                <p className="px-3 mb-2 text-[10px] font-bold tracking-[0.15em] text-[hsl(var(--sidebar-muted))]/60 uppercase select-none">
                   {section.title}
                 </p>
               )}
               <div className="space-y-0.5">
                 {section.items.map((item) => {
                   const active = item.path === "/" ? location.pathname === "/" : location.pathname === item.path || location.pathname.startsWith(item.path + "/") || (item.path === "/social" && location.pathname === "/social");
+                  const dotColor = deptDotColors[item.path];
                   return (
                     <Link
                       key={item.path}
@@ -268,19 +204,16 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       onClick={() => setSidebarOpen(false)}
                       title={collapsed ? item.label : undefined}
                       className={cn(
-                        "flex items-center rounded-lg font-medium transition-all duration-200 group relative",
-                        collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5 text-[13px]",
+                        "flex items-center rounded-lg font-medium transition-all duration-150 group relative",
+                        collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2 text-[13px]",
                         active
-                          ? "bg-[hsl(var(--sidebar-accent))] text-[hsl(var(--sidebar-primary))]"
-                          : "text-[hsl(var(--sidebar-muted))] hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]/50"
+                          ? "bg-[hsl(var(--sidebar-primary))]/15 text-[hsl(var(--sidebar-primary))]"
+                          : "text-[hsl(var(--sidebar-muted))] hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]/40"
                       )}
                     >
-                      {active && (
-                        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 bg-[hsl(var(--sidebar-primary))] rounded-r-full" />
-                      )}
                       <div className="relative shrink-0">
                         <item.icon className={cn(
-                          "h-[18px] w-[18px] transition-colors duration-200",
+                          "h-[18px] w-[18px] transition-colors duration-150",
                           active ? "text-[hsl(var(--sidebar-primary))]" : "group-hover:text-[hsl(var(--sidebar-foreground))]"
                         )} />
                         {collapsed && (item.badge ?? 0) > 0 && (
@@ -289,13 +222,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                           </span>
                         )}
                       </div>
-                      {!collapsed && item.label}
+                      {!collapsed && (
+                        <>
+                          {dotColor && <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", dotColor)} />}
+                          <span className="flex-1">{item.label}</span>
+                        </>
+                      )}
                       {!collapsed && (item.badge ?? 0) > 0 && (
                         <span className="ml-auto bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-[20px] px-1.5 flex items-center justify-center">
                           {item.badge}
                         </span>
                       )}
-                      {!collapsed && active && !item.badge && <ChevronRight className="h-3 w-3 ml-auto text-[hsl(var(--sidebar-primary))]/50" />}
                     </Link>
                   );
                 })}
@@ -305,17 +242,17 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* User footer */}
-        <div className={cn("py-4 border-t border-[hsl(var(--sidebar-border))]", collapsed ? "px-1.5" : "px-3")}>
+        <div className={cn("py-3 border-t border-[hsl(var(--sidebar-border))]", collapsed ? "px-1.5" : "px-3")}>
           {!collapsed && (
-            <div className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-lg bg-[hsl(var(--sidebar-accent))]/60">
-              <div className="h-8 w-8 rounded-full bg-gradient-to-br from-[hsl(var(--sidebar-primary))]/30 to-[hsl(280,65%,55%)]/20 flex items-center justify-center ring-1 ring-[hsl(var(--sidebar-primary))]/20">
-                <span className="text-xs font-semibold text-[hsl(var(--sidebar-primary))]">
+            <div className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg bg-[hsl(var(--sidebar-accent))]/40">
+              <div className="h-7 w-7 rounded-md bg-[hsl(var(--sidebar-primary))]/20 flex items-center justify-center shrink-0">
+                <span className="text-[11px] font-bold text-[hsl(var(--sidebar-primary))]">
                   {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-medium text-[hsl(var(--sidebar-foreground))] truncate">{profile?.full_name || "User"}</p>
-                <p className="text-[11px] text-[hsl(var(--sidebar-muted))] truncate capitalize">{role}</p>
+                <p className="text-[10px] text-[hsl(var(--sidebar-muted))] truncate capitalize">{role}</p>
               </div>
             </div>
           )}
@@ -337,33 +274,28 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       <main className="flex-1 min-w-0 flex flex-col">
         {/* Top header */}
-        <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border/40 px-4 lg:px-8 h-14 flex items-center gap-4">
+        <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border/50 px-4 lg:px-8 h-12 flex items-center gap-4">
           <button className="lg:hidden p-1.5 rounded-lg hover:bg-muted transition-colors" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5 text-foreground" />
           </button>
           
           {currentPageTitle && (
             <div className="hidden sm:flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground">VSA</span>
-              <ChevronRight className="h-3 w-3 text-muted-foreground/50" />
-              <span className="font-medium text-foreground">{currentPageTitle}</span>
+              <span className="text-muted-foreground text-xs">VSA</span>
+              <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
+              <span className="font-medium text-foreground text-xs">{currentPageTitle}</span>
             </div>
           )}
 
           <div className="flex-1" />
 
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 gap-1.5 text-xs font-medium"
-            onClick={() => setDeptPickerOpen(true)}
-          >
-            <Plus className="h-3.5 w-3.5" />
+          <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[11px] font-medium" onClick={() => setDeptPickerOpen(true)}>
+            <Plus className="h-3 w-3" />
             <span className="hidden sm:inline">New Ticket</span>
           </Button>
 
           <button
-            className="relative p-2 rounded-lg hover:bg-muted transition-colors"
+            className="relative p-1.5 rounded-lg hover:bg-muted transition-colors"
             onClick={() => {
               document.documentElement.classList.toggle("dark");
               localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
@@ -375,14 +307,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <NotificationBell />
 
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-1 ring-border">
-            <span className="text-xs font-semibold text-primary">
+          <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center">
+            <span className="text-[11px] font-bold text-primary">
               {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
             </span>
           </div>
         </header>
         
-        <div className="flex-1 p-4 lg:p-8">
+        <div className="flex-1 p-4 lg:p-6">
           <PageTransition>
             {children}
           </PageTransition>
@@ -402,11 +334,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                 key={key}
                 variant="outline"
                 className="h-auto py-3 flex flex-col gap-1"
-                onClick={() => {
-                  setGlobalTicketDept(key);
-                  setDeptPickerOpen(false);
-                  setGlobalTicketOpen(true);
-                }}
+                onClick={() => { setGlobalTicketDept(key); setDeptPickerOpen(false); setGlobalTicketOpen(true); }}
               >
                 <span className="text-sm font-medium">{label}</span>
               </Button>
@@ -415,16 +343,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </DialogContent>
       </Dialog>
 
-      {/* Global New Ticket Dialog */}
-      <NewTicketDialog
-        open={globalTicketOpen}
-        onOpenChange={setGlobalTicketOpen}
-        department={globalTicketDept}
-        services={departmentServices[globalTicketDept]?.services ?? []}
-        onCreated={() => {}}
-      />
-
-      {/* Chat Assistant - floating popup */}
+      <NewTicketDialog open={globalTicketOpen} onOpenChange={setGlobalTicketOpen} department={globalTicketDept} services={departmentServices[globalTicketDept]?.services ?? []} onCreated={() => {}} />
       <ChatAssistant />
     </div>
   );

@@ -1,11 +1,12 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import KPICard from "@/components/dashboard/KPICard";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { Users, BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, LucideIcon } from "lucide-react";
+import { BarChart3, CheckCircle2, Clock, AlertTriangle, Inbox, LucideIcon } from "lucide-react";
 import { ReactNode, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
+import { cn } from "@/lib/utils";
 
 interface KPI {
   label: string;
@@ -51,15 +52,10 @@ function useTicketCounts(department: string, clinicId?: string): TicketSummary {
 
   useEffect(() => {
     const fetchCounts = async () => {
-      let query = supabase
-        .from("department_tickets")
-        .select("status")
-        .eq("department", department as any);
-      if (clinicId) {
-        query = query.eq("clinic_id", clinicId);
-      }
-      const { data, error } = await query;
-      if (error || !data) return;
+      let query = supabase.from("department_tickets").select("status").eq("department", department as any);
+      if (clinicId) query = query.eq("clinic_id", clinicId);
+      const { data } = await query;
+      if (!data) return;
       const summary = { open: 0, inProgress: 0, completed: 0, emergency: 0 };
       for (const row of data) {
         if (row.status === "open") summary.open++;
@@ -69,14 +65,11 @@ function useTicketCounts(department: string, clinicId?: string): TicketSummary {
       }
       setCounts(summary);
     };
-
     fetchCounts();
-
     const channel = supabase
       .channel(`ticket-counts-${department}-${clinicId || "all"}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "department_tickets", filter: `department=eq.${department}` }, fetchCounts)
       .subscribe();
-
     return () => { supabase.removeChannel(channel); };
   }, [department, clinicId]);
 
@@ -86,152 +79,108 @@ function useTicketCounts(department: string, clinicId?: string): TicketSummary {
 const tooltipStyle = {
   backgroundColor: "hsl(var(--card))",
   border: "1px solid hsl(var(--border))",
-  borderRadius: "0.75rem",
-  fontSize: "13px",
+  borderRadius: "0.5rem",
+  fontSize: "12px",
 };
 
 export function DepartmentOverview({
-  kpis,
-  services,
-  trafficData,
-  trafficLabel = "Traffic Trend",
-  team,
-  department,
-  accentColor = "hsl(var(--primary))",
-  extraSection,
-  clinicId,
+  kpis, services, trafficData, trafficLabel = "Traffic Trend", team, department, accentColor = "hsl(var(--primary))", extraSection, clinicId,
 }: DepartmentOverviewProps) {
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [prefilledService, setPrefilledService] = useState("");
   const ticketSummary = useTicketCounts(department, clinicId);
   const ticketRows = [
-    { label: "Open", count: ticketSummary.open, icon: Inbox, color: "text-blue-500" },
+    { label: "Open", count: ticketSummary.open, icon: Inbox, color: "text-primary" },
     { label: "In Progress", count: ticketSummary.inProgress, icon: Clock, color: "text-warning" },
     { label: "Completed", count: ticketSummary.completed, icon: CheckCircle2, color: "text-success" },
     { label: "Emergency", count: ticketSummary.emergency, icon: AlertTriangle, color: "text-destructive" },
   ];
+  const totalTickets = ticketRows.reduce((s, r) => s + r.count, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       {/* KPI Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {kpis.map((kpi, i) => (
-          <KPICard
-            key={kpi.label}
-            label={kpi.label}
-            value={kpi.value}
-            change={kpi.change}
-            changeType={kpi.changeType}
-            icon={kpi.icon}
-            index={i}
-            gradient={kpi.gradient || (["blue", "green", "amber", "purple"][i % 4] as "blue" | "green" | "amber" | "purple")}
-          />
+          <KPICard key={kpi.label} label={kpi.label} value={kpi.value} change={kpi.change} changeType={kpi.changeType} icon={kpi.icon} index={i} gradient={kpi.gradient || (["blue", "green", "amber", "purple"][i % 4] as any)} />
         ))}
       </div>
 
-      {/* Services */}
-      <Card className="overflow-hidden animate-fade-in" style={{ animationDelay: "160ms", animationFillMode: "both" }}>
-        <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
-          <CardTitle className="text-base">Services</CardTitle>
-        </CardHeader>
-        <CardContent className="pt-4">
-          <div className="flex flex-wrap gap-2">
+      {/* Quick Actions — services as clickable chips */}
+      <Card className="border-border/60">
+        <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+          <h3 className="text-sm font-bold text-foreground">Quick Actions</h3>
+          <span className="text-[11px] text-muted-foreground">Click to create ticket</span>
+        </div>
+        <CardContent className="pt-3 pb-3">
+          <div className="flex flex-wrap gap-1.5">
             {services.map(s => (
               <Badge
                 key={s}
                 variant="secondary"
-                className="text-xs font-medium px-3 py-1.5 cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
+                className="text-xs font-medium px-2.5 py-1 cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
                 onClick={() => { setPrefilledService(s); setTicketDialogOpen(true); }}
               >
                 {s}
               </Badge>
             ))}
           </div>
-          <p className="text-[11px] text-muted-foreground mt-3">Click a service to create a ticket</p>
         </CardContent>
       </Card>
 
-      <NewTicketDialog
-        open={ticketDialogOpen}
-        onOpenChange={setTicketDialogOpen}
-        department={department}
-        services={services}
-        onCreated={() => {}}
-        defaultType={prefilledService}
-      />
+      <NewTicketDialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen} department={department} services={services} onCreated={() => {}} defaultType={prefilledService} />
 
-      {/* Charts + Team Row */}
+      {/* Chart + Ticket Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Traffic Trend */}
-        <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "240ms", animationFillMode: "both" }}>
-          <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
-            <CardTitle className="text-base flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-primary" />
+        <Card className="border-border/60">
+          <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+              <BarChart3 className="h-3.5 w-3.5 text-muted-foreground" />
               {trafficLabel}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <ResponsiveContainer width="100%" height={220}>
+            </h3>
+          </div>
+          <CardContent className="pt-4 pb-2">
+            <ResponsiveContainer width="100%" height={200}>
               <BarChart data={trafficData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                <XAxis dataKey="label" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} allowDecimals={false} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="value" fill={accentColor} radius={[6, 6, 0, 0]} />
+                <Bar dataKey="value" fill={accentColor} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        {/* Team */}
-        <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "320ms", animationFillMode: "both" }}>
-          <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Users className="h-4 w-4 text-primary" />
-              Team
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="space-y-3">
-              {team.length === 0 && (
-                <p className="text-sm text-muted-foreground">No team members assigned yet.</p>
-              )}
-              {team.map(m => (
-                <div key={m.name} className="flex items-center gap-3 p-2.5 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
-                  <div className="h-9 w-9 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center ring-1 ring-border shrink-0">
-                    <span className="text-xs font-bold text-primary">
-                      {m.name.charAt(0).toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-medium text-foreground truncate">{m.name}</p>
-                      {m.teamRole && (
-                        <Badge variant="secondary" className="text-[10px] px-1.5 py-0 rounded-full shrink-0">
-                          {m.teamRole}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Ticket Summary + Extra */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: "400ms", animationFillMode: "both" }}>
-          <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
-            <CardTitle className="text-base">Ticket Summary</CardTitle>
-          </CardHeader>
-          <CardContent className="pt-4">
-            <div className="space-y-3">
+        {/* Ticket Summary — compact horizontal bar */}
+        <Card className="border-border/60">
+          <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground">Ticket Summary</h3>
+            <span className="text-xs text-muted-foreground tabular-nums">{totalTickets} total</span>
+          </div>
+          <CardContent className="pt-3">
+            {/* Segmented bar */}
+            {totalTickets > 0 && (
+              <div className="flex h-2 rounded-full overflow-hidden mb-4 bg-muted">
+                {ticketRows.filter(r => r.count > 0).map(r => (
+                  <div
+                    key={r.label}
+                    className={cn("h-full transition-all", {
+                      "bg-primary": r.label === "Open",
+                      "bg-warning": r.label === "In Progress",
+                      "bg-success": r.label === "Completed",
+                      "bg-destructive": r.label === "Emergency",
+                    })}
+                    style={{ width: `${(r.count / totalTickets) * 100}%` }}
+                  />
+                ))}
+              </div>
+            )}
+            <div className="space-y-2">
               {ticketRows.map(t => (
                 <div key={t.label} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <t.icon className={`h-4 w-4 ${t.color}`} />
+                  <div className="flex items-center gap-2">
+                    <t.icon className={cn("h-3.5 w-3.5", t.color)} />
                     <span className="text-sm text-foreground">{t.label}</span>
                   </div>
                   <span className="text-sm font-bold text-foreground tabular-nums">{t.count}</span>
@@ -240,13 +189,29 @@ export function DepartmentOverview({
             </div>
           </CardContent>
         </Card>
-
-        {extraSection && (
-          <div className="animate-fade-in" style={{ animationDelay: "480ms", animationFillMode: "both" }}>
-            {extraSection}
-          </div>
-        )}
       </div>
+
+      {/* Team — horizontal avatar stack */}
+      {team.length > 0 && (
+        <div className="flex items-center gap-3">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Team</span>
+          <div className="flex -space-x-2">
+            {team.slice(0, 6).map(m => (
+              <div key={m.name} className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center ring-2 ring-background" title={`${m.name}${m.teamRole ? ` · ${m.teamRole}` : ""}`}>
+                <span className="text-[11px] font-bold text-primary">{m.name.charAt(0).toUpperCase()}</span>
+              </div>
+            ))}
+            {team.length > 6 && (
+              <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center ring-2 ring-background">
+                <span className="text-[10px] font-bold text-muted-foreground">+{team.length - 6}</span>
+              </div>
+            )}
+          </div>
+          <span className="text-xs text-muted-foreground">{team.length} member{team.length !== 1 ? "s" : ""}</span>
+        </div>
+      )}
+
+      {extraSection && <div>{extraSection}</div>}
     </div>
   );
 }

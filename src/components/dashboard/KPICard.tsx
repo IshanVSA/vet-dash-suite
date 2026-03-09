@@ -13,75 +13,45 @@ interface KPICardProps {
   href?: string;
 }
 
-const gradientMap = {
-  blue: {
-    bg: "kpi-gradient-blue",
-    iconBg: "bg-primary/10",
-    iconColor: "text-primary",
-    ring: "ring-primary/10",
-    accentBar: "from-primary to-primary/60",
-  },
-  green: {
-    bg: "kpi-gradient-green",
-    iconBg: "bg-success/10",
-    iconColor: "text-success",
-    ring: "ring-success/10",
-    accentBar: "from-success to-success/60",
-  },
-  amber: {
-    bg: "kpi-gradient-amber",
-    iconBg: "bg-warning/10",
-    iconColor: "text-warning",
-    ring: "ring-warning/10",
-    accentBar: "from-warning to-warning/60",
-  },
-  purple: {
-    bg: "kpi-gradient-purple",
-    iconBg: "bg-[hsl(280,65%,60%)]/10",
-    iconColor: "text-[hsl(280,65%,60%)]",
-    ring: "ring-[hsl(280,65%,60%)]/10",
-    accentBar: "from-[hsl(280,65%,60%)] to-[hsl(280,65%,60%)]/60",
-  },
+const accentMap = {
+  blue: "border-l-primary",
+  green: "border-l-success",
+  amber: "border-l-warning",
+  purple: "border-l-[hsl(280,65%,60%)]",
+};
+
+const iconColorMap = {
+  blue: "text-primary",
+  green: "text-success",
+  amber: "text-warning",
+  purple: "text-[hsl(280,65%,60%)]",
 };
 
 export default function KPICard({ label, value, change, changeType = "neutral", icon: Icon, index = 0, gradient = "blue", href }: KPICardProps) {
-  const g = gradientMap[gradient];
-
   const content = (
     <div
       className={cn(
-        "relative overflow-hidden rounded-xl border border-border/60 bg-card p-4 sm:p-5 hover-lift animate-fade-in group",
-        href && "cursor-pointer",
-        g.bg
+        "relative bg-card rounded-lg border border-border/60 border-l-[3px] p-4 sm:p-5 transition-all duration-150 group",
+        accentMap[gradient],
+        href && "cursor-pointer hover:shadow-md hover:-translate-y-0.5"
       )}
-      style={{ animationDelay: `${index * 80}ms`, animationFillMode: "both" }}
+      style={{ animationDelay: `${index * 50}ms`, animationFillMode: "both" }}
     >
-      {/* Top accent bar */}
-      <div className={cn("absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r opacity-60", g.accentBar)} />
-      
-      <div className="flex items-start justify-between">
-        <div className="space-y-1.5 sm:space-y-2 min-w-0">
-          <p className="text-[11px] sm:text-[12px] text-muted-foreground font-semibold tracking-wider uppercase">{label}</p>
-          <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">{value}</p>
-          {change && (
-            <p className={cn(
-              "text-xs font-medium",
-              changeType === "positive" && "text-success",
-              changeType === "negative" && "text-destructive",
-              changeType === "neutral" && "text-muted-foreground"
-            )}>
-              {change}
-            </p>
-          )}
-        </div>
-        <div className={cn(
-          "h-10 w-10 sm:h-11 sm:w-11 rounded-xl flex items-center justify-center ring-1 transition-transform duration-300 group-hover:scale-110 shrink-0",
-          g.iconBg,
-          g.ring
-        )}>
-          <Icon className={cn("h-4 w-4 sm:h-5 sm:w-5", g.iconColor)} />
-        </div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[11px] sm:text-xs text-muted-foreground font-semibold tracking-wider uppercase">{label}</p>
+        <Icon className={cn("h-4 w-4 opacity-50", iconColorMap[gradient])} />
       </div>
+      <p className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight tabular-nums">{value}</p>
+      {change && (
+        <p className={cn(
+          "text-xs font-medium mt-1",
+          changeType === "positive" && "text-success",
+          changeType === "negative" && "text-destructive",
+          changeType === "neutral" && "text-muted-foreground"
+        )}>
+          {change}
+        </p>
+      )}
     </div>
   );
 

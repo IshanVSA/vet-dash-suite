@@ -14,29 +14,25 @@ interface StatsCardProps {
 export function StatsCard({ title, value, icon: Icon, description, change, changeType = "neutral", index = 0 }: StatsCardProps) {
   return (
     <div
-      className="bg-card rounded-xl border border-border p-4 sm:p-5 hover-lift animate-fade-in"
-      style={{ animationDelay: `${index * 80}ms`, animationFillMode: "both" }}
+      className="bg-card rounded-lg border border-border/60 border-l-[3px] border-l-primary p-4 sm:p-5 transition-all duration-150 hover:shadow-md hover:-translate-y-0.5"
+      style={{ animationDelay: `${index * 50}ms`, animationFillMode: "both" }}
     >
-      <div className="flex items-start justify-between">
-        <div className="space-y-1.5 sm:space-y-2 min-w-0">
-          <p className="text-xs sm:text-sm text-muted-foreground font-medium">{title}</p>
-          <p className="text-xl sm:text-2xl font-bold text-foreground">{value}</p>
-          {change && (
-            <p className={cn(
-              "text-xs font-medium",
-              changeType === "positive" && "text-success",
-              changeType === "negative" && "text-destructive",
-              changeType === "neutral" && "text-muted-foreground"
-            )}>
-              {change}
-            </p>
-          )}
-          {description && !change && <p className="text-xs text-muted-foreground">{description}</p>}
-        </div>
-        <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-gradient-to-br from-accent to-accent/60 flex items-center justify-center shadow-sm shrink-0">
-          <Icon className="h-4 w-4 sm:h-5 sm:w-5 text-accent-foreground" />
-        </div>
+      <div className="flex items-center justify-between mb-2">
+        <p className="text-[11px] text-muted-foreground font-semibold tracking-wider uppercase">{title}</p>
+        <Icon className="h-4 w-4 text-primary opacity-50" />
       </div>
+      <p className="text-xl sm:text-2xl font-bold text-foreground">{value}</p>
+      {change && (
+        <p className={cn(
+          "text-xs font-medium mt-1",
+          changeType === "positive" && "text-success",
+          changeType === "negative" && "text-destructive",
+          changeType === "neutral" && "text-muted-foreground"
+        )}>
+          {change}
+        </p>
+      )}
+      {description && !change && <p className="text-xs text-muted-foreground mt-1">{description}</p>}
     </div>
   );
 }

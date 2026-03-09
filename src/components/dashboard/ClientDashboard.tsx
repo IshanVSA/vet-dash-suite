@@ -45,24 +45,18 @@ export default function ClientDashboard() {
   }, [user]);
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      {/* Hero */}
-      <div className="hero-section">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Client Portal</span>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
-            Welcome back{user?.user_metadata?.full_name ? `, ${(user.user_metadata.full_name as string).split(" ")[0]}` : ""} 👋
-          </h1>
-          <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">
-            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })} — Your clinic overview
-          </p>
-        </div>
+    <div className="space-y-5">
+      {/* Compact Header */}
+      <div className="pb-4 border-b border-border/60">
+        <h1 className="text-xl font-bold text-foreground tracking-tight">
+          {user?.user_metadata?.full_name ? `${(user.user_metadata.full_name as string).split(" ")[0]}'s Portal` : "Client Portal"}
+        </h1>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" })} · {clinics.length} clinic{clinics.length !== 1 ? "s" : ""}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <KPICard label="Your Clinics" value={clinics.length} icon={Building2} index={0} gradient="blue" />
         <KPICard label="Content Posts" value={postCount} icon={FileText} index={1} gradient="purple" />
         <KPICard label="Analytics Records" value={analyticsCount} icon={BarChart3} index={2} gradient="green" />
@@ -77,27 +71,26 @@ export default function ClientDashboard() {
         <DashboardSkeleton />
       ) : clinics.length === 0 ? (
         <Card className="border-border/60">
-          <CardContent className="py-12 text-center">
-            <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-              <Building2 className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground">No clinics linked to your account yet. Contact your account manager.</p>
+          <CardContent className="py-10 text-center">
+            <p className="text-sm text-muted-foreground mb-3">No clinics linked to your account yet.</p>
+            <p className="text-xs text-muted-foreground">Contact your account manager to get started.</p>
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
-          {clinics.map((clinic, i) => (
-            <Card key={clinic.id} className="group border-border/60 hover-lift animate-fade-in overflow-hidden" style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}>
-              <CardContent className="py-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="space-y-2">
+          <h2 className="section-header">Your Clinics</h2>
+          {clinics.map((clinic) => (
+            <Card key={clinic.id} className="group border-border/60 hover:shadow-md transition-shadow">
+              <CardContent className="py-3 flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                    <Building2 className="h-4 w-4 text-primary" />
+                  <div className="h-8 w-8 rounded-md bg-primary/8 flex items-center justify-center shrink-0">
+                    <span className="text-xs font-bold text-primary">{clinic.clinic_name.charAt(0)}</span>
                   </div>
-                  <span className="font-medium text-foreground">{clinic.clinic_name}</span>
+                  <span className="font-medium text-sm text-foreground">{clinic.clinic_name}</span>
                 </div>
-                <Link to={`/clinics/${clinic.id}`} className="w-full sm:w-auto">
-                  <Button size="sm" className="rounded-lg group-hover:shadow-md transition-shadow w-full sm:w-auto">
-                    View Clinic <ArrowRight className="h-3.5 w-3.5 ml-1 group-hover:translate-x-0.5 transition-transform" />
+                <Link to={`/clinics/${clinic.id}`}>
+                  <Button size="sm" variant="ghost" className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-primary">
+                    View <ArrowRight className="h-3.5 w-3.5" />
                   </Button>
                 </Link>
               </CardContent>

@@ -3,18 +3,17 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import KPICard from "./KPICard";
-import { Building2, FileText, UserCheck, UserCircle, TrendingUp, Clock, Ticket, AlertTriangle, Globe, Search, Megaphone, Share2, ArrowRight } from "lucide-react";
+import { Building2, FileText, UserCheck, UserCircle, TrendingUp, Clock, Ticket, AlertTriangle, Globe, Search, Megaphone, Share2, ArrowRight, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Area, AreaChart } from "recharts";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import { motion } from "framer-motion";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
 import { cn } from "@/lib/utils";
-import { Eye } from "lucide-react";
 
 interface Clinic {
   id: string;
@@ -40,11 +39,11 @@ interface TicketSummary {
   total: number;
 }
 
-const deptConfig: Record<string, { icon: React.ElementType; label: string; path: string; color: string }> = {
-  website: { icon: Globe, label: "Website", path: "/website?tab=tickets", color: "text-primary" },
-  seo: { icon: Search, label: "SEO", path: "/seo?tab=tickets", color: "text-emerald-500" },
-  google_ads: { icon: Megaphone, label: "Google Ads", path: "/google-ads?tab=tickets", color: "text-amber-500" },
-  social_media: { icon: Share2, label: "Social Media", path: "/social?tab=tickets", color: "text-violet-500" },
+const deptConfig: Record<string, { icon: React.ElementType; label: string; path: string; dotClass: string }> = {
+  website: { icon: Globe, label: "Website", path: "/website?tab=tickets", dotClass: "bg-[hsl(var(--dept-website))]" },
+  seo: { icon: Search, label: "SEO", path: "/seo?tab=tickets", dotClass: "bg-[hsl(var(--dept-seo))]" },
+  google_ads: { icon: Megaphone, label: "Google Ads", path: "/google-ads?tab=tickets", dotClass: "bg-[hsl(var(--dept-ads))]" },
+  social_media: { icon: Share2, label: "Social Media", path: "/social?tab=tickets", dotClass: "bg-[hsl(var(--dept-social))]" },
 };
 
 export default function AdminDashboard() {
@@ -52,7 +51,6 @@ export default function AdminDashboard() {
   const [clinics, setClinics] = useState<Clinic[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [userName, setUserName] = useState<string | null>(null);
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
   const [roleCounts, setRoleCounts] = useState({ concierges: 0, clients: 0 });
   const [totalPosts, setTotalPosts] = useState(0);
   const [pendingPosts, setPendingPosts] = useState(0);
@@ -90,12 +88,10 @@ export default function AdminDashboard() {
         clients: roles.filter(r => r.role === "client").length,
       });
 
-      // Tickets
       const tickets = ticketsRes.data || [];
       setOpenTickets(tickets.filter(t => t.status === "open" || t.status === "in_progress").length);
       setUrgentTickets(tickets.filter(t => t.priority === "urgent" || t.priority === "emergency").length);
 
-      // Ticket summary by department
       const deptMap: Record<string, { open: number; in_progress: number; total: number }> = {};
       tickets.forEach(t => {
         if (!deptMap[t.department]) deptMap[t.department] = { open: 0, in_progress: 0, total: 0 };
@@ -103,21 +99,15 @@ export default function AdminDashboard() {
         if (t.status === "open") deptMap[t.department].open++;
         if (t.status === "in_progress") deptMap[t.department].in_progress++;
       });
-      setTicketSummary(
-        Object.entries(deptMap).map(([department, counts]) => ({ department, ...counts }))
-      );
+      setTicketSummary(Object.entries(deptMap).map(([department, counts]) => ({ department, ...counts })));
 
-      // Posts trend
       const posts = postsRes.data || [];
       const monthMap: Record<string, number> = {};
       posts.forEach(p => {
         const month = (p as any).scheduled_date?.slice(0, 7);
         if (month) monthMap[month] = (monthMap[month] || 0) + 1;
       });
-      const sorted = Object.entries(monthMap)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .slice(-6)
-        .map(([date, posts]) => ({ date, posts }));
+      const sorted = Object.entries(monthMap).sort(([a], [b]) => a.localeCompare(b)).slice(-6).map(([date, posts]) => ({ date, posts }));
       setTrendData(sorted);
 
       setLoading(false);
@@ -132,82 +122,72 @@ export default function AdminDashboard() {
 
   if (loading) return <DashboardSkeleton />;
 
+  const statusLine = [
+    pendingPosts > 0 && `${pendingPosts} pending review`,
+    urgentTickets > 0 && `${urgentTickets} urgent ticket${urgentTickets > 1 ? "s" : ""}`,
+    `${clinics.filter(c => c.status === "active").length} active clinics`,
+  ].filter(Boolean).join(" · ");
+
   return (
-    <motion.div className="space-y-6 sm:space-y-8" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.3 }}>
-      {/* Hero Section */}
-      <div className="hero-section">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Live Overview</span>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
-            Welcome back{userName ? `, ${userName.split(" ")[0]}` : ""} 👋
+    <motion.div className="space-y-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.2 }}>
+      {/* Compact Command-Center Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 pb-4 border-b border-border/60">
+        <div>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">
+            {userName ? `${userName.split(" ")[0]}'s Dashboard` : "Dashboard"}
           </h1>
-          <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">{today} — Monitor clinic operations and content performance</p>
+          <p className="text-xs text-muted-foreground mt-0.5">{statusLine}</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link to="/review">
+            <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+              <Clock className="h-3.5 w-3.5" /> Review Queue
+              {pendingPosts > 0 && <Badge variant="destructive" className="ml-1 h-4 px-1 text-[10px] rounded-full">{pendingPosts}</Badge>}
+            </Button>
+          </Link>
+          <Link to="/clinics">
+            <Button size="sm" className="h-8 text-xs gap-1.5">
+              <Building2 className="h-3.5 w-3.5" /> Clinics
+            </Button>
+          </Link>
         </div>
       </div>
 
       {/* Primary KPI Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <KPICard label="Active Clinics" value={clinics.filter(c => c.status === "active").length} change={`${clinics.length} total`} changeType="neutral" icon={Building2} index={0} gradient="blue" href="/clinics" />
         <KPICard label="Concierges" value={roleCounts.concierges} icon={UserCheck} index={1} gradient="green" href="/employees" />
         <KPICard label="Clients" value={roleCounts.clients} icon={UserCircle} index={2} gradient="amber" href="/clients" />
+        <KPICard label="Open Tickets" value={openTickets} change={urgentTickets > 0 ? `${urgentTickets} urgent` : undefined} changeType={urgentTickets > 0 ? "negative" : "neutral"} icon={Ticket} index={3} gradient="purple" href="/website?tab=tickets" />
       </div>
 
-      {/* Secondary KPI Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-        <KPICard label="Pending Review" value={pendingPosts} icon={Clock} index={4} gradient="amber" href="/review" />
-        <KPICard label="Open Tickets" value={openTickets} change={urgentTickets > 0 ? `${urgentTickets} urgent` : undefined} changeType={urgentTickets > 0 ? "negative" : "neutral"} icon={Ticket} index={5} gradient="blue" href="/website?tab=tickets" />
-        {urgentTickets > 0 && (
-          <KPICard label="Urgent / Emergency" value={urgentTickets} icon={AlertTriangle} index={6} gradient="amber" href="/website?tab=tickets" />
-        )}
-      </div>
-
-      {/* Department Tickets Summary + Content Trend */}
+      {/* Department Tickets + Content Trend */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Department Tickets */}
-        <Card className="overflow-hidden border-border/60 animate-fade-in" style={{ animationDelay: "180ms", animationFillMode: "both" }}>
-          <CardHeader className="border-b border-border/40 bg-muted/30 pb-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Ticket className="h-4 w-4 text-primary" />
-                </div>
-                <div>
-                  <CardTitle className="text-base font-semibold">Tickets by Department</CardTitle>
-                  <p className="text-xs text-muted-foreground">Active support tickets</p>
-                </div>
-              </div>
-            </div>
-          </CardHeader>
+        {/* Department Tickets — compact horizontal bars */}
+        <Card className="border-border/60">
+          <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground">Tickets by Department</h3>
+            <span className="text-xs text-muted-foreground">{openTickets} active</span>
+          </div>
           <CardContent className="p-0">
             {ticketSummary.length === 0 ? (
-              <div className="py-10 text-center text-muted-foreground">
-                <Ticket className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                <p className="text-sm">No tickets yet</p>
+              <div className="py-8 text-center">
+                <p className="text-sm text-muted-foreground">All clear — no open tickets</p>
               </div>
             ) : (
               <ul className="divide-y divide-border/40">
-                {ticketSummary.map((dept, i) => {
-                  const cfg = deptConfig[dept.department] || { icon: Ticket, label: dept.department, path: "/", color: "text-muted-foreground" };
-                  const DeptIcon = cfg.icon;
+                {ticketSummary.map((dept) => {
+                  const cfg = deptConfig[dept.department] || { icon: Ticket, label: dept.department, path: "/", dotClass: "bg-muted-foreground" };
                   return (
-                    <li key={dept.department} className="flex items-center justify-between px-4 sm:px-6 py-3 hover:bg-muted/30 transition-colors animate-fade-in" style={{ animationDelay: `${220 + i * 40}ms`, animationFillMode: "both" }}>
-                      <div className="flex items-center gap-3">
-                        <DeptIcon className={cn("h-4 w-4", cfg.color)} />
-                        <div>
-                          <p className="text-sm font-medium text-foreground">{cfg.label}</p>
-                          <p className="text-xs text-muted-foreground">{dept.open} open · {dept.in_progress} in progress</p>
-                        </div>
+                    <li key={dept.department} className="flex items-center justify-between px-4 py-2.5 hover:bg-muted/30 transition-colors">
+                      <div className="flex items-center gap-2.5">
+                        <div className={cn("h-2 w-2 rounded-full", cfg.dotClass)} />
+                        <span className="text-sm font-medium text-foreground">{cfg.label}</span>
+                        <span className="text-xs text-muted-foreground">{dept.open} open · {dept.in_progress} active</span>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="rounded-full text-[11px]">{dept.total} total</Badge>
-                        <Link to={cfg.path}>
-                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0">
-                            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground" />
-                          </Button>
-                        </Link>
+                        <span className="text-xs font-bold text-foreground tabular-nums">{dept.total}</span>
+                        <Link to={cfg.path}><ArrowRight className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground transition-colors" /></Link>
                       </div>
                     </li>
                   );
@@ -217,46 +197,31 @@ export default function AdminDashboard() {
           </CardContent>
         </Card>
 
-        {/* Content Trend Chart */}
-        <Card className="overflow-hidden border-border/60 animate-fade-in" style={{ animationDelay: "200ms", animationFillMode: "both" }}>
-          <CardHeader className="border-b border-border/40 bg-muted/30 pb-4">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <TrendingUp className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <CardTitle className="text-base font-semibold">Content Trend</CardTitle>
-                <p className="text-xs text-muted-foreground">Posts by month — last 6 months</p>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="pt-6 pb-4">
+        {/* Content Trend */}
+        <Card className="border-border/60">
+          <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
+            <h3 className="text-sm font-bold text-foreground">Content Trend</h3>
+            <span className="text-xs text-muted-foreground">Last 6 months</span>
+          </div>
+          <CardContent className="pt-4 pb-2">
             {trendData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={220}>
+              <ResponsiveContainer width="100%" height={200}>
                 <AreaChart data={trendData}>
                   <defs>
                     <linearGradient id="colorPosts" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.15}/>
+                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.12}/>
                       <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" vertical={false} />
-                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickLine={false} axisLine={false} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "0.75rem",
-                      boxShadow: "0 8px 24px -4px hsl(var(--foreground) / 0.1)",
-                      fontSize: "13px",
-                    }}
-                  />
-                  <Area type="monotone" dataKey="posts" stroke="hsl(var(--primary))" strokeWidth={2.5} fill="url(#colorPosts)" dot={{ r: 4, fill: "hsl(var(--card))", stroke: "hsl(var(--primary))", strokeWidth: 2 }} activeDot={{ r: 6 }} />
+                  <XAxis dataKey="date" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "0.5rem", fontSize: "12px" }} />
+                  <Area type="monotone" dataKey="posts" stroke="hsl(var(--primary))" strokeWidth={2} fill="url(#colorPosts)" dot={{ r: 3, fill: "hsl(var(--card))", stroke: "hsl(var(--primary))", strokeWidth: 2 }} />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="py-10 text-center text-muted-foreground text-sm">No post data yet</div>
+              <div className="py-8 text-center text-muted-foreground text-sm">No post data yet</div>
             )}
           </CardContent>
         </Card>
@@ -269,28 +234,20 @@ export default function AdminDashboard() {
       </div>
 
       {/* Clinics Table */}
-      <Card className="overflow-hidden border-border/60 animate-fade-in" style={{ animationDelay: "300ms", animationFillMode: "both" }}>
-        <div className="px-4 sm:px-6 py-4 border-b border-border/40 bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-              <Building2 className="h-4 w-4 text-primary" />
-            </div>
-            <div>
-              <h2 className="font-semibold text-foreground">All Clinics</h2>
-              <p className="text-xs text-muted-foreground">{clinics.length} clinics registered</p>
-            </div>
+      <Card className="border-border/60">
+        <div className="px-4 py-3 border-b border-border/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-foreground">All Clinics</h3>
+            <p className="text-xs text-muted-foreground">{clinics.length} registered</p>
           </div>
           <Link to="/clinics">
-            <Button variant="outline" size="sm" className="rounded-lg w-full sm:w-auto">View All</Button>
+            <Button variant="outline" size="sm" className="h-8 text-xs">View All</Button>
           </Link>
         </div>
         {clinics.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-              <Building2 className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <p className="text-muted-foreground mb-3">No clinics yet. Add your first clinic to get started.</p>
-            <Link to="/clinics"><Button size="sm" className="rounded-lg">Add Clinic</Button></Link>
+          <div className="p-10 text-center">
+            <p className="text-sm text-muted-foreground mb-3">No clinics yet. Add your first clinic to get started.</p>
+            <Link to="/clinics"><Button size="sm" className="text-xs">Add Clinic</Button></Link>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -298,36 +255,43 @@ export default function AdminDashboard() {
               <TableHeader>
                 <TableRow className="hover:bg-transparent">
                   <TableHead>Clinic Name</TableHead>
-                  <TableHead className="hidden sm:table-cell">Assigned Concierge</TableHead>
+                  <TableHead className="hidden sm:table-cell">Concierge</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {clinics.slice(0, 10).map((clinic) => (
-                  <TableRow key={clinic.id} className="hover:bg-muted/40 transition-colors">
-                    <TableCell className="font-medium">
-                      {clinic.clinic_name}
-                      <span className="sm:hidden block text-xs text-muted-foreground mt-0.5">
-                        {getConciergeName(clinic.assigned_concierge_id)}
-                      </span>
+                  <TableRow key={clinic.id} className={cn(
+                    "hover:bg-muted/40 transition-colors",
+                    clinic.status === "active" ? "border-l-2 border-l-success" : "border-l-2 border-l-border"
+                  )}>
+                    <TableCell>
+                      <div className="flex items-center gap-2.5">
+                        <div className="h-7 w-7 rounded-md bg-primary/8 flex items-center justify-center shrink-0">
+                          <span className="text-[11px] font-bold text-primary">{clinic.clinic_name.charAt(0)}</span>
+                        </div>
+                        <div>
+                          <span className="font-medium text-sm">{clinic.clinic_name}</span>
+                          <span className="sm:hidden block text-xs text-muted-foreground">{getConciergeName(clinic.assigned_concierge_id)}</span>
+                        </div>
+                      </div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">
-                      <span className={clinic.assigned_concierge_id ? "text-foreground" : "text-muted-foreground italic"}>
+                      <span className={clinic.assigned_concierge_id ? "text-foreground text-sm" : "text-muted-foreground italic text-sm"}>
                         {getConciergeName(clinic.assigned_concierge_id)}
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant={clinic.status === "active" ? "default" : "secondary"}
-                        className="rounded-full px-2.5 text-[11px] font-semibold"
-                      >
+                      <Badge variant={clinic.status === "active" ? "default" : "secondary"} className="rounded-full px-2 text-[10px] font-semibold">
                         {clinic.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <Link to={`/clinics/${clinic.id}`}>
-                        <Button variant="ghost" size="sm" className="rounded-lg text-muted-foreground hover:text-primary"><Eye className="h-4 w-4 sm:mr-1" /> <span className="hidden sm:inline">View</span></Button>
+                        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-primary">
+                          <Eye className="h-4 w-4" />
+                        </Button>
                       </Link>
                     </TableCell>
                   </TableRow>

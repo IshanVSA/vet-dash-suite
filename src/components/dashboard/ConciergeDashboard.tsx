@@ -5,10 +5,9 @@ import { useAuth } from "@/hooks/useAuth";
 import KPICard from "./KPICard";
 import { Building2, FileText, Megaphone, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
-import { AnimatedListItem } from "@/components/AnimatedList";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
 
@@ -47,25 +46,25 @@ export default function ConciergeDashboard() {
     fetchData();
   }, [user]);
 
+  const statusLine = [
+    `${clinics.length} assigned clinic${clinics.length !== 1 ? "s" : ""}`,
+    pendingCount > 0 && `${pendingCount} pending review`,
+  ].filter(Boolean).join(" · ");
+
   return (
-    <div className="space-y-6 sm:space-y-8">
-      {/* Hero */}
-      <div className="hero-section">
-        <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-1">
-            <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Concierge View</span>
-          </div>
-          <h1 className="text-xl sm:text-2xl font-bold text-foreground tracking-tight">
-            Welcome back{user?.user_metadata?.full_name ? `, ${(user.user_metadata.full_name as string).split(" ")[0]}` : ""} 👋
+    <div className="space-y-5">
+      {/* Compact Header */}
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2 pb-4 border-b border-border/60">
+        <div>
+          <h1 className="text-xl font-bold text-foreground tracking-tight">
+            {user?.user_metadata?.full_name ? `${(user.user_metadata.full_name as string).split(" ")[0]}'s Dashboard` : "Dashboard"}
           </h1>
-          <p className="text-muted-foreground mt-0.5 text-xs sm:text-sm">
-            {new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" })} — Your assigned clinics and performance
-          </p>
+          <p className="text-xs text-muted-foreground mt-0.5">{statusLine}</p>
         </div>
+        <Badge variant="secondary" className="rounded-full text-xs w-fit">{clinics.length} assigned</Badge>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <KPICard label="Assigned Clinics" value={clinics.length} icon={Building2} index={0} gradient="blue" />
         <KPICard label="Total Posts" value={postCount} icon={FileText} index={1} gradient="purple" />
         <KPICard label="Pending Review" value={pendingCount} icon={Megaphone} index={2} gradient="amber" />
@@ -77,42 +76,34 @@ export default function ConciergeDashboard() {
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="section-header">Your Clinics</h2>
-          <Badge variant="secondary" className="rounded-full">{clinics.length} assigned</Badge>
-        </div>
+        <h2 className="section-header mb-3">Your Clinics</h2>
         {loading ? (
           <DashboardSkeleton />
         ) : clinics.length === 0 ? (
           <Card className="border-border/60">
-            <CardContent className="py-12 text-center">
-              <div className="mx-auto h-12 w-12 rounded-full bg-muted flex items-center justify-center mb-3">
-                <Building2 className="h-5 w-5 text-muted-foreground" />
-              </div>
-              <p className="text-muted-foreground">No clinics assigned to you yet. Contact your admin.</p>
+            <CardContent className="py-10 text-center">
+              <p className="text-sm text-muted-foreground">No clinics assigned to you yet. Contact your admin.</p>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {clinics.map((clinic, i) => (
-              <Card key={clinic.id} className="group border-border/60 hover-lift animate-fade-in overflow-hidden" style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-base">{clinic.clinic_name}</CardTitle>
-                    <Badge variant={clinic.status === "active" ? "default" : "secondary"} className="rounded-full text-[11px]">{clinic.status}</Badge>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {clinics.map((clinic) => (
+              <Card key={clinic.id} className="group border-border/60 hover:shadow-md transition-shadow">
+                <CardContent className="py-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="h-8 w-8 rounded-md bg-primary/8 flex items-center justify-center shrink-0">
+                      <span className="text-xs font-bold text-primary">{clinic.clinic_name.charAt(0)}</span>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{clinic.clinic_name}</p>
+                      <Badge variant={clinic.status === "active" ? "default" : "secondary"} className="rounded-full text-[10px] mt-0.5">{clinic.status}</Badge>
+                    </div>
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-3">
-                  <div className="flex gap-2">
-                    <Link to="/intake-forms" className="flex-1">
-                      <Button variant="outline" size="sm" className="w-full rounded-lg"><FileText className="h-4 w-4 mr-1" /> Intake</Button>
-                    </Link>
-                    <Link to={`/clinics/${clinic.id}`} className="flex-1">
-                      <Button size="sm" className="w-full rounded-lg group-hover:shadow-md transition-shadow">
-                        Details <ArrowRight className="h-3.5 w-3.5 ml-1 group-hover:translate-x-0.5 transition-transform" />
-                      </Button>
-                    </Link>
-                  </div>
+                  <Link to={`/clinics/${clinic.id}`}>
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-muted-foreground hover:text-primary">
+                      <ArrowRight className="h-4 w-4" />
+                    </Button>
+                  </Link>
                 </CardContent>
               </Card>
             ))}
