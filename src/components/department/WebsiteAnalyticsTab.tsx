@@ -1,11 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
+import { format, subDays, differenceInDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar, ResponsiveContainer } from "recharts";
-import { Eye, Users, TrendingDown, FileText, Globe, Clock } from "lucide-react";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
+import { Eye, Users, TrendingDown, FileText, Globe, Clock, CalendarIcon } from "lucide-react";
 import { StatsCard } from "@/components/StatsCard";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface Pageview {
   session_id: string;
@@ -21,33 +26,39 @@ interface Props {
 export function WebsiteAnalyticsTab({ clinicId }: Props) {
   const [pageviews, setPageviews] = useState<Pageview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
+
+  const totalDays = differenceInDays(dateRange.to, dateRange.from) + 1;
 
   useEffect(() => {
     if (!clinicId) { setLoading(false); return; }
 
-    const fetch = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
       const { data } = await supabase
         .from("website_pageviews")
         .select("session_id, path, referrer, created_at")
         .eq("clinic_id", clinicId)
-        .gte("created_at", thirtyDaysAgo)
+        .gte("created_at", dateRange.from.toISOString())
+        .lte("created_at", dateRange.to.toISOString())
         .order("created_at", { ascending: true });
       setPageviews((data as Pageview[] | null) || []);
       setLoading(false);
     };
-    fetch();
-  }, [clinicId]);
+    fetchData();
+  }, [clinicId, dateRange]);
 
   const analytics = useMemo(() => {
     if (!pageviews.length) return null;
 
-    const now = Date.now();
-    const fifteenDaysAgo = now - 15 * 86400000;
+    const midpoint = new Date((dateRange.from.getTime() + dateRange.to.getTime()) / 2).getTime();
 
-    const currentPeriod = pageviews.filter(p => new Date(p.created_at).getTime() >= fifteenDaysAgo);
-    const prevPeriod = pageviews.filter(p => new Date(p.created_at).getTime() < fifteenDaysAgo);
+    const currentPeriod = pageviews.filter(p => new Date(p.created_at).getTime() >= midpoint);
+    const prevPeriod = pageviews.filter(p => new Date(p.created_at).getTime() < midpoint);
+
 
     const calcKPIs = (views: Pageview[]) => {
       const sessions: Record<string, Pageview[]> = {};
@@ -73,11 +84,11 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
     const current = calcKPIs(currentPeriod);
     const prev = calcKPIs(prevPeriod);
 
-    // Daily traffic (30 days)
+    // Daily traffic
     const dailyMap: Record<string, number> = {};
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(now - i * 86400000);
-      const key = d.toISOString().slice(0, 10);
+    for (let i = totalDays - 1; i >= 0; i--) {
+      const d = subDays(dateRange.to, i);
+      const key = format(d, "yyyy-MM-dd");
       dailyMap[key] = 0;
     }
     pageviews.forEach(p => {
@@ -120,7 +131,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
     });
 
     return { current, prev, dailyTraffic, topPages, topReferrers, hourly };
-  }, [pageviews]);
+  }, [pageviews, dateRange, totalDays]);
 
   if (loading) {
     return (
@@ -171,6 +182,44 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
 
   return (
     <div className="space-y-6">
+      {/* Date Range Picker */}
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1">
+          {[7, 14, 30, 90].map(days => (
+            <Button
+              key={days}
+              size="sm"
+              variant={totalDays === days ? "default" : "outline"}
+              onClick={() => setDateRange({ from: subDays(new Date(), days), to: new Date() })}
+              className="text-xs"
+            >
+              {days}d
+            </Button>
+          ))}
+        </div>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className={cn("text-xs gap-1.5", "text-muted-foreground")}>
+              <CalendarIcon className="h-3.5 w-3.5" />
+              {format(dateRange.from, "MMM d")} – {format(dateRange.to, "MMM d, yyyy")}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0" align="start">
+            <Calendar
+              mode="range"
+              selected={{ from: dateRange.from, to: dateRange.to }}
+              onSelect={(range) => {
+                if (range?.from && range?.to) setDateRange({ from: range.from, to: range.to });
+                else if (range?.from) setDateRange({ from: range.from, to: range.from });
+              }}
+              disabled={(date) => date > new Date()}
+              numberOfMonths={2}
+              className={cn("p-3 pointer-events-auto")}
+            />
+          </PopoverContent>
+        </Popover>
+      </div>
+
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard title="Page Views" value={current.totalViews.toLocaleString()} icon={Eye} change={viewsChange.text} changeType={viewsChange.type} index={0} />
@@ -182,7 +231,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
       {/* Daily Traffic Chart */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Daily Traffic (Last 30 Days)</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Daily Traffic ({totalDays} Days)</CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={{ views: { label: "Page Views", color: "hsl(25, 95%, 53%)" } }} className="h-[260px] w-full">
