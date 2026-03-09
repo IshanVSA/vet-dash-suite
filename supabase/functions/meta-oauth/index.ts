@@ -295,7 +295,8 @@ Deno.serve(async (req) => {
         .eq("clinic_id", clinic_id);
 
       if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
+        console.error("Disconnect error:", error);
+        return new Response(JSON.stringify({ error: "Failed to disconnect" }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

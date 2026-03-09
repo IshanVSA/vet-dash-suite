@@ -9,12 +9,51 @@ const corsHeaders = {
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
+    // Auth check: require authenticated admin user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+    const supabaseAuth = createClient(SUPABASE_URL, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
+    // Verify admin role
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (roleData?.role !== "admin") {
+      return new Response(
+        JSON.stringify({ error: "Admin access required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { clinic_id, page_id, page_name, page_access_token } = await req.json();
 
     if (!clinic_id || !page_id || !page_access_token) {
@@ -24,20 +63,32 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (typeof clinic_id !== "string" || !UUID_REGEX.test(clinic_id)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid clinic_id format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (typeof page_id !== "string" || page_id.length > 100) {
+      return new Response(
+        JSON.stringify({ error: "Invalid page_id" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Fetch Instagram Business Account ID
     const igRes = await fetch(
-      `https://graph.facebook.com/v21.0/${page_id}?fields=instagram_business_account&access_token=${page_access_token}`
+      `https://graph.facebook.com/v21.0/${encodeURIComponent(page_id)}?fields=instagram_business_account&access_token=${encodeURIComponent(page_access_token)}`
     );
     const igData = await igRes.json();
     console.log(`Instagram Business Account lookup for page ${page_id}:`, JSON.stringify(igData));
     const igBusinessId = igData.instagram_business_account?.id || null;
     if (!igBusinessId) {
-      console.warn(`No Instagram Business Account found for page ${page_id}. Ensure the page has a linked IG Business/Creator account and the token includes instagram_basic scope.`);
+      console.warn(`No Instagram Business Account found for page ${page_id}.`);
     }
 
     // Save credentials
-    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-
     const { data: existing } = await supabase
       .from("clinic_api_credentials")
       .select("id")
@@ -52,7 +103,7 @@ Deno.serve(async (req) => {
           meta_page_access_token: page_access_token,
           meta_page_id: page_id,
           meta_instagram_business_id: igBusinessId,
-          meta_page_name: page_name || null,
+          meta_page_name: typeof page_name === "string" ? page_name.slice(0, 200) : null,
         })
         .eq("clinic_id", clinic_id);
       saveError = error;
@@ -64,7 +115,7 @@ Deno.serve(async (req) => {
           meta_page_access_token: page_access_token,
           meta_page_id: page_id,
           meta_instagram_business_id: igBusinessId,
-          meta_page_name: page_name || null,
+          meta_page_name: typeof page_name === "string" ? page_name.slice(0, 200) : null,
         });
       saveError = error;
     }
@@ -72,12 +123,12 @@ Deno.serve(async (req) => {
     if (saveError) {
       console.error("Failed to save:", saveError);
       return new Response(
-        JSON.stringify({ error: saveError.message }),
+        JSON.stringify({ error: "Failed to save page connection" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Saved Meta page ${page_name} (${page_id}) for clinic ${clinic_id}, IG: ${igBusinessId}`);
+    console.log(`Saved Meta page for clinic ${clinic_id}, IG: ${igBusinessId}`);
     return new Response(
       JSON.stringify({ success: true, ig_business_id: igBusinessId }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
