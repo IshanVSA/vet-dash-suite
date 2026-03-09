@@ -654,6 +654,56 @@ export type Database = {
         }
         Relationships: []
       }
+      seo_analytics: {
+        Row: {
+          backlinks: number
+          clinic_id: string
+          created_at: string
+          domain_authority: number
+          id: string
+          keywords_top_10: number
+          month: string
+          organic_traffic: number
+          top_keywords: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          backlinks?: number
+          clinic_id: string
+          created_at?: string
+          domain_authority?: number
+          id?: string
+          keywords_top_10?: number
+          month: string
+          organic_traffic?: number
+          top_keywords?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          backlinks?: number
+          clinic_id?: string
+          created_at?: string
+          domain_authority?: number
+          id?: string
+          keywords_top_10?: number
+          month?: string
+          organic_traffic?: number
+          top_keywords?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seo_analytics_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           id: string
