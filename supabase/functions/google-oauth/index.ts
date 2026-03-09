@@ -229,6 +229,32 @@ Deno.serve(async (req) => {
 
     // ── DISCONNECT ──
     if (action === "disconnect") {
+      // Auth check: require admin
+      const authHeader = req.headers.get("Authorization");
+      if (!authHeader) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+      const supabaseAuth = createClient(SUPABASE_URL, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user: disconnectUser }, error: disconnectAuthErr } = await supabaseAuth.auth.getUser();
+      if (disconnectAuthErr || !disconnectUser) {
+        return new Response(JSON.stringify({ error: "Unauthorized" }), {
+          status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const { data: disconnectRole } = await supabase
+        .from("user_roles").select("role").eq("user_id", disconnectUser.id).maybeSingle();
+      if (disconnectRole?.role !== "admin") {
+        return new Response(JSON.stringify({ error: "Admin access required" }), {
+          status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const body = await req.json();
       const { clinic_id } = body;
       if (!clinic_id) {
@@ -238,7 +264,6 @@ Deno.serve(async (req) => {
         });
       }
 
-      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       const { error } = await supabase
         .from("clinic_api_credentials")
         .update({
@@ -251,7 +276,8 @@ Deno.serve(async (req) => {
         .eq("clinic_id", clinic_id);
 
       if (error) {
-        return new Response(JSON.stringify({ error: error.message }), {
+        console.error("Disconnect error:", error);
+        return new Response(JSON.stringify({ error: "Failed to disconnect" }), {
           status: 500,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });

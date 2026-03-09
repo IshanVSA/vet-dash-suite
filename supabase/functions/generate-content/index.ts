@@ -196,6 +196,14 @@ Deno.serve(async (req) => {
     const clinic_id = typeof body.clinic_id === "string" ? body.clinic_id.trim() : "";
     const intake_data = body.intake_data && typeof body.intake_data === "object" && !Array.isArray(body.intake_data) ? body.intake_data : null;
 
+    // Validate UUID format
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (clinic_id && !UUID_REGEX.test(clinic_id)) {
+      return new Response(JSON.stringify({ error: "Invalid clinic_id format" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!clinic_id || !intake_data) {
       return new Response(JSON.stringify({ error: "Missing clinic_id or intake_data" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -262,11 +270,12 @@ Deno.serve(async (req) => {
       errors.push({ model: "OpenAI", error: err.message });
     }
 
+    // Don't expose detailed error messages to clients
     return new Response(JSON.stringify({
       content_request_id: contentRequestId,
       versions,
       total_posts: totalPosts,
-      errors,
+      errors: errors.map(e => ({ model: e.model, error: "Generation failed" })),
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
