@@ -12,6 +12,9 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [forgotMode, setForgotMode] = useState(false);
+  const [resetEmail, setResetEmail] = useState("");
+  const [resetLoading, setResetLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,13 +62,37 @@ export default function Login() {
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" required className="input-glow" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="password">Password</Label>
+                <button type="button" onClick={() => setForgotMode(true)} className="text-xs text-primary hover:underline">Forgot password?</button>
+              </div>
               <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" required minLength={6} className="input-glow" />
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Loading..." : "Sign In"}
             </Button>
           </form>
+
+          {forgotMode && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+              <div className="bg-background rounded-xl border p-6 w-full max-w-sm space-y-4 shadow-xl">
+                <h2 className="text-lg font-bold text-foreground">Reset your password</h2>
+                <p className="text-sm text-muted-foreground">Enter your email and we'll send you a reset link.</p>
+                <Input type="email" value={resetEmail} onChange={(e) => setResetEmail(e.target.value)} placeholder="you@example.com" className="input-glow" />
+                <div className="flex gap-2">
+                  <Button variant="outline" className="flex-1" onClick={() => setForgotMode(false)}>Cancel</Button>
+                  <Button className="flex-1" disabled={resetLoading} onClick={async () => {
+                    if (!resetEmail) { toast.error("Enter your email"); return; }
+                    setResetLoading(true);
+                    const { error } = await supabase.auth.resetPasswordForEmail(resetEmail, { redirectTo: `${window.location.origin}/reset-password` });
+                    if (error) toast.error(error.message);
+                    else { toast.success("Check your email for the reset link"); setForgotMode(false); }
+                    setResetLoading(false);
+                  }}>{resetLoading ? "Sending..." : "Send Reset Link"}</Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
