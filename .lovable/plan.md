@@ -1,31 +1,53 @@
 
 
-## Plan: Filter Department Team Members by Team Role
+## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
 
-### Current Behavior
-The `useDepartmentTeam` hook queries the `department_members` table to find users assigned to each department. This means team members only appear if they have a row in `department_members` for that department.
-
-### Desired Behavior
-Show team members based on their `team_role` field in the `profiles` table:
-- **Website** (`website`): Developer, Maintenance
-- **SEO** (`seo`): SEO Lead
-- **Google Ads** (`google_ads`): Ads Strategist, Ads Analyst
-- **Social Media** (`social_media`): Social & Concierge
+### Summary
+Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
 
 ### Changes
 
-**1. Update `src/hooks/useDepartmentTeam.ts`**
+**1. Edge Function: `supabase/functions/generate-content/index.ts`**
+- Remove the `callClaude` function entirely
+- Remove the Claude API key lookup and Claude execution block
+- Keep only the OpenAI call
+- This means only one `content_version` row is created per request
 
-Add a mapping from department name to allowed `team_role` values:
+**2. `src/components/content-requests/ContentRequestCard.tsx`**
+- Remove the `ModelToggleView` component (no longer needed with single version)
+- Render the single `ContentVersionCard` directly when versions exist
+- Rename `onConciergePrefer` prop to `onSendForReview`
 
-```
-website → ["Developer", "Maintenance"]
-seo → ["SEO Lead"]
-google_ads → ["Ads Strategist", "Ads Analyst"]
-social_media → ["Social & Concierge"]
-```
+**3. `src/components/content-requests/ContentVersionCard.tsx`**
+- Remove the "Concierge Pick" badge references
+- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
+- Rename `onConciergePrefer` prop to `onSendForReview`
+- Remove Claude-specific badge styling
+- Simplify the model name badge (just show "AI Generated" or "OpenAI")
 
-Change the data fetching strategy: instead of querying `department_members`, query `profiles` where `team_role` is in the allowed list for the given department. Also join with `user_roles` to exclude `client` users (only show admin/concierge staff). Use the `team_role` value as the displayed role.
+**4. `src/pages/ContentRequests.tsx`**
+- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
+- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
+- Update prop names passed to `ContentRequestCard`
 
-The hook signature and return type remain the same, so no changes needed in any consuming components (`WebsiteDepartment`, `SeoDepartment`, `GoogleAdsDepartment`, `SocialOverview`).
+**5. `src/pages/AdminReview.tsx`**
+- Remove reference to "Client selected: {model_name}" badge since there's only one model now
+- Keep everything else the same (final approve logic is unchanged)
+
+**6. Status labels in `ContentRequestCard.tsx`**
+- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
+
+### Technical Details
+
+- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
+- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
+- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
+- No database schema changes needed
+
+### Files to modify
+1. `supabase/functions/generate-content/index.ts` -- remove Claude
+2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
+3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
+4. `src/pages/ContentRequests.tsx` -- rename function
+5. `src/pages/AdminReview.tsx` -- remove model name badge
 
