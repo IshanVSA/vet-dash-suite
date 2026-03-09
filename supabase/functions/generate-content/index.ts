@@ -262,11 +262,12 @@ Deno.serve(async (req) => {
       errors.push({ model: "OpenAI", error: err.message });
     }
 
+    // Don't expose detailed error messages to clients
     return new Response(JSON.stringify({
       content_request_id: contentRequestId,
       versions,
       total_posts: totalPosts,
-      errors,
+      errors: errors.map(e => ({ model: e.model, error: "Generation failed" })),
     }), {
       status: 200,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
