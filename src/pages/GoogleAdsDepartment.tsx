@@ -10,6 +10,7 @@ import { UploadsTab } from "@/components/department/UploadsTab";
 import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
+import { useGoogleAdsKPIs } from "@/hooks/useGoogleAdsKPIs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
@@ -21,40 +22,65 @@ const tabs = [
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
 
-const kpis = [
-  { label: "Ad Spend", value: "$4,280", change: "+8.5% vs last month", changeType: "neutral" as const, icon: DollarSign, gradient: "blue" as const },
-  { label: "Clicks", value: "3,412", change: "+22.1%", changeType: "positive" as const, icon: MousePointerClick, gradient: "green" as const },
-  { label: "Conversions", value: 187, change: "+15 this week", changeType: "positive" as const, icon: Target, gradient: "amber" as const },
-  { label: "CTR", value: "5.48%", change: "+0.32%", changeType: "positive" as const, icon: Percent, gradient: "purple" as const },
-];
-
 const services = [
   "Dashboard Access", "Analytics Review", "Monthly Performance Report",
   "Call Volume Issues", "Wrong Call Tracking", "Campaign Adjustments", "Others",
 ];
 
-const trafficData = [
-  { label: "Mon", value: 480 }, { label: "Tue", value: 520 },
-  { label: "Wed", value: 490 }, { label: "Thu", value: 560 },
-  { label: "Fri", value: 610 }, { label: "Sat", value: 380 },
-  { label: "Sun", value: 310 },
-];
+export default function GoogleAdsDepartment() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get("tab") || "overview";
+  const { team } = useDepartmentTeam("google_ads");
+  const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
+  const adsData = useGoogleAdsKPIs(selectedClinicId);
 
-const campaigns = [
-  { name: "Brand Awareness", spend: "$1,200", clicks: "1,020", conversions: 62, ctr: "6.2%" },
-  { name: "Emergency Services", spend: "$980", clicks: "842", conversions: 48, ctr: "5.8%" },
-  { name: "Dental Care Promo", spend: "$750", clicks: "680", conversions: 35, ctr: "4.9%" },
-  { name: "New Client Offer", spend: "$650", clicks: "540", conversions: 28, ctr: "4.3%" },
-  { name: "Wellness Plans", spend: "$700", clicks: "330", conversions: 14, ctr: "5.1%" },
-];
+  const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
 
-function CampaignsCard() {
-  return (
+  const kpis = [
+    {
+      label: "Ad Spend",
+      value: adsData.loading ? "—" : `$${adsData.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      change: "Last 30 days",
+      changeType: "neutral" as const,
+      icon: DollarSign,
+      gradient: "blue" as const,
+    },
+    {
+      label: "Clicks",
+      value: adsData.loading ? "—" : adsData.clicks.toLocaleString(),
+      change: adsData.hasData ? `CPC: $${adsData.clicks > 0 ? (adsData.cost / adsData.clicks).toFixed(2) : "0"}` : "",
+      changeType: "neutral" as const,
+      icon: MousePointerClick,
+      gradient: "green" as const,
+    },
+    {
+      label: "Conversions",
+      value: adsData.loading ? "—" : Math.round(adsData.conversions).toLocaleString(),
+      change: adsData.hasData && adsData.conversions > 0 ? `$${(adsData.cost / adsData.conversions).toFixed(2)}/conv` : "",
+      changeType: "neutral" as const,
+      icon: Target,
+      gradient: "amber" as const,
+    },
+    {
+      label: "CTR",
+      value: adsData.loading ? "—" : `${adsData.ctr}%`,
+      change: adsData.hasData ? `${adsData.impressions.toLocaleString()} impr.` : "",
+      changeType: "neutral" as const,
+      icon: Percent,
+      gradient: "purple" as const,
+    },
+  ];
+
+  const trafficData = adsData.dailyTrend.length > 0
+    ? adsData.dailyTrend
+    : [{ label: "—", value: 0 }];
+
+  const campaignsCard = adsData.hasData && adsData.campaigns.length > 0 ? (
     <Card className="overflow-hidden hover-lift">
       <CardHeader className="border-b border-border/40 bg-muted/20 pb-4">
         <CardTitle className="text-base flex items-center gap-2">
           <Megaphone className="h-4 w-4 text-primary" />
-          Campaigns
+          Top Campaigns
         </CardTitle>
       </CardHeader>
       <CardContent className="p-0">
@@ -69,9 +95,9 @@ function CampaignsCard() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {campaigns.map(c => (
+            {adsData.campaigns.map(c => (
               <TableRow key={c.name}>
-                <TableCell className="font-medium">{c.name}</TableCell>
+                <TableCell className="font-medium truncate max-w-[180px]">{c.name}</TableCell>
                 <TableCell className="text-right tabular-nums">{c.spend}</TableCell>
                 <TableCell className="text-right tabular-nums">{c.clicks}</TableCell>
                 <TableCell className="text-right tabular-nums">{c.conversions}</TableCell>
@@ -82,16 +108,7 @@ function CampaignsCard() {
         </Table>
       </CardContent>
     </Card>
-  );
-}
-
-export default function GoogleAdsDepartment() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get("tab") || "overview";
-  const { team } = useDepartmentTeam("google_ads");
-  const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
-
-  const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
+  ) : undefined;
 
   return (
     <DashboardLayout>
@@ -116,7 +133,6 @@ export default function GoogleAdsDepartment() {
           </div>
         </div>
 
-        {/* Clinic Selector */}
         <ClinicSelector
           clinics={clinics}
           selectedClinicId={selectedClinicId}
@@ -143,7 +159,7 @@ export default function GoogleAdsDepartment() {
               team={team}
               department="google_ads"
               accentColor="hsl(var(--primary))"
-              extraSection={<CampaignsCard />}
+              extraSection={campaignsCard}
               clinicId={selectedClinicId}
             />
           </TabsContent>
