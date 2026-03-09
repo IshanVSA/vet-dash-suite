@@ -101,6 +101,7 @@ const conciergeSections: NavSection[] = [
     title: "WORKSPACE",
     items: [
       { label: "My Clinics", icon: Building2, path: "/clinics" },
+      { label: "Reports", icon: FileText, path: "/reports" },
       { label: "Settings", icon: Settings, path: "/settings" },
     ],
   },
