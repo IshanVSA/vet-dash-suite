@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
   ShieldCheck, LayoutDashboard, UserCheck,
-  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Search, Plus,
+  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Search, Plus, FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -75,6 +75,7 @@ const adminSections: NavSection[] = [
   {
     title: "ADMIN",
     items: [
+      { label: "Reports", icon: FileText, path: "/reports" },
       { label: "Review Queue", icon: ShieldCheck, path: "/review" },
       { label: "Settings", icon: Settings, path: "/settings" },
     ],
@@ -100,6 +101,7 @@ const conciergeSections: NavSection[] = [
     title: "WORKSPACE",
     items: [
       { label: "My Clinics", icon: Building2, path: "/clinics" },
+      { label: "Reports", icon: FileText, path: "/reports" },
       { label: "Settings", icon: Settings, path: "/settings" },
     ],
   },
@@ -124,6 +126,7 @@ const pageTitles: Record<string, string> = {
   "/clinics": "Clinics",
   "/employees": "Team Members",
   "/clients": "Clients",
+  "/reports": "Reports",
   "/settings": "Settings",
 };
 
