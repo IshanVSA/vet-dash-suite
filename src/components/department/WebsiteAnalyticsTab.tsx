@@ -59,8 +59,6 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
     const currentPeriod = pageviews.filter(p => new Date(p.created_at).getTime() >= midpoint);
     const prevPeriod = pageviews.filter(p => new Date(p.created_at).getTime() < midpoint);
 
-    const currentPeriod = pageviews.filter(p => new Date(p.created_at).getTime() >= fifteenDaysAgo);
-    const prevPeriod = pageviews.filter(p => new Date(p.created_at).getTime() < fifteenDaysAgo);
 
     const calcKPIs = (views: Pageview[]) => {
       const sessions: Record<string, Pageview[]> = {};
@@ -86,11 +84,11 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
     const current = calcKPIs(currentPeriod);
     const prev = calcKPIs(prevPeriod);
 
-    // Daily traffic (30 days)
+    // Daily traffic
     const dailyMap: Record<string, number> = {};
-    for (let i = 29; i >= 0; i--) {
-      const d = new Date(now - i * 86400000);
-      const key = d.toISOString().slice(0, 10);
+    for (let i = totalDays - 1; i >= 0; i--) {
+      const d = subDays(dateRange.to, i);
+      const key = format(d, "yyyy-MM-dd");
       dailyMap[key] = 0;
     }
     pageviews.forEach(p => {
