@@ -31,8 +31,8 @@ const services = [
 export default function GoogleAdsDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
-  const { team } = useDepartmentTeam("google_ads", selectedClinicId);
   const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
+  const { team } = useDepartmentTeam("google_ads", selectedClinicId);
   const adsData = useGoogleAdsKPIs(selectedClinicId);
 
   const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
