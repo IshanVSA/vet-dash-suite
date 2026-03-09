@@ -11,7 +11,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
   const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait">
+    <AnimatePresence mode="popLayout">
       <motion.div
         key={location.pathname}
         variants={pageVariants}
@@ -19,6 +19,7 @@ export function PageTransition({ children }: { children: React.ReactNode }) {
         animate="enter"
         exit="exit"
         className="flex-1"
+        style={{ willChange: "opacity, transform" }}
       >
         {children}
       </motion.div>
