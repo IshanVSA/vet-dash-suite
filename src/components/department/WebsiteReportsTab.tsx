@@ -8,6 +8,7 @@ import { FileText, Download, Eye, Users, TrendingDown, Clock, Globe, BarChart3, 
 import { cn } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { addVSALogo } from "@/lib/pdf-logo";
 
 interface Pageview {
   session_id: string;
@@ -186,12 +187,13 @@ export function WebsiteReportsTab({ clinicId }: Props) {
     };
   }, [metrics, prevMetrics]);
 
-  const generatePDF = useCallback(() => {
+  const generatePDF = useCallback(async () => {
     if (!metrics || !changes) return;
     setGenerating(true);
 
     try {
       const doc = new jsPDF();
+      await addVSALogo(doc);
       const dateStr = `${format(range.from, "MMM d, yyyy")} – ${format(range.to, "MMM d, yyyy")}`;
       const prevDateStr = `${format(prevRange.from, "MMM d")} – ${format(prevRange.to, "MMM d")}`;
 
