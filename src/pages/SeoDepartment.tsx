@@ -87,7 +87,7 @@ function TopKeywordsCard() {
 export default function SeoDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
   const currentTab = searchParams.get("tab") || "overview";
-  const { team } = useDepartmentTeam("seo");
+  const { team } = useDepartmentTeam("seo", selectedClinicId);
   const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
 
   const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
