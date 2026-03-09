@@ -14,7 +14,7 @@ const departmentRoleMap: Record<string, string[]> = {
   social_media: ["Social & Concierge"],
 };
 
-export function useDepartmentTeam(department: string): { team: TeamMember[]; loading: boolean } {
+export function useDepartmentTeam(department: string, clinicId?: string): { team: TeamMember[]; loading: boolean } {
   const [team, setTeam] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -50,20 +50,33 @@ export function useDepartmentTeam(department: string): { team: TeamMember[]; loa
         (roles || []).filter((r) => r.role === "client").map((r) => r.user_id)
       );
 
+      let staffProfiles = profiles.filter((p) => !clientIds.has(p.id));
+
+      // Filter by clinic assignment if clinicId is provided
+      if (clinicId) {
+        const { data: assignments } = await (supabase
+          .from("clinic_team_members" as any)
+          .select("user_id")
+          .eq("clinic_id", clinicId) as any);
+
+        const assignedUserIds = new Set(
+          ((assignments || []) as { user_id: string }[]).map((a) => a.user_id)
+        );
+        staffProfiles = staffProfiles.filter((p) => assignedUserIds.has(p.id));
+      }
+
       setTeam(
-        profiles
-          .filter((p) => !clientIds.has(p.id))
-          .map((p) => ({
-            name: p.full_name || p.email || "Unknown",
-            role: p.team_role || "Member",
-            teamRole: p.team_role,
-          }))
+        staffProfiles.map((p) => ({
+          name: p.full_name || p.email || "Unknown",
+          role: p.team_role || "Member",
+          teamRole: p.team_role,
+        }))
       );
       setLoading(false);
     };
 
     fetchTeam();
-  }, [department]);
+  }, [department, clinicId]);
 
   return { team, loading };
 }

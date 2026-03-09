@@ -49,7 +49,7 @@ export function SocialOverview({ clinicId }: { clinicId?: string }) {
   const [totalRequests, setTotalRequests] = useState(0);
   const [activeClinics, setActiveClinics] = useState(0);
   const [weeklyData, setWeeklyData] = useState<{ day: string; posts: number }[]>([]);
-  const { team: departmentTeam } = useDepartmentTeam("social_media");
+  const { team: departmentTeam } = useDepartmentTeam("social_media", clinicId);
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [prefilledService, setPrefilledService] = useState("");
   const [requestSummary, setRequestSummary] = useState<RequestSummary>({
