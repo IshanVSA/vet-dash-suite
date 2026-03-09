@@ -26,24 +26,30 @@ interface Props {
 export function WebsiteAnalyticsTab({ clinicId }: Props) {
   const [pageviews, setPageviews] = useState<Pageview[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
+
+  const totalDays = differenceInDays(dateRange.to, dateRange.from) + 1;
 
   useEffect(() => {
     if (!clinicId) { setLoading(false); return; }
 
-    const fetch = async () => {
+    const fetchData = async () => {
       setLoading(true);
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString();
       const { data } = await supabase
         .from("website_pageviews")
         .select("session_id, path, referrer, created_at")
         .eq("clinic_id", clinicId)
-        .gte("created_at", thirtyDaysAgo)
+        .gte("created_at", dateRange.from.toISOString())
+        .lte("created_at", dateRange.to.toISOString())
         .order("created_at", { ascending: true });
       setPageviews((data as Pageview[] | null) || []);
       setLoading(false);
     };
-    fetch();
-  }, [clinicId]);
+    fetchData();
+  }, [clinicId, dateRange]);
 
   const analytics = useMemo(() => {
     if (!pageviews.length) return null;
