@@ -32,6 +32,8 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
   });
 
   const totalDays = differenceInDays(dateRange.to, dateRange.from) + 1;
+  const isPresetRange = [7, 14, 30, 90].includes(totalDays) && 
+    format(dateRange.to, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
 
   useEffect(() => {
     if (!clinicId) { setLoading(false); return; }
