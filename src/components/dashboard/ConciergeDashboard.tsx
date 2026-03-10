@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { DashboardSkeleton } from "@/components/DashboardSkeleton";
 import UpcomingPosts from "./UpcomingPosts";
 import RecentActivity from "./RecentActivity";
+import MyTickets from "./MyTickets";
 
 interface Clinic {
   id: string;
