@@ -32,6 +32,8 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
   });
 
   const totalDays = differenceInDays(dateRange.to, dateRange.from) + 1;
+  const isPresetRange = [7, 14, 30, 90].includes(totalDays) && 
+    format(dateRange.to, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
 
   useEffect(() => {
     if (!clinicId) { setLoading(false); return; }
@@ -167,8 +169,9 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
           </div>
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn("text-xs gap-1.5", "text-muted-foreground")}>
+              <Button variant="outline" size="sm" className={cn("text-xs gap-1.5", isPresetRange ? "text-muted-foreground" : "text-foreground border-primary/50")}>
                 <CalendarIcon className="h-3.5 w-3.5" />
+                {!isPresetRange && <span className="font-medium">Custom Range:</span>}
                 {format(dateRange.from, "MMM d")} – {format(dateRange.to, "MMM d, yyyy")}
               </Button>
             </PopoverTrigger>
@@ -238,8 +241,9 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
         </div>
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className={cn("text-xs gap-1.5", "text-muted-foreground")}>
+            <Button variant="outline" size="sm" className={cn("text-xs gap-1.5", isPresetRange ? "text-muted-foreground" : "text-foreground border-primary/50")}>
               <CalendarIcon className="h-3.5 w-3.5" />
+              {!isPresetRange && <span className="font-medium">Custom Range:</span>}
               {format(dateRange.from, "MMM d")} – {format(dateRange.to, "MMM d, yyyy")}
             </Button>
           </PopoverTrigger>
