@@ -26,6 +26,40 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
   const [filter, setFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
 
+  // Fetch team members for assignment dropdown
+  const { data: teamMemberProfiles = [] } = useQuery({
+    queryKey: ["dept-team-profiles", department, clinicId],
+    queryFn: async () => {
+      const departmentRoleMap: Record<string, string[]> = {
+        website: ["Developer", "Maintenance"],
+        seo: ["SEO Lead"],
+        google_ads: ["Ads Strategist", "Ads Analyst"],
+        social_media: ["Social & Concierge"],
+      };
+      const allowedRoles = departmentRoleMap[department] || [];
+      if (!allowedRoles.length) return [];
+
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, email, team_role")
+        .in("team_role", allowedRoles);
+      if (!profiles?.length) return [];
+
+      // Filter by clinic assignment if clinicId provided
+      let filtered = profiles;
+      if (clinicId) {
+        const { data: assignments } = await (supabase
+          .from("clinic_team_members" as any)
+          .select("user_id")
+          .eq("clinic_id", clinicId) as any);
+        const assignedIds = new Set(((assignments || []) as { user_id: string }[]).map(a => a.user_id));
+        filtered = profiles.filter(p => assignedIds.has(p.id));
+      }
+
+      return filtered.map(p => ({ id: p.id, name: p.full_name || p.email || "Unknown" }));
+    },
+  });
+
   const { data: tickets = [], refetch, isLoading } = useQuery({
     queryKey: ["department-tickets", department, filter, clinicId],
     queryFn: async () => {
