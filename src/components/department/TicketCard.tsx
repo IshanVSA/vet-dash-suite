@@ -53,7 +53,7 @@ const statusOptions: { value: string; label: string }[] = [
   { value: "completed", label: "Completed" },
 ];
 
-export function TicketCard({ id, title, ticket_type, priority, status, description, department, created_at, onUpdated }: TicketCardProps) {
+export function TicketCard({ id, title, ticket_type, priority, status, description, department, created_at, assigned_to, teamMembers = [], onUpdated }: TicketCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [updating, setUpdating] = useState(false);
 
