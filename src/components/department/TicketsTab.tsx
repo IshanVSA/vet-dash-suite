@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Inbox } from "lucide-react";
 import { TicketCard } from "./TicketCard";
 import { NewTicketDialog } from "./NewTicketDialog";
+import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 
 interface TicketsTabProps {
   department: string;
