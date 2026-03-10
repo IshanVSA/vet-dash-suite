@@ -17,6 +17,7 @@ interface NewTicketDialogProps {
   services: string[];
   onCreated: () => void;
   defaultType?: string;
+  clinicId?: string;
 }
 
 interface AttachedFile {
@@ -24,7 +25,7 @@ interface AttachedFile {
   preview?: string;
 }
 
-export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "" }: NewTicketDialogProps) {
+export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "", clinicId }: NewTicketDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
@@ -106,6 +107,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       description: description.trim() || null,
       notes: notes.trim() || null,
       created_by: user.id,
+      ...(clinicId ? { clinic_id: clinicId } : {}),
     } as any).select("id").single();
 
     if (error || !ticket) {
