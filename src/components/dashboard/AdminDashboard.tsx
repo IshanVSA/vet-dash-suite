@@ -228,8 +228,9 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* Upcoming Posts & Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* My Tickets + Upcoming Posts + Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <MyTickets />
         <UpcomingPosts />
         <RecentActivity />
       </div>
