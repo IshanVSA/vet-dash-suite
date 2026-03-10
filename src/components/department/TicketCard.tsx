@@ -94,6 +94,26 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
     }
   };
 
+  const handleAssigneeChange = async (userId: string) => {
+    const value = userId === "unassigned" ? null : userId;
+    setUpdating(true);
+    const { error } = await supabase
+      .from("department_tickets" as any)
+      .update({ assigned_to: value } as any)
+      .eq("id", id);
+    setUpdating(false);
+    if (error) {
+      toast.error("Failed to assign team member");
+      console.error(error);
+    } else {
+      const name = value ? teamMembers.find(m => m.id === value)?.name ?? "member" : "nobody";
+      toast.success(`Ticket assigned to ${name}`);
+      onUpdated?.();
+    }
+  };
+
+  const assigneeName = assigned_to ? teamMembers.find(m => m.id === assigned_to)?.name : null;
+
   return (
     <Card className={`overflow-hidden transition-all ${updating ? "opacity-60 pointer-events-none" : "hover-lift"}`}>
       <CardContent className="p-4">
