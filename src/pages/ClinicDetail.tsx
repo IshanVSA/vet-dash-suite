@@ -72,6 +72,23 @@ export default function ClinicDetail() {
       setSearchParams(newParams, { replace: true });
     }
 
+    // Handle Google OAuth error params
+    const googleError = searchParams.get("error");
+    if (googleError) {
+      setActiveTab("connections");
+      const errorMessages: Record<string, string> = {
+        oauth_denied: "Google Ads authorization was denied. Please try again.",
+        token_exchange: "Failed to exchange authorization code. Please reconnect.",
+        no_refresh_token: "Google did not provide a refresh token. Please revoke access at myaccount.google.com/permissions and try again.",
+        list_customers: "Could not retrieve your Google Ads accounts. Ensure your account has active Google Ads access.",
+        no_accounts: "No Google Ads accounts found for this Google account.",
+      };
+      toast.error(errorMessages[googleError] || `Google Ads connection failed: ${googleError}`);
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("error");
+      setSearchParams(newParams, { replace: true });
+    }
+
     // Check for meta_pages URL parameter (page selection after OAuth)
     const metaPagesParam = searchParams.get("meta_pages");
     if (metaPagesParam) {
