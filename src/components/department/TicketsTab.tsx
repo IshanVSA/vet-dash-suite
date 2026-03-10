@@ -92,7 +92,9 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
               priority={t.priority}
               status={t.status}
               description={t.description}
+              department={t.department}
               created_at={t.created_at}
+              onUpdated={() => refetch()}
             />
           ))}
         </div>
