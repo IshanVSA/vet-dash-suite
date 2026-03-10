@@ -17,6 +17,7 @@ interface NewTicketDialogProps {
   services: string[];
   onCreated: () => void;
   defaultType?: string;
+  clinicId?: string;
 }
 
 interface AttachedFile {
