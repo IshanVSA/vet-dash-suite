@@ -176,6 +176,21 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex items-center gap-1.5">
+              <UserCircle className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Assign:</span>
+              <Select value={assigned_to || "unassigned"} onValueChange={handleAssigneeChange}>
+                <SelectTrigger className="h-7 text-xs w-[150px]">
+                  <SelectValue placeholder="Unassigned" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned" className="text-xs">Unassigned</SelectItem>
+                  {teamMembers.map(m => (
+                    <SelectItem key={m.id} value={m.id} className="text-xs">{m.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         )}
       </CardContent>
