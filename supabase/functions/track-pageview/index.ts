@@ -37,7 +37,8 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/javascript" },
       });
     }
-    const endpoint = `${url.origin}${url.pathname}`;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const endpoint = `${supabaseUrl}/functions/v1/track-pageview`;
     return new Response(PIXEL_JS(clinicId, endpoint), {
       headers: {
         ...corsHeaders,
