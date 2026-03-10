@@ -107,6 +107,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       description: description.trim() || null,
       notes: notes.trim() || null,
       created_by: user.id,
+      ...(clinicId ? { clinic_id: clinicId } : {}),
     } as any).select("id").single();
 
     if (error || !ticket) {
