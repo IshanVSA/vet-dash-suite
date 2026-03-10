@@ -196,7 +196,7 @@ export default function ClinicDetail() {
           </Card>
         )}
 
-        <Tabs defaultValue="instagram">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-secondary">
             <TabsTrigger value="instagram">Instagram</TabsTrigger>
             <TabsTrigger value="facebook">Facebook</TabsTrigger>
