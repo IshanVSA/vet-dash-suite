@@ -128,7 +128,7 @@ export function DepartmentOverview({
         </CardContent>
       </Card>
 
-      <NewTicketDialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen} department={department} services={services} onCreated={() => {}} defaultType={prefilledService} />
+      <NewTicketDialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen} department={department} services={services} onCreated={() => {}} defaultType={prefilledService} clinicId={clinicId} />
 
       {/* Chart + Ticket Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

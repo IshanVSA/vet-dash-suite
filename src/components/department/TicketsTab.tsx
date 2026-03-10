@@ -104,6 +104,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         department={department}
         services={services}
         onCreated={() => refetch()}
+        clinicId={clinicId}
       />
     </div>
   );
