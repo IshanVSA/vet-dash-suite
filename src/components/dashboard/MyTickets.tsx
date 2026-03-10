@@ -51,7 +51,7 @@ export default function MyTickets() {
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
     const { error } = await supabase
       .from("department_tickets")
-      .update({ status: newStatus })
+      .update({ status: newStatus } as any)
       .eq("id", ticketId);
     if (error) {
       toast.error("Failed to update status");
