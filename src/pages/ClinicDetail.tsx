@@ -50,6 +50,11 @@ export default function ClinicDetail() {
   const [metaPages, setMetaPages] = useState<any[] | null>(null);
   const [googleAccounts, setGoogleAccounts] = useState<{ accounts: any[]; refresh_token: string } | null>(null);
   const [teamMembers, setTeamMembers] = useState<{ full_name: string | null; team_role: string | null }[]>([]);
+
+  // Determine initial tab based on OAuth URL params
+  const hasOAuthParams = searchParams.has("google") || searchParams.has("google_accounts") || searchParams.has("meta_pages");
+  const [activeTab, setActiveTab] = useState(hasOAuthParams ? "connections" : "instagram");
+
   useEffect(() => {
     if (!id) return;
     supabase.from("clinics").select("clinic_name").eq("id", id).maybeSingle().then(({ data }) => setClinic(data));
@@ -57,9 +62,20 @@ export default function ClinicDetail() {
     fetchAnalytics();
     fetchTeamMembers();
 
+    // Handle ?google=connected (single-account auto-connect)
+    if (searchParams.get("google") === "connected") {
+      setActiveTab("connections");
+      toast.success("Google Ads account connected successfully!");
+      fetchCredentials();
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete("google");
+      setSearchParams(newParams, { replace: true });
+    }
+
     // Check for meta_pages URL parameter (page selection after OAuth)
     const metaPagesParam = searchParams.get("meta_pages");
     if (metaPagesParam) {
+      setActiveTab("connections");
       try {
         const decoded = JSON.parse(atob(decodeURIComponent(metaPagesParam)));
         setMetaPages(decoded);
@@ -71,6 +87,7 @@ export default function ClinicDetail() {
     // Check for google_accounts URL parameter (account selection after OAuth)
     const googleAccountsParam = searchParams.get("google_accounts");
     if (googleAccountsParam) {
+      setActiveTab("connections");
       try {
         const decoded = JSON.parse(atob(decodeURIComponent(googleAccountsParam)));
         setGoogleAccounts(decoded);
@@ -179,7 +196,7 @@ export default function ClinicDetail() {
           </Card>
         )}
 
-        <Tabs defaultValue="instagram">
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-secondary">
             <TabsTrigger value="instagram">Instagram</TabsTrigger>
             <TabsTrigger value="facebook">Facebook</TabsTrigger>
