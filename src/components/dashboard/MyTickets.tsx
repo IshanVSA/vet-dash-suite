@@ -40,7 +40,7 @@ export default function MyTickets() {
         .from("department_tickets")
         .select("*")
         .eq("assigned_to", user!.id)
-        .in("status", ["open", "in_progress", "emergency"])
+        .in("status", ["open", "in_progress", "emergency"] as any)
         .order("priority", { ascending: true })
         .order("created_at", { ascending: false });
       if (error) throw error;
