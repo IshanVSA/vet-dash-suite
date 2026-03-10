@@ -25,7 +25,7 @@ interface AttachedFile {
   preview?: string;
 }
 
-export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "" }: NewTicketDialogProps) {
+export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "", clinicId }: NewTicketDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
