@@ -3,10 +3,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, AlertTriangle, CheckCircle2, Inbox, ChevronDown, ChevronUp, ArrowRightLeft } from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle2, Inbox, ChevronDown, ChevronUp, ArrowRightLeft, UserCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface TeamMemberOption {
+  id: string;
+  name: string;
+}
 
 interface TicketCardProps {
   id: string;
@@ -17,6 +22,8 @@ interface TicketCardProps {
   description?: string | null;
   department: string;
   created_at: string;
+  assigned_to?: string | null;
+  teamMembers?: TeamMemberOption[];
   onUpdated?: () => void;
 }
 
