@@ -129,6 +129,8 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
               description={t.description}
               department={t.department}
               created_at={t.created_at}
+              assigned_to={t.assigned_to}
+              teamMembers={teamMemberProfiles}
               onUpdated={() => refetch()}
             />
           ))}
