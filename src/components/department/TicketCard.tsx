@@ -130,6 +130,11 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
               <Badge variant="outline" className={`text-[10px] px-2 py-0.5 ${sc.className}`}>{sc.label}</Badge>
               <Badge variant="outline" className={`text-[10px] px-2 py-0.5 ${pc.className}`}>{pc.label}</Badge>
               <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{ticket_type}</Badge>
+              {assigneeName && (
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary border-primary/20">
+                  <UserCircle className="h-3 w-3 mr-1" />{assigneeName}
+                </Badge>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
