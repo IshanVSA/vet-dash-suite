@@ -1,7 +1,12 @@
+import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { Clock, AlertTriangle, CheckCircle2, Inbox } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Clock, AlertTriangle, CheckCircle2, Inbox, ChevronDown, ChevronUp, ArrowRightLeft } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface TicketCardProps {
   id: string;
@@ -10,7 +15,9 @@ interface TicketCardProps {
   priority: "regular" | "urgent" | "emergency";
   status: "open" | "in_progress" | "completed" | "emergency";
   description?: string | null;
+  department: string;
   created_at: string;
+  onUpdated?: () => void;
 }
 
 const statusConfig = {
@@ -26,13 +33,62 @@ const priorityConfig = {
   emergency: { label: "Emergency", className: "bg-destructive/10 text-destructive" },
 };
 
-export function TicketCard({ title, ticket_type, priority, status, description, created_at }: TicketCardProps) {
+const allDepartments = [
+  { value: "website", label: "Website" },
+  { value: "seo", label: "SEO" },
+  { value: "google_ads", label: "Google Ads" },
+  { value: "social_media", label: "Social Media" },
+];
+
+const statusOptions: { value: string; label: string }[] = [
+  { value: "open", label: "Open" },
+  { value: "in_progress", label: "In Progress" },
+  { value: "completed", label: "Completed" },
+];
+
+export function TicketCard({ id, title, ticket_type, priority, status, description, department, created_at, onUpdated }: TicketCardProps) {
+  const [expanded, setExpanded] = useState(false);
+  const [updating, setUpdating] = useState(false);
+
   const sc = statusConfig[status];
   const pc = priorityConfig[priority];
   const StatusIcon = sc.icon;
 
+  const handleStatusChange = async (newStatus: string) => {
+    setUpdating(true);
+    const { error } = await supabase
+      .from("department_tickets" as any)
+      .update({ status: newStatus } as any)
+      .eq("id", id);
+    setUpdating(false);
+    if (error) {
+      toast.error("Failed to update status");
+      console.error(error);
+    } else {
+      toast.success(`Status updated to ${newStatus.replace("_", " ")}`);
+      onUpdated?.();
+    }
+  };
+
+  const handleDepartmentChange = async (newDept: string) => {
+    if (newDept === department) return;
+    setUpdating(true);
+    const { error } = await supabase
+      .from("department_tickets" as any)
+      .update({ department: newDept } as any)
+      .eq("id", id);
+    setUpdating(false);
+    if (error) {
+      toast.error("Failed to reassign department");
+      console.error(error);
+    } else {
+      toast.success(`Ticket moved to ${allDepartments.find(d => d.value === newDept)?.label}`);
+      onUpdated?.();
+    }
+  };
+
   return (
-    <Card className="overflow-hidden hover-lift transition-all">
+    <Card className={`overflow-hidden transition-all ${updating ? "opacity-60 pointer-events-none" : "hover-lift"}`}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
@@ -49,10 +105,47 @@ export function TicketCard({ title, ticket_type, priority, status, description, 
               <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{ticket_type}</Badge>
             </div>
           </div>
-          <span className="text-[10px] text-muted-foreground whitespace-nowrap shrink-0 pt-0.5">
-            {formatDistanceToNow(new Date(created_at), { addSuffix: true })}
-          </span>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-[10px] text-muted-foreground whitespace-nowrap pt-0.5">
+              {formatDistanceToNow(new Date(created_at), { addSuffix: true })}
+            </span>
+            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded(!expanded)}>
+              {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            </Button>
+          </div>
         </div>
+
+        {expanded && (
+          <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-muted-foreground">Status:</span>
+              <Select value={status} onValueChange={handleStatusChange}>
+                <SelectTrigger className="h-7 text-xs w-[130px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map(s => (
+                    <SelectItem key={s.value} value={s.value} className="text-xs">{s.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Dept:</span>
+              <Select value={department} onValueChange={handleDepartmentChange}>
+                <SelectTrigger className="h-7 text-xs w-[130px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {allDepartments.map(d => (
+                    <SelectItem key={d.value} value={d.value} className="text-xs">{d.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
