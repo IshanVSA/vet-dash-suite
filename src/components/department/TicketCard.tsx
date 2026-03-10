@@ -3,10 +3,15 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, AlertTriangle, CheckCircle2, Inbox, ChevronDown, ChevronUp, ArrowRightLeft } from "lucide-react";
+import { Clock, AlertTriangle, CheckCircle2, Inbox, ChevronDown, ChevronUp, ArrowRightLeft, UserCircle } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+interface TeamMemberOption {
+  id: string;
+  name: string;
+}
 
 interface TicketCardProps {
   id: string;
@@ -17,6 +22,8 @@ interface TicketCardProps {
   description?: string | null;
   department: string;
   created_at: string;
+  assigned_to?: string | null;
+  teamMembers?: TeamMemberOption[];
   onUpdated?: () => void;
 }
 
@@ -46,7 +53,7 @@ const statusOptions: { value: string; label: string }[] = [
   { value: "completed", label: "Completed" },
 ];
 
-export function TicketCard({ id, title, ticket_type, priority, status, description, department, created_at, onUpdated }: TicketCardProps) {
+export function TicketCard({ id, title, ticket_type, priority, status, description, department, created_at, assigned_to, teamMembers = [], onUpdated }: TicketCardProps) {
   const [expanded, setExpanded] = useState(false);
   const [updating, setUpdating] = useState(false);
 
@@ -87,6 +94,26 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
     }
   };
 
+  const handleAssigneeChange = async (userId: string) => {
+    const value = userId === "unassigned" ? null : userId;
+    setUpdating(true);
+    const { error } = await supabase
+      .from("department_tickets" as any)
+      .update({ assigned_to: value } as any)
+      .eq("id", id);
+    setUpdating(false);
+    if (error) {
+      toast.error("Failed to assign team member");
+      console.error(error);
+    } else {
+      const name = value ? teamMembers.find(m => m.id === value)?.name ?? "member" : "nobody";
+      toast.success(`Ticket assigned to ${name}`);
+      onUpdated?.();
+    }
+  };
+
+  const assigneeName = assigned_to ? teamMembers.find(m => m.id === assigned_to)?.name : null;
+
   return (
     <Card className={`overflow-hidden transition-all ${updating ? "opacity-60 pointer-events-none" : "hover-lift"}`}>
       <CardContent className="p-4">
@@ -103,6 +130,11 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
               <Badge variant="outline" className={`text-[10px] px-2 py-0.5 ${sc.className}`}>{sc.label}</Badge>
               <Badge variant="outline" className={`text-[10px] px-2 py-0.5 ${pc.className}`}>{pc.label}</Badge>
               <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{ticket_type}</Badge>
+              {assigneeName && (
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary border-primary/20">
+                  <UserCircle className="h-3 w-3 mr-1" />{assigneeName}
+                </Badge>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
@@ -140,6 +172,21 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
                 <SelectContent>
                   {allDepartments.map(d => (
                     <SelectItem key={d.value} value={d.value} className="text-xs">{d.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <UserCircle className="h-3.5 w-3.5 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Assign:</span>
+              <Select value={assigned_to || "unassigned"} onValueChange={handleAssigneeChange}>
+                <SelectTrigger className="h-7 text-xs w-[150px]">
+                  <SelectValue placeholder="Unassigned" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unassigned" className="text-xs">Unassigned</SelectItem>
+                  {teamMembers.map(m => (
+                    <SelectItem key={m.id} value={m.id} className="text-xs">{m.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
