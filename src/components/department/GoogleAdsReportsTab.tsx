@@ -1,14 +1,15 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { format, subDays, subMonths, startOfMonth, endOfMonth } from "date-fns";
+import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, DollarSign, MousePointerClick, Target, Percent, Megaphone, BarChart3, ArrowUp, ArrowDown, Minus } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { FileText, Download, DollarSign, MousePointerClick, Target, Percent, Megaphone, BarChart3 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { addVSALogoToAllPages } from "@/lib/pdf-logo";
+import {
+  PDF_COLORS, renderPDFHeader, renderSectionHeader, renderKPICards,
+  getTableStyles, colorChangeCell, finalizePDF, ensureSpace,
+} from "@/lib/pdf-theme";
 
 interface Campaign {
   name: string;
@@ -103,26 +104,26 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
 
     try {
       const doc = new jsPDF();
-      const periodStr = recordedAt ? `Report synced: ${format(new Date(recordedAt), "MMM d, yyyy 'at' h:mm a")}` : "Last 30 Days";
+      const periodStr = recordedAt
+        ? `Report synced: ${format(new Date(recordedAt), "MMM d, yyyy 'at' h:mm a")}`
+        : "Last 30 Days";
 
-      // Header
-      doc.setFontSize(20);
-      doc.setTextColor(40, 40, 40);
-      doc.text("Google Ads Performance Report", 14, 22);
-      doc.setFontSize(11);
-      doc.setTextColor(100, 100, 100);
-      doc.text(clinicName, 14, 30);
-      doc.text(periodStr, 14, 36);
-      doc.setDrawColor(220, 220, 220);
-      doc.line(14, 40, 196, 40);
+      // ── Header ──
+      let y = renderPDFHeader(doc, "Google Ads Performance Report", clinicName, periodStr, PDF_COLORS.googleAds);
 
-      // KPI Summary
-      doc.setFontSize(14);
-      doc.setTextColor(40, 40, 40);
-      doc.text("Key Metrics", 14, 50);
+      // ── KPI Cards ──
+      y = renderKPICards(doc, y, [
+        { label: "Total Ad Spend", value: fmtCurrency(computed.cost) },
+        { label: "Clicks", value: computed.clicks.toLocaleString() },
+        { label: "Conversions", value: Math.round(computed.conversions).toLocaleString() },
+        { label: "CTR", value: `${computed.ctr}%` },
+      ], PDF_COLORS.googleAds);
+
+      // ── Key Metrics Table ──
+      y = renderSectionHeader(doc, "Key Metrics", y, PDF_COLORS.googleAds);
 
       autoTable(doc, {
-        startY: 54,
+        startY: y,
         head: [["Metric", "Value"]],
         body: [
           ["Total Ad Spend", fmtCurrency(computed.cost)],
@@ -133,21 +134,18 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
           ["Avg. CPC", fmtCurrency(computed.cpc)],
           ["Cost per Conversion", fmtCurrency(computed.costPerConversion)],
         ],
-        theme: "striped",
-        headStyles: { fillColor: [59, 130, 246] },
-        styles: { fontSize: 10 },
-        columnStyles: { 1: { fontStyle: "bold" } },
+        ...getTableStyles(PDF_COLORS.googleAds),
+        columnStyles: { 1: { fontStyle: "bold" as const } },
       });
+      y = (doc as any).lastAutoTable?.finalY || y + 50;
 
-      // Daily Spend Breakdown
+      // ── Daily Performance ──
       if (computed.dailyTrends.length > 0) {
-        const afterKPI = (doc as any).lastAutoTable?.finalY || 120;
-        doc.setFontSize(14);
-        doc.setTextColor(40, 40, 40);
-        doc.text("Daily Performance", 14, afterKPI + 12);
+        y = ensureSpace(doc, y + 8, 60);
+        y = renderSectionHeader(doc, "Daily Performance", y, PDF_COLORS.googleAds);
 
         autoTable(doc, {
-          startY: afterKPI + 16,
+          startY: y,
           head: [["Date", "Spend", "Clicks", "Impressions", "Conversions"]],
           body: computed.dailyTrends.map(d => [
             d.date,
@@ -156,79 +154,48 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
             d.impressions.toLocaleString(),
             Math.round(d.conversions).toString(),
           ]),
-          theme: "striped",
-          headStyles: { fillColor: [59, 130, 246] },
-          styles: { fontSize: 8 },
+          ...getTableStyles(PDF_COLORS.googleAds),
         });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
       }
 
-      // Campaign Performance
+      // ── Campaign Performance ──
       if (computed.campaigns.length > 0) {
-        const afterDaily = (doc as any).lastAutoTable?.finalY || 160;
-        if (afterDaily > 230) doc.addPage();
-        const campY = afterDaily > 230 ? 20 : afterDaily + 12;
-
-        doc.setFontSize(14);
-        doc.setTextColor(40, 40, 40);
-        doc.text("Campaign Performance", 14, campY);
+        y = ensureSpace(doc, y + 8, 60);
+        y = renderSectionHeader(doc, "Campaign Performance", y, PDF_COLORS.googleAds);
 
         autoTable(doc, {
-          startY: campY + 4,
+          startY: y,
           head: [["Campaign", "Spend", "Clicks", "Impressions", "Conv.", "CTR", "CPC"]],
           body: computed.campaigns.map(c => {
             const ctr = c.impressions > 0 ? `${(Math.round((c.clicks / c.impressions) * 10000) / 100)}%` : "0%";
             const cpc = c.clicks > 0 ? fmtCurrency(Math.round((c.cost / c.clicks) * 100) / 100) : "$0.00";
-            return [
-              c.name,
-              fmtCurrency(c.cost),
-              c.clicks.toLocaleString(),
-              c.impressions.toLocaleString(),
-              Math.round(c.conversions).toString(),
-              ctr,
-              cpc,
-            ];
+            return [c.name, fmtCurrency(c.cost), c.clicks.toLocaleString(), c.impressions.toLocaleString(), Math.round(c.conversions).toString(), ctr, cpc];
           }),
-          theme: "striped",
-          headStyles: { fillColor: [59, 130, 246] },
-          styles: { fontSize: 8 },
-          columnStyles: { 0: { cellWidth: 55 } },
+          ...getTableStyles(PDF_COLORS.googleAds),
+          columnStyles: { 0: { cellWidth: 50 } },
         });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
 
-        // Spend Distribution Summary
-        const afterCamp = (doc as any).lastAutoTable?.finalY || 200;
-        if (afterCamp > 240) doc.addPage();
-        const distY = afterCamp > 240 ? 20 : afterCamp + 12;
-
-        doc.setFontSize(14);
-        doc.setTextColor(40, 40, 40);
-        doc.text("Spend Distribution", 14, distY);
+        // ── Spend Distribution ──
+        y = ensureSpace(doc, y + 8, 50);
+        y = renderSectionHeader(doc, "Spend Distribution", y, PDF_COLORS.googleAds);
 
         const totalSpend = computed.cost;
         autoTable(doc, {
-          startY: distY + 4,
+          startY: y,
           head: [["Campaign", "Spend", "% of Total"]],
           body: computed.campaigns.map(c => [
             c.name,
             fmtCurrency(c.cost),
             totalSpend > 0 ? `${(Math.round((c.cost / totalSpend) * 1000) / 10)}%` : "0%",
           ]),
-          theme: "striped",
-          headStyles: { fillColor: [59, 130, 246] },
-          styles: { fontSize: 9 },
+          ...getTableStyles(PDF_COLORS.googleAds),
           columnStyles: { 0: { cellWidth: 80 } },
         });
       }
 
-      // Footer on all pages
-      const pageCount = doc.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text(`Generated on ${format(new Date(), "MMM d, yyyy 'at' h:mm a")}  •  Page ${i} of ${pageCount}`, 14, 290);
-      }
-
-      await addVSALogoToAllPages(doc);
+      await finalizePDF(doc);
       doc.save(`${clinicName.replace(/\s+/g, "_")}_Google_Ads_Report_${format(new Date(), "yyyy-MM-dd")}.pdf`);
     } finally {
       setGenerating(false);
@@ -241,7 +208,6 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Controls */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -250,11 +216,7 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
         </CardHeader>
         <CardContent>
           <div className="flex flex-wrap items-end gap-4">
-            <Button
-              onClick={generatePDF}
-              disabled={loading || !computed || generating}
-              className="gap-2"
-            >
+            <Button onClick={generatePDF} disabled={loading || !computed || generating} className="gap-2">
               <Download className="h-4 w-4" />
               {generating ? "Generating…" : "Download PDF Report"}
             </Button>
@@ -269,7 +231,6 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Preview */}
       {computed && !loading && (
         <Card>
           <CardHeader className="pb-3">
@@ -278,15 +239,12 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {/* KPI Preview */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               <PreviewStat icon={DollarSign} label="Ad Spend" value={fmtCurrency(computed.cost)} />
               <PreviewStat icon={MousePointerClick} label="Clicks" value={computed.clicks.toLocaleString()} sub={`CPC: ${fmtCurrency(computed.cpc)}`} />
               <PreviewStat icon={Target} label="Conversions" value={Math.round(computed.conversions).toLocaleString()} sub={`${fmtCurrency(computed.costPerConversion)}/conv`} />
               <PreviewStat icon={Percent} label="CTR" value={`${computed.ctr}%`} sub={`${computed.impressions.toLocaleString()} impr.`} />
             </div>
-
-            {/* Campaign Preview */}
             {computed.campaigns.length > 0 && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div>

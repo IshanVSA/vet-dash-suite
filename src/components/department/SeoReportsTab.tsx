@@ -4,10 +4,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download, Globe, Link2, Hash, TrendingUp, BarChart3 } from "lucide-react";
-import { useSeoAnalytics, type SeoAnalyticsRow, type SeoKeyword } from "@/hooks/useSeoAnalytics";
+import { useSeoAnalytics, type SeoKeyword } from "@/hooks/useSeoAnalytics";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { addVSALogoToAllPages } from "@/lib/pdf-logo";
+import {
+  PDF_COLORS, renderPDFHeader, renderSectionHeader, renderKPICards,
+  getTableStyles, colorChangeCell, finalizePDF, ensureSpace,
+} from "@/lib/pdf-theme";
 
 interface Props {
   clinicId: string;
@@ -18,14 +21,9 @@ export function SeoReportsTab({ clinicId }: Props) {
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [generating, setGenerating] = useState(false);
 
-  // Available months from data
   const months = useMemo(() => rows.map(r => r.month).sort().reverse(), [rows]);
-
-  // Auto-select latest month
   const activeMonth = selectedMonth || months[0] || "";
   const current = useMemo(() => rows.find(r => r.month === activeMonth) || null, [rows, activeMonth]);
-
-  // Find previous month for comparison
   const prevMonth = useMemo(() => {
     if (!activeMonth || months.length < 2) return null;
     const idx = months.indexOf(activeMonth);
@@ -33,7 +31,6 @@ export function SeoReportsTab({ clinicId }: Props) {
   }, [rows, months, activeMonth]);
 
   const [clinicName, setClinicName] = useState("");
-  // Fetch clinic name
   useMemo(() => {
     if (!clinicId) return;
     import("@/integrations/supabase/client").then(({ supabase }) => {
@@ -54,121 +51,81 @@ export function SeoReportsTab({ clinicId }: Props) {
     return { text: `${sign}${pct}%`, color };
   }
 
+  function pctText(cur: number, prev: number): string {
+    if (prev === 0 && cur === 0) return "No change";
+    if (prev === 0) return `+${cur} (new)`;
+    const pct = Math.round(((cur - prev) / prev) * 1000) / 10;
+    return `${pct >= 0 ? "+" : ""}${pct}%`;
+  }
+
   const generatePDF = useCallback(async () => {
     if (!current) return;
     setGenerating(true);
     try {
       const doc = new jsPDF();
 
-      // Header
-      doc.setFontSize(20);
-      doc.setTextColor(40, 40, 40);
-      doc.text("SEO Performance Report", 14, 22);
-      doc.setFontSize(11);
-      doc.setTextColor(100, 100, 100);
-      doc.text(clinicName, 14, 30);
-      doc.text(`Month: ${current.month}`, 14, 36);
-      if (prevMonth) {
-        doc.setFontSize(9);
-        doc.setTextColor(130, 130, 130);
-        doc.text(`Compared to: ${prevMonth.month}`, 14, 42);
-      }
-      doc.setDrawColor(220, 220, 220);
-      doc.line(14, prevMonth ? 46 : 40, 196, prevMonth ? 46 : 40);
+      // ── Header ──
+      const subtitle = prevMonth ? `Month: ${current.month} vs ${prevMonth.month}` : `Month: ${current.month}`;
+      let y = renderPDFHeader(doc, "SEO Performance Report", clinicName, subtitle, PDF_COLORS.seo);
 
-      // KPI Summary
-      const startY = prevMonth ? 54 : 48;
-      doc.setFontSize(14);
-      doc.setTextColor(40, 40, 40);
-      doc.text("Key Metrics", 14, startY);
+      // ── KPI Cards ──
+      y = renderKPICards(doc, y, [
+        { label: "Domain Authority", value: current.domain_authority.toString(), change: prevMonth ? pctText(current.domain_authority, prevMonth.domain_authority) : undefined },
+        { label: "Backlinks", value: current.backlinks.toLocaleString(), change: prevMonth ? pctText(current.backlinks, prevMonth.backlinks) : undefined },
+        { label: "Keywords Top 10", value: current.keywords_top_10.toString(), change: prevMonth ? pctText(current.keywords_top_10, prevMonth.keywords_top_10) : undefined },
+        { label: "Organic Traffic", value: current.organic_traffic.toLocaleString(), change: prevMonth ? pctText(current.organic_traffic, prevMonth.organic_traffic) : undefined },
+      ], PDF_COLORS.seo);
 
-      const kpiBody: string[][] = [
-        ["Domain Authority", current.domain_authority.toString(), prevMonth?.domain_authority?.toString() || "—", prevMonth ? pctChange(current.domain_authority, prevMonth.domain_authority).text : "—"],
-        ["Backlinks", current.backlinks.toLocaleString(), prevMonth?.backlinks?.toLocaleString() || "—", prevMonth ? pctChange(current.backlinks, prevMonth.backlinks).text : "—"],
-        ["Keywords Top 10", current.keywords_top_10.toString(), prevMonth?.keywords_top_10?.toString() || "—", prevMonth ? pctChange(current.keywords_top_10, prevMonth.keywords_top_10).text : "—"],
-        ["Organic Traffic", current.organic_traffic.toLocaleString(), prevMonth?.organic_traffic?.toLocaleString() || "—", prevMonth ? pctChange(current.organic_traffic, prevMonth.organic_traffic).text : "—"],
-      ];
+      // ── Key Metrics Table ──
+      y = renderSectionHeader(doc, "Key Metrics", y, PDF_COLORS.seo, prevMonth ? `Compared to ${prevMonth.month}` : undefined);
 
       autoTable(doc, {
-        startY: startY + 4,
+        startY: y,
         head: [["Metric", "Current", "Previous", "Change"]],
-        body: kpiBody,
-        theme: "striped",
-        headStyles: { fillColor: [20, 184, 166] }, // teal-500
-        styles: { fontSize: 10 },
-        columnStyles: { 3: { fontStyle: "bold" } },
-        didParseCell: (data) => {
-          if (data.section === "body" && data.column.index === 3) {
-            const val = data.cell.text[0] || "";
-            if (val.startsWith("+")) data.cell.styles.textColor = [22, 163, 74];
-            else if (val.startsWith("-")) data.cell.styles.textColor = [220, 38, 38];
-            else data.cell.styles.textColor = [120, 120, 120];
-          }
-        },
+        body: [
+          ["Domain Authority", current.domain_authority.toString(), prevMonth?.domain_authority?.toString() || "—", prevMonth ? pctText(current.domain_authority, prevMonth.domain_authority) : "—"],
+          ["Backlinks", current.backlinks.toLocaleString(), prevMonth?.backlinks?.toLocaleString() || "—", prevMonth ? pctText(current.backlinks, prevMonth.backlinks) : "—"],
+          ["Keywords Top 10", current.keywords_top_10.toString(), prevMonth?.keywords_top_10?.toString() || "—", prevMonth ? pctText(current.keywords_top_10, prevMonth.keywords_top_10) : "—"],
+          ["Organic Traffic", current.organic_traffic.toLocaleString(), prevMonth?.organic_traffic?.toLocaleString() || "—", prevMonth ? pctText(current.organic_traffic, prevMonth.organic_traffic) : "—"],
+        ],
+        ...getTableStyles(PDF_COLORS.seo),
+        didParseCell: (data: any) => colorChangeCell(data, 3),
       });
+      y = (doc as any).lastAutoTable?.finalY || y + 50;
 
-      // Top Keywords
+      // ── Top Keywords ──
       const keywords: SeoKeyword[] = current.top_keywords || [];
       if (keywords.length > 0) {
-        const afterKPI = (doc as any).lastAutoTable?.finalY || 120;
-        doc.setFontSize(14);
-        doc.setTextColor(40, 40, 40);
-        doc.text("Top Keywords", 14, afterKPI + 12);
+        y = ensureSpace(doc, y + 8, 60);
+        y = renderSectionHeader(doc, "Top Keywords", y, PDF_COLORS.seo);
 
         autoTable(doc, {
-          startY: afterKPI + 16,
+          startY: y,
           head: [["#", "Keyword", "Position", "Change"]],
           body: keywords.map((kw, i) => [(i + 1).toString(), kw.keyword, kw.position.toString(), kw.change]),
-          theme: "striped",
-          headStyles: { fillColor: [20, 184, 166] },
-          styles: { fontSize: 9 },
+          ...getTableStyles(PDF_COLORS.seo),
           columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 90 } },
-          didParseCell: (data) => {
-            if (data.section === "body" && data.column.index === 3) {
-              const val = data.cell.text[0] || "";
-              if (val.startsWith("+")) data.cell.styles.textColor = [22, 163, 74];
-              else if (val.startsWith("-")) data.cell.styles.textColor = [220, 38, 38];
-            }
-          },
+          didParseCell: (data: any) => colorChangeCell(data, 3),
         });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
       }
 
-      // Traffic Trend (all months)
+      // ── Traffic Trend ──
       if (rows.length > 1) {
-        const afterKeywords = (doc as any).lastAutoTable?.finalY || 160;
-        if (afterKeywords > 230) doc.addPage();
-        const trendY = afterKeywords > 230 ? 20 : afterKeywords + 12;
-
-        doc.setFontSize(14);
-        doc.setTextColor(40, 40, 40);
-        doc.text("Organic Traffic Trend", 14, trendY);
+        y = ensureSpace(doc, y + 8, 60);
+        y = renderSectionHeader(doc, "Organic Traffic Trend", y, PDF_COLORS.seo);
 
         autoTable(doc, {
-          startY: trendY + 4,
+          startY: y,
           head: [["Month", "Organic Traffic", "DA", "Backlinks", "Keywords Top 10"]],
           body: [...rows].sort((a, b) => b.month.localeCompare(a.month)).map(r => [
-            r.month,
-            r.organic_traffic.toLocaleString(),
-            r.domain_authority.toString(),
-            r.backlinks.toLocaleString(),
-            r.keywords_top_10.toString(),
+            r.month, r.organic_traffic.toLocaleString(), r.domain_authority.toString(), r.backlinks.toLocaleString(), r.keywords_top_10.toString(),
           ]),
-          theme: "striped",
-          headStyles: { fillColor: [20, 184, 166] },
-          styles: { fontSize: 9 },
+          ...getTableStyles(PDF_COLORS.seo),
         });
       }
 
-      // Footer
-      const pageCount = doc.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text(`Generated on ${format(new Date(), "MMM d, yyyy 'at' h:mm a")}  •  Page ${i} of ${pageCount}`, 14, 290);
-      }
-
-      await addVSALogoToAllPages(doc);
+      await finalizePDF(doc);
       doc.save(`${clinicName.replace(/\s+/g, "_")}_SEO_Report_${current.month}.pdf`);
     } finally {
       setGenerating(false);
@@ -181,7 +138,6 @@ export function SeoReportsTab({ clinicId }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Controls */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -193,13 +149,9 @@ export function SeoReportsTab({ clinicId }: Props) {
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Report Month</label>
               <Select value={activeMonth} onValueChange={setSelectedMonth}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue placeholder="Select month" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[200px]"><SelectValue placeholder="Select month" /></SelectTrigger>
                 <SelectContent>
-                  {months.map(m => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
-                  ))}
+                  {months.map(m => (<SelectItem key={m} value={m}>{m}</SelectItem>))}
                 </SelectContent>
               </Select>
             </div>
@@ -213,7 +165,6 @@ export function SeoReportsTab({ clinicId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Preview */}
       {current && !isLoading && (
         <Card>
           <CardHeader className="pb-3">
@@ -221,9 +172,7 @@ export function SeoReportsTab({ clinicId }: Props) {
               <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" /> Report Preview — {current.month}
               </CardTitle>
-              {prevMonth && (
-                <span className="text-[10px] text-muted-foreground">vs {prevMonth.month}</span>
-              )}
+              {prevMonth && <span className="text-[10px] text-muted-foreground">vs {prevMonth.month}</span>}
             </div>
           </CardHeader>
           <CardContent>
@@ -233,7 +182,6 @@ export function SeoReportsTab({ clinicId }: Props) {
               <PreviewStat icon={Hash} label="Keywords Top 10" value={current.keywords_top_10.toString()} change={pctChange(current.keywords_top_10, prevMonth?.keywords_top_10)} />
               <PreviewStat icon={TrendingUp} label="Organic Traffic" value={current.organic_traffic.toLocaleString()} change={pctChange(current.organic_traffic, prevMonth?.organic_traffic)} />
             </div>
-
             {current.top_keywords && current.top_keywords.length > 0 && (
               <div>
                 <h4 className="text-xs font-semibold text-muted-foreground mb-2">Top Keywords</h4>

@@ -8,7 +8,10 @@ import { FileText, Download, Eye, Users, TrendingDown, Clock, Globe, BarChart3, 
 import { cn } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { addVSALogoToAllPages } from "@/lib/pdf-logo";
+import {
+  PDF_COLORS, renderPDFHeader, renderSectionHeader, renderKPICards,
+  getTableStyles, colorChangeCell, finalizePDF, ensureSpace,
+} from "@/lib/pdf-theme";
 
 interface Pageview {
   session_id: string;
@@ -149,19 +152,8 @@ export function WebsiteReportsTab({ clinicId }: Props) {
     const fetchAll = async () => {
       setLoading(true);
       const [{ data: pvData }, { data: prevData }, { data: clinicData }] = await Promise.all([
-        supabase
-          .from("website_pageviews")
-          .select("session_id, path, referrer, created_at")
-          .eq("clinic_id", clinicId)
-          .gte("created_at", range.from.toISOString())
-          .lte("created_at", range.to.toISOString())
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("website_pageviews")
-          .select("session_id, path, referrer, created_at")
-          .eq("clinic_id", clinicId)
-          .gte("created_at", prevRange.from.toISOString())
-          .lte("created_at", prevRange.to.toISOString()),
+        supabase.from("website_pageviews").select("session_id, path, referrer, created_at").eq("clinic_id", clinicId).gte("created_at", range.from.toISOString()).lte("created_at", range.to.toISOString()).order("created_at", { ascending: true }),
+        supabase.from("website_pageviews").select("session_id, path, referrer, created_at").eq("clinic_id", clinicId).gte("created_at", prevRange.from.toISOString()).lte("created_at", prevRange.to.toISOString()),
         supabase.from("clinics").select("clinic_name").eq("id", clinicId).single(),
       ]);
       setPageviews((pvData as Pageview[] | null) || []);
@@ -196,29 +188,23 @@ export function WebsiteReportsTab({ clinicId }: Props) {
       const dateStr = `${format(range.from, "MMM d, yyyy")} – ${format(range.to, "MMM d, yyyy")}`;
       const prevDateStr = `${format(prevRange.from, "MMM d")} – ${format(prevRange.to, "MMM d")}`;
 
-      // Header
-      doc.setFontSize(20);
-      doc.setTextColor(40, 40, 40);
-      doc.text("Website Performance Report", 14, 22);
-      doc.setFontSize(11);
-      doc.setTextColor(100, 100, 100);
-      doc.text(clinicName, 14, 30);
-      doc.text(dateStr, 14, 36);
-      doc.setDrawColor(220, 220, 220);
-      doc.line(14, 40, 196, 40);
+      // ── Header ──
+      let y = renderPDFHeader(doc, "Website Performance Report", clinicName, dateStr, PDF_COLORS.website);
 
-      // KPI Summary with comparison
-      doc.setFontSize(14);
-      doc.setTextColor(40, 40, 40);
-      doc.text("Key Metrics", 14, 50);
-      doc.setFontSize(9);
-      doc.setTextColor(130, 130, 130);
-      doc.text(`Compared to previous period (${prevDateStr})`, 14, 56);
-
+      // ── KPI Cards ──
       const pm = prevMetrics || { totalViews: 0, totalSessions: 0, bounceRate: 0, avgDuration: 0, pagesPerSession: 0 };
+      y = renderKPICards(doc, y, [
+        { label: "Page Views", value: metrics.totalViews.toLocaleString(), change: changes.views.text },
+        { label: "Visitors", value: metrics.totalSessions.toLocaleString(), change: changes.visitors.text },
+        { label: "Bounce Rate", value: `${metrics.bounceRate}%`, change: changes.bounce.text },
+        { label: "Avg. Session", value: formatDuration(metrics.avgDuration), change: changes.duration.text },
+      ], PDF_COLORS.website);
+
+      // ── Key Metrics Table ──
+      y = renderSectionHeader(doc, "Key Metrics", y, PDF_COLORS.website, `Compared to previous period (${prevDateStr})`);
 
       autoTable(doc, {
-        startY: 60,
+        startY: y,
         head: [["Metric", "Current", "Previous", "Change"]],
         body: [
           ["Page Views", metrics.totalViews.toLocaleString(), pm.totalViews.toLocaleString(), changes.views.text],
@@ -227,87 +213,49 @@ export function WebsiteReportsTab({ clinicId }: Props) {
           ["Avg. Session Duration", formatDuration(metrics.avgDuration), formatDuration(pm.avgDuration), changes.duration.text],
           ["Pages per Session", metrics.pagesPerSession.toString(), pm.pagesPerSession.toString(), changes.pages.text],
         ],
-        theme: "striped",
-        headStyles: { fillColor: [249, 115, 22] },
-        styles: { fontSize: 10 },
-        columnStyles: {
-          3: {
-            fontStyle: "bold",
-          },
-        },
-        didParseCell: (data) => {
-          if (data.section === "body" && data.column.index === 3) {
-            const val = data.cell.text[0] || "";
-            if (val.startsWith("+")) data.cell.styles.textColor = [22, 163, 74];
-            else if (val.startsWith("-")) data.cell.styles.textColor = [220, 38, 38];
-            else data.cell.styles.textColor = [120, 120, 120];
-          }
-        },
+        ...getTableStyles(PDF_COLORS.website),
+        didParseCell: (data: any) => colorChangeCell(data, 3),
       });
+      y = (doc as any).lastAutoTable?.finalY || y + 50;
 
-      // Daily Traffic
-      const afterKPI = (doc as any).lastAutoTable?.finalY || 110;
-      doc.setFontSize(14);
-      doc.setTextColor(40, 40, 40);
-      doc.text("Daily Traffic", 14, afterKPI + 12);
+      // ── Daily Traffic ──
+      y = ensureSpace(doc, y + 8, 60);
+      y = renderSectionHeader(doc, "Daily Traffic", y, PDF_COLORS.website);
 
       autoTable(doc, {
-        startY: afterKPI + 16,
+        startY: y,
         head: [["Date", "Page Views"]],
         body: metrics.dailyTraffic.map(d => [d.date, d.count.toString()]),
-        theme: "striped",
-        headStyles: { fillColor: [249, 115, 22] },
-        styles: { fontSize: 9 },
+        ...getTableStyles(PDF_COLORS.website),
       });
+      y = (doc as any).lastAutoTable?.finalY || y + 50;
 
-      // Top Pages
-      const afterDaily = (doc as any).lastAutoTable?.finalY || 160;
-      if (afterDaily > 240) doc.addPage();
-      const topPagesY = afterDaily > 240 ? 20 : afterDaily + 12;
-
-      doc.setFontSize(14);
-      doc.setTextColor(40, 40, 40);
-      doc.text("Top Pages", 14, topPagesY);
+      // ── Top Pages ──
+      y = ensureSpace(doc, y + 8, 60);
+      y = renderSectionHeader(doc, "Top Pages", y, PDF_COLORS.website);
 
       autoTable(doc, {
-        startY: topPagesY + 4,
+        startY: y,
         head: [["Path", "Views", "Visitors"]],
         body: metrics.topPages.map(p => [p.path, p.views.toString(), p.visitors.toString()]),
-        theme: "striped",
-        headStyles: { fillColor: [249, 115, 22] },
-        styles: { fontSize: 9 },
+        ...getTableStyles(PDF_COLORS.website),
         columnStyles: { 0: { cellWidth: 100 } },
       });
+      y = (doc as any).lastAutoTable?.finalY || y + 50;
 
-      // Top Referrers
-      const afterPages = (doc as any).lastAutoTable?.finalY || 200;
-      if (afterPages > 240) doc.addPage();
-      const refY = afterPages > 240 ? 20 : afterPages + 12;
-
-      doc.setFontSize(14);
-      doc.setTextColor(40, 40, 40);
-      doc.text("Top Referrers", 14, refY);
+      // ── Top Referrers ──
+      y = ensureSpace(doc, y + 8, 60);
+      y = renderSectionHeader(doc, "Top Referrers", y, PDF_COLORS.website);
 
       autoTable(doc, {
-        startY: refY + 4,
+        startY: y,
         head: [["Source", "Visits"]],
         body: metrics.topReferrers.map(r => [r.source, r.count.toString()]),
-        theme: "striped",
-        headStyles: { fillColor: [249, 115, 22] },
-        styles: { fontSize: 9 },
+        ...getTableStyles(PDF_COLORS.website),
         columnStyles: { 0: { cellWidth: 120 } },
       });
 
-      // Footer
-      const pageCount = doc.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text(`Generated on ${format(new Date(), "MMM d, yyyy 'at' h:mm a")}  •  Page ${i} of ${pageCount}`, 14, 290);
-      }
-
-      await addVSALogoToAllPages(doc);
+      await finalizePDF(doc);
       doc.save(`${clinicName.replace(/\s+/g, "_")}_Website_Report_${format(range.from, "yyyy-MM-dd")}.pdf`);
     } finally {
       setGenerating(false);
@@ -320,7 +268,6 @@ export function WebsiteReportsTab({ clinicId }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Controls */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -332,9 +279,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Report Period</label>
               <Select value={period} onValueChange={(v) => setPeriod(v as ReportPeriod)}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.entries(periodLabels) as [ReportPeriod, string][]).map(([k, v]) => (
                     <SelectItem key={k} value={k}>{v}</SelectItem>
@@ -342,11 +287,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              onClick={generatePDF}
-              disabled={loading || !metrics || generating}
-              className="gap-2"
-            >
+            <Button onClick={generatePDF} disabled={loading || !metrics || generating} className="gap-2">
               <Download className="h-4 w-4" />
               {generating ? "Generating…" : "Download PDF Report"}
             </Button>
@@ -356,7 +297,6 @@ export function WebsiteReportsTab({ clinicId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Preview */}
       {metrics && changes && !loading && (
         <Card>
           <CardHeader className="pb-3">
@@ -377,7 +317,6 @@ export function WebsiteReportsTab({ clinicId }: Props) {
               <PreviewStat icon={Clock} label="Avg. Session" value={formatDuration(metrics.avgDuration)} change={changes.duration} />
               <PreviewStat icon={Globe} label="Pages/Session" value={metrics.pagesPerSession.toString()} change={changes.pages} />
             </div>
-
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div>
                 <h4 className="text-xs font-semibold text-muted-foreground mb-2">Top Pages</h4>
@@ -422,14 +361,11 @@ function PreviewStat({ icon: Icon, label, value, change }: { icon: React.Element
       <Icon className="h-4 w-4 mx-auto text-muted-foreground mb-1" />
       <p className="text-lg font-bold text-foreground">{value}</p>
       <p className="text-[10px] text-muted-foreground mb-1">{label}</p>
-      <div className={cn(
-        "inline-flex items-center gap-0.5 text-[10px] font-medium rounded-full px-1.5 py-0.5",
-        change.type === "positive" && "bg-emerald-500/10 text-emerald-600",
-        change.type === "negative" && "bg-red-500/10 text-red-600",
-        change.type === "neutral" && "bg-muted text-muted-foreground",
+      <div className={cn("flex items-center justify-center gap-0.5 text-[10px] font-medium",
+        change.type === "positive" ? "text-success" : change.type === "negative" ? "text-destructive" : "text-muted-foreground"
       )}>
-        <ChangeIcon className="h-2.5 w-2.5" />
-        {change.text}
+        <ChangeIcon className="h-3 w-3" />
+        <span>{change.text}</span>
       </div>
     </div>
   );
