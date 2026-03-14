@@ -155,8 +155,9 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Fetch descriptive name for each account
+      // Fetch details for each accessible account and check for manager (MCC) accounts
       const accounts: { customer_id: string; name: string; login_customer_id: string }[] = [];
+      
       for (const rn of resourceNames) {
         const custId = rn.replace("customers/", "");
         try {
@@ -171,24 +172,104 @@ Deno.serve(async (req) => {
             }
           );
           const detailText = await detailRes.text();
-          let detail: { descriptiveName?: string } = {};
+          let detail: { descriptiveName?: string; manager?: boolean } = {};
           try {
             detail = JSON.parse(detailText);
           } catch {
             console.warn(`Non-JSON detail response for ${custId}:`, detailText.substring(0, 300));
           }
-          accounts.push({
-            customer_id: custId,
-            name: detail.descriptiveName || custId,
-            login_customer_id: custId,
-          });
+
+          // If this is a manager (MCC) account, fetch its child client accounts
+          if (detail.manager) {
+            console.log(`Account ${custId} is a manager account, fetching sub-accounts...`);
+            try {
+              const query = `SELECT
+                customer_client.client_customer,
+                customer_client.descriptive_name,
+                customer_client.id,
+                customer_client.manager,
+                customer_client.status
+              FROM customer_client
+              WHERE customer_client.manager = false AND customer_client.status = 'ENABLED'`;
+
+              const searchRes = await fetch(
+                `https://googleads.googleapis.com/v23/customers/${custId}/googleAds:searchStream`,
+                {
+                  method: "POST",
+                  headers: {
+                    Authorization: `Bearer ${accessToken}`,
+                    "developer-token": GOOGLE_ADS_DEVELOPER_TOKEN,
+                    "login-customer-id": custId,
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({ query }),
+                }
+              );
+              const searchText = await searchRes.text();
+              
+              if (searchRes.ok) {
+                try {
+                  const searchData = JSON.parse(searchText);
+                  // searchStream returns an array of result batches
+                  const results = Array.isArray(searchData) ? searchData : [searchData];
+                  for (const batch of results) {
+                    const rows = batch.results || [];
+                    for (const row of rows) {
+                      const cc = row.customerClient;
+                      if (cc) {
+                        const childId = String(cc.id);
+                        accounts.push({
+                          customer_id: childId,
+                          name: cc.descriptiveName || childId,
+                          login_customer_id: custId, // MCC ID is the login-customer-id
+                        });
+                      }
+                    }
+                  }
+                } catch {
+                  console.warn(`Failed to parse sub-accounts for MCC ${custId}:`, searchText.substring(0, 500));
+                }
+              } else {
+                console.warn(`Failed to fetch sub-accounts for MCC ${custId}:`, searchRes.status, searchText.substring(0, 500));
+                // Fallback: add the MCC itself
+                accounts.push({
+                  customer_id: custId,
+                  name: detail.descriptiveName || custId,
+                  login_customer_id: custId,
+                });
+              }
+            } catch (e) {
+              console.warn(`Error fetching sub-accounts for MCC ${custId}:`, e);
+              accounts.push({
+                customer_id: custId,
+                name: detail.descriptiveName || custId,
+                login_customer_id: custId,
+              });
+            }
+          } else {
+            // Regular (non-manager) account
+            accounts.push({
+              customer_id: custId,
+              name: detail.descriptiveName || custId,
+              login_customer_id: custId,
+            });
+          }
         } catch (e) {
           console.warn(`Failed to fetch details for ${custId}:`, e);
           accounts.push({ customer_id: custId, name: custId, login_customer_id: custId });
         }
       }
 
-      // Always show account selection dialog (similar to Meta page selection)
+      if (accounts.length === 0) {
+        return new Response(null, {
+          status: 302,
+          headers: { Location: `${redirectBase}/clinics/${clinic_id}?error=no_accounts` },
+        });
+      }
+
+      console.log(`Found ${accounts.length} accounts for selection`);
+      
+      // Always show account selection dialog
       const encoded = btoa(JSON.stringify({ accounts, refresh_token: refreshToken }));
       return new Response(null, {
         status: 302,
