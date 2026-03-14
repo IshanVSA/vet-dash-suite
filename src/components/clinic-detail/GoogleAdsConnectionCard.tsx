@@ -51,11 +51,15 @@ export function GoogleAdsConnectionCard({
   const handleDisconnect = async () => {
     setDisconnecting(true);
     try {
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch(
         `${supabaseUrl}/functions/v1/google-oauth?action=disconnect`,
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token}`,
+          },
           body: JSON.stringify({ clinic_id: clinicId }),
         }
       );
