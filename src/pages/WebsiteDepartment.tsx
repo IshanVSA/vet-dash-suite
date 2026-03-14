@@ -259,6 +259,14 @@ export default function WebsiteDepartment() {
             ))}
           </TabsList>
 
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={mode}
+              initial={{ opacity: 0, x: mode === "seo" ? 24 : -24 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: mode === "seo" ? -24 : 24 }}
+              transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+            >
           {mode === "website" ? (
             <>
               <TabsContent value="overview" className="mt-4">
@@ -280,6 +288,8 @@ export default function WebsiteDepartment() {
               <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
             </>
           )}
+            </motion.div>
+          </AnimatePresence>
         </Tabs>
       </div>
 
