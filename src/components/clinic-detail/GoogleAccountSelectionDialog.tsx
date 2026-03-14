@@ -103,7 +103,7 @@ export function GoogleAccountSelectionDialog({
 
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-lg max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>Select a Google Ads Account</DialogTitle>
           <p className="text-sm text-muted-foreground">
@@ -121,33 +121,35 @@ export function GoogleAccountSelectionDialog({
           />
         </div>
 
-        <RadioGroup value={selectedId} onValueChange={setSelectedId} className="space-y-2 my-4">
-          {filteredAndSorted.map((account) => (
-            <label
-              key={account.customer_id}
-              className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
-                selectedId === account.customer_id
-                  ? "border-primary bg-primary/5"
-                  : account.score >= 1
-                    ? "border-green-500/40 bg-green-500/5 hover:border-green-500/60"
-                    : "border-border hover:border-muted-foreground/30"
-              }`}
-            >
-              <RadioGroupItem value={account.customer_id} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium text-sm text-foreground truncate">{account.name}</p>
-                  {account.score >= 1 && (
-                    <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 shrink-0">
-                      Suggested
-                    </Badge>
-                  )}
+        <ScrollArea className="max-h-[50vh] pr-4">
+          <RadioGroup value={selectedId} onValueChange={setSelectedId} className="space-y-2 my-4">
+            {filteredAndSorted.map((account) => (
+              <label
+                key={account.customer_id}
+                className={`flex items-center gap-3 rounded-lg border p-3 cursor-pointer transition-colors ${
+                  selectedId === account.customer_id
+                    ? "border-primary bg-primary/5"
+                    : account.score >= 1
+                      ? "border-green-500/40 bg-green-500/5 hover:border-green-500/60"
+                      : "border-border hover:border-muted-foreground/30"
+                }`}
+              >
+                <RadioGroupItem value={account.customer_id} />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium text-sm text-foreground truncate">{account.name}</p>
+                    {account.score >= 1 && (
+                      <Badge variant="secondary" className="text-[10px] bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 shrink-0">
+                        Suggested
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">ID: {account.customer_id}</p>
                 </div>
-                <p className="text-xs text-muted-foreground">ID: {account.customer_id}</p>
-              </div>
-            </label>
-          ))}
-        </RadioGroup>
+              </label>
+            ))}
+          </RadioGroup>
+        </ScrollArea>
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>Cancel</Button>
