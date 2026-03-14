@@ -23,7 +23,13 @@ export default function AnalyticsContent({ clinicId }: { clinicId?: string }) {
 
   useEffect(() => {
     const fetchAnalytics = async () => {
-      let query = supabase.from("analytics").select("*").order("recorded_at", { ascending: true });
+      setLoading(true);
+      const fromStr = dateRange.from.toISOString();
+      const toStr = dateRange.to.toISOString();
+      let query = supabase.from("analytics").select("*")
+        .gte("recorded_at", fromStr)
+        .lte("recorded_at", toStr)
+        .order("recorded_at", { ascending: true });
       if (clinicId) {
         query = query.eq("clinic_id", clinicId);
       } else if (role === "concierge" && user) {
@@ -42,7 +48,7 @@ export default function AnalyticsContent({ clinicId }: { clinicId?: string }) {
       setLoading(false);
     };
     if (role) fetchAnalytics();
-  }, [role, user, clinicId]);
+  }, [role, user, clinicId, dateRange]);
 
   const summaryStats = [
     { label: "Total Records", value: data.length, accent: "border-l-primary" },
