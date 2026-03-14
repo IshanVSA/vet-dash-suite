@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { subDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Area, AreaChart } from "recharts";
 import { BarChart3 } from "lucide-react";
+import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 
 interface ChartPoint { date: string; records: number; }
 
