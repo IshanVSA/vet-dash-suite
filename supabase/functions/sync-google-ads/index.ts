@@ -161,6 +161,14 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    // Aggregate results
+    let totalClicks = 0;
+    let totalImpressions = 0;
+    let totalCostMicros = 0;
+    let totalConversions = 0;
+    const dailyMap: Record<string, { clicks: number; impressions: number; cost_micros: number; conversions: number }> = {};
+    const campaignMap: Record<string, { clicks: number; impressions: number; cost_micros: number; conversions: number }> = {};
+
     for (const batch of batches) {
       const results = batch.results || [];
       for (const row of results) {
