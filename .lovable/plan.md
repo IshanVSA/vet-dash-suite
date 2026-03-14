@@ -1,51 +1,53 @@
 
 
-## Problem
+## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
 
-The Google Ads sync function (`sync-google-ads`) successfully calls the API and inserts analytics records, but all values are 0. The root cause is the same issue previously fixed in `google-oauth`: the `searchStream` endpoint returns **newline-delimited JSON**, not standard JSON. Calling `searchRes.json()` either fails silently or misparses the response, resulting in no rows being processed.
+### Summary
+Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
 
-The database confirms 3 sync records for "alma" (clinic `2bdf419c`), all with `{"clicks": 0, "impressions": 0, ...}`.
+### Changes
 
-## Changes
+**1. Edge Function: `supabase/functions/generate-content/index.ts`**
+- Remove the `callClaude` function entirely
+- Remove the Claude API key lookup and Claude execution block
+- Keep only the OpenAI call
+- This means only one `content_version` row is created per request
 
-### File: `supabase/functions/sync-google-ads/index.ts`
+**2. `src/components/content-requests/ContentRequestCard.tsx`**
+- Remove the `ModelToggleView` component (no longer needed with single version)
+- Render the single `ContentVersionCard` directly when versions exist
+- Rename `onConciergePrefer` prop to `onSendForReview`
 
-1. **Replace `.json()` with raw text parsing** -- use the same `parseSearchStream` pattern from the `google-oauth` function:
-   - Read response as `.text()` instead of `.json()`
-   - Split by newlines, parse each line as JSON
-   - Flatten into a single array of batches
+**3. `src/components/content-requests/ContentVersionCard.tsx`**
+- Remove the "Concierge Pick" badge references
+- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
+- Rename `onConciergePrefer` prop to `onSendForReview`
+- Remove Claude-specific badge styling
+- Simplify the model name badge (just show "AI Generated" or "OpenAI")
 
-2. **Add diagnostic logging** -- log the raw response length and number of parsed results so future debugging is easier
+**4. `src/pages/ContentRequests.tsx`**
+- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
+- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
+- Update prop names passed to `ContentRequestCard`
 
-3. **Update `last_google_sync_at`** -- currently this is never set (the DB shows `null`). The update statement runs but may be failing silently. Add error logging for this step.
+**5. `src/pages/AdminReview.tsx`**
+- Remove reference to "Client selected: {model_name}" badge since there's only one model now
+- Keep everything else the same (final approve logic is unchanged)
 
-### Technical Detail
+**6. Status labels in `ContentRequestCard.tsx`**
+- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
 
-```typescript
-// Current (broken):
-const searchData = await searchRes.json();
+### Technical Details
 
-// Fixed:
-const rawText = await searchRes.text();
-const batches = rawText
-  .split("\n")
-  .map(l => l.trim())
-  .filter(Boolean)
-  .flatMap(l => {
-    try { return [JSON.parse(l)]; }
-    catch { return []; }
-  });
-console.log(`Parsed ${batches.length} batches from response (${rawText.length} bytes)`);
+- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
+- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
+- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
+- No database schema changes needed
 
-// Then iterate batches directly instead of wrapping in array
-for (const batch of batches) {
-  const results = batch.results || [];
-  // ... existing aggregation logic
-}
-```
-
-Also check for top-level error in any batch before aggregation.
-
-### Deployment
-The edge function will be auto-deployed after the edit.
+### Files to modify
+1. `supabase/functions/generate-content/index.ts` -- remove Claude
+2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
+3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
+4. `src/pages/ContentRequests.tsx` -- rename function
+5. `src/pages/AdminReview.tsx` -- remove model name badge
 

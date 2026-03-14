@@ -126,25 +126,41 @@ Deno.serve(async (req) => {
       }
     );
 
-    const searchData = await searchRes.json();
-    if (searchData.error) {
-      console.error("Google Ads search error:", JSON.stringify(searchData.error));
-      return new Response(JSON.stringify({ error: "Google Ads API error: " + (searchData.error.message || "Unknown") }), {
+    const rawText = await searchRes.text();
+    console.log(`searchStream response: ${rawText.length} bytes`);
+
+    // Parse newline-delimited JSON (same pattern as google-oauth)
+    const parseSearchStream = (raw: string): any[] => {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [parsed];
+      } catch {
+        return raw
+          .split("\n")
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .flatMap((line) => {
+            try {
+              const parsed = JSON.parse(line);
+              return Array.isArray(parsed) ? parsed : [parsed];
+            } catch {
+              return [];
+            }
+          });
+      }
+    };
+
+    const batches = parseSearchStream(rawText);
+    console.log(`Parsed ${batches.length} batches`);
+
+    // Check for API error in first batch
+    if (batches.length > 0 && batches[0].error) {
+      console.error("Google Ads search error:", JSON.stringify(batches[0].error));
+      return new Response(JSON.stringify({ error: "Google Ads API error: " + (batches[0].error.message || "Unknown") }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
-
-    // Aggregate results
-    let totalClicks = 0;
-    let totalImpressions = 0;
-    let totalCostMicros = 0;
-    let totalConversions = 0;
-    const dailyMap: Record<string, { clicks: number; impressions: number; cost_micros: number; conversions: number }> = {};
-    const campaignMap: Record<string, { clicks: number; impressions: number; cost_micros: number; conversions: number }> = {};
-
-    // searchStream returns an array of batches
-    const batches = Array.isArray(searchData) ? searchData : [searchData];
     for (const batch of batches) {
       const results = batch.results || [];
       for (const row of results) {
@@ -214,10 +230,12 @@ Deno.serve(async (req) => {
     if (insertError) console.error("Analytics insert error:", insertError);
 
     // Update last sync timestamp
-    await supabase
+    const { error: syncUpdateError } = await supabase
       .from("clinic_api_credentials")
       .update({ last_google_sync_at: new Date().toISOString() })
       .eq("clinic_id", clinic_id);
+    if (syncUpdateError) console.error("Failed to update last_google_sync_at:", syncUpdateError);
+    else console.log("Updated last_google_sync_at for clinic", clinic_id);
 
     return new Response(
       JSON.stringify({ success: true, clicks: totalClicks, impressions: totalImpressions }),
