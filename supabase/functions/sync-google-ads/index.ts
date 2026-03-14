@@ -230,10 +230,12 @@ Deno.serve(async (req) => {
     if (insertError) console.error("Analytics insert error:", insertError);
 
     // Update last sync timestamp
-    await supabase
+    const { error: syncUpdateError } = await supabase
       .from("clinic_api_credentials")
       .update({ last_google_sync_at: new Date().toISOString() })
       .eq("clinic_id", clinic_id);
+    if (syncUpdateError) console.error("Failed to update last_google_sync_at:", syncUpdateError);
+    else console.log("Updated last_google_sync_at for clinic", clinic_id);
 
     return new Response(
       JSON.stringify({ success: true, clicks: totalClicks, impressions: totalImpressions }),
