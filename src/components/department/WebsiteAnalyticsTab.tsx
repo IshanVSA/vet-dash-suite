@@ -5,12 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
-import { Eye, Users, TrendingDown, FileText, Globe, Clock, CalendarIcon } from "lucide-react";
+import { Eye, Users, TrendingDown, FileText, Globe, Clock } from "lucide-react";
 import { StatsCard } from "@/components/StatsCard";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { DateRangeFilter } from "@/components/department/DateRangeFilter";
 
 interface Pageview {
   session_id: string;
@@ -32,8 +29,6 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
   });
 
   const totalDays = differenceInDays(dateRange.to, dateRange.from) + 1;
-  const isPresetRange = [7, 14, 30, 90].includes(totalDays) && 
-    format(dateRange.to, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd");
 
   useEffect(() => {
     if (!clinicId) { setLoading(false); return; }
@@ -152,44 +147,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
   if (!analytics || (analytics.current.totalViews === 0 && analytics.prev.totalViews === 0)) {
     return (
       <div className="space-y-6">
-        {/* Keep date picker visible even with no data */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="flex items-center gap-1">
-            {[7, 14, 30, 90].map(days => (
-              <Button
-                key={days}
-                size="sm"
-                variant={totalDays === days ? "default" : "outline"}
-                onClick={() => setDateRange({ from: subDays(new Date(), days), to: new Date() })}
-                className="text-xs"
-              >
-                {days}d
-              </Button>
-            ))}
-          </div>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className={cn("text-xs gap-1.5", isPresetRange ? "text-muted-foreground" : "text-foreground border-primary/50")}>
-                <CalendarIcon className="h-3.5 w-3.5" />
-                {!isPresetRange && <span className="font-medium">Custom Range:</span>}
-                {format(dateRange.from, "MMM d")} – {format(dateRange.to, "MMM d, yyyy")}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="range"
-                selected={{ from: dateRange.from, to: dateRange.to }}
-                onSelect={(range) => {
-                  if (range?.from && range?.to) setDateRange({ from: range.from, to: range.to });
-                  else if (range?.from) setDateRange({ from: range.from, to: range.from });
-                }}
-                disabled={(date) => date > new Date()}
-                numberOfMonths={2}
-                className={cn("p-3 pointer-events-auto")}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+        <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
         <div className="text-center py-16 space-y-2">
           <Globe className="h-10 w-10 mx-auto text-muted-foreground/50" />
           <p className="text-muted-foreground text-sm">No pageview data for this date range.</p>
@@ -224,44 +182,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Date Range Picker */}
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1">
-          {[7, 14, 30, 90].map(days => (
-            <Button
-              key={days}
-              size="sm"
-              variant={totalDays === days ? "default" : "outline"}
-              onClick={() => setDateRange({ from: subDays(new Date(), days), to: new Date() })}
-              className="text-xs"
-            >
-              {days}d
-            </Button>
-          ))}
-        </div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className={cn("text-xs gap-1.5", isPresetRange ? "text-muted-foreground" : "text-foreground border-primary/50")}>
-              <CalendarIcon className="h-3.5 w-3.5" />
-              {!isPresetRange && <span className="font-medium">Custom Range:</span>}
-              {format(dateRange.from, "MMM d")} – {format(dateRange.to, "MMM d, yyyy")}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0" align="start">
-            <Calendar
-              mode="range"
-              selected={{ from: dateRange.from, to: dateRange.to }}
-              onSelect={(range) => {
-                if (range?.from && range?.to) setDateRange({ from: range.from, to: range.to });
-                else if (range?.from) setDateRange({ from: range.from, to: range.from });
-              }}
-              disabled={(date) => date > new Date()}
-              numberOfMonths={2}
-              className={cn("p-3 pointer-events-auto")}
-            />
-          </PopoverContent>
-        </Popover>
-      </div>
+      <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { StatsCard } from "@/components/StatsCard";
 import { DollarSign, MousePointerClick, Eye, Target, Percent, Megaphone, RefreshCw, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
+import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 
 interface DailyTrend {
   date: string;
@@ -45,6 +46,10 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [hasCredentials, setHasCredentials] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
 
   const fetchAnalytics = async () => {
     if (!clinicId) { setLoading(false); return; }
@@ -165,15 +170,18 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
 
   return (
     <div className="space-y-6">
-      {/* Sync Controls */}
+      {/* Date Filter + Sync Controls */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <p className="text-xs text-muted-foreground">
-          {lastSynced ? `Last synced: ${format(new Date(lastSynced), "MMM d, yyyy 'at' h:mm a")}` : "Never synced"}
-        </p>
-        <Button onClick={handleSync} disabled={syncing} size="sm" variant="outline" className="gap-2 text-xs">
-          <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
-          {syncing ? "Syncing…" : "Sync Data"}
-        </Button>
+        <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
+        <div className="flex items-center gap-3">
+          <p className="text-xs text-muted-foreground">
+            {lastSynced ? `Last synced: ${format(new Date(lastSynced), "MMM d, yyyy 'at' h:mm a")}` : "Never synced"}
+          </p>
+          <Button onClick={handleSync} disabled={syncing} size="sm" variant="outline" className="gap-2 text-xs">
+            <RefreshCw className={`h-3.5 w-3.5 ${syncing ? "animate-spin" : ""}`} />
+            {syncing ? "Syncing…" : "Sync Data"}
+          </Button>
+        </div>
       </div>
 
       {/* KPI Cards */}

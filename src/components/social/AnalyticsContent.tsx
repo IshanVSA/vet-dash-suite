@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
+import { subDays } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Area, AreaChart } from "recharts";
 import { BarChart3 } from "lucide-react";
+import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 
 interface ChartPoint { date: string; records: number; }
 
@@ -14,6 +16,10 @@ export default function AnalyticsContent({ clinicId }: { clinicId?: string }) {
   const [data, setData] = useState<any[]>([]);
   const [chartData, setChartData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -79,6 +85,7 @@ export default function AnalyticsContent({ clinicId }: { clinicId?: string }) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         {summaryStats.map((stat, i) => (
           <Card key={i} className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}>
