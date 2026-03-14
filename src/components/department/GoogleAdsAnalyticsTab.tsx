@@ -111,7 +111,18 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
 
   const computed = useMemo(() => {
     if (!metricsData) return null;
-    const { clicks, impressions, cost, conversions, daily_trends, campaigns } = metricsData;
+    const { daily_trends, campaigns } = metricsData;
+
+    // Filter daily trends by selected date range
+    const fromStr = format(dateRange.from, "yyyy-MM-dd");
+    const toStr = format(dateRange.to, "yyyy-MM-dd");
+    const filteredTrends = daily_trends.filter(d => d.date >= fromStr && d.date <= toStr);
+
+    // Recalculate KPIs from filtered trends
+    const clicks = filteredTrends.reduce((s, d) => s + d.clicks, 0);
+    const impressions = filteredTrends.reduce((s, d) => s + d.impressions, 0);
+    const cost = filteredTrends.reduce((s, d) => s + d.cost, 0);
+    const conversions = filteredTrends.reduce((s, d) => s + d.conversions, 0);
     const ctr = impressions > 0 ? Math.round((clicks / impressions) * 10000) / 100 : 0;
     const cpc = clicks > 0 ? Math.round((cost / clicks) * 100) / 100 : 0;
     const costPerConversion = conversions > 0 ? Math.round((cost / conversions) * 100) / 100 : 0;
@@ -119,8 +130,8 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
     // Sort campaigns by cost desc
     const sortedCampaigns = [...campaigns].sort((a, b) => b.cost - a.cost);
 
-    // Format daily trends for charts
-    const chartData = daily_trends.map(d => ({
+    // Format filtered daily trends for charts
+    const chartData = filteredTrends.map(d => ({
       date: new Date(d.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }),
       clicks: d.clicks,
       impressions: d.impressions,
@@ -129,7 +140,7 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
     }));
 
     return { clicks, impressions, cost, conversions, ctr, cpc, costPerConversion, sortedCampaigns, chartData };
-  }, [metricsData]);
+  }, [metricsData, dateRange]);
 
   if (loading) {
     return (
