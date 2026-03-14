@@ -16,6 +16,10 @@ export default function AnalyticsContent({ clinicId }: { clinicId?: string }) {
   const [data, setData] = useState<any[]>([]);
   const [chartData, setChartData] = useState<ChartPoint[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
 
   useEffect(() => {
     const fetchAnalytics = async () => {
