@@ -213,14 +213,21 @@ export default function WebsiteDepartment() {
             </div>
 
             {/* Pill toggle */}
-            <div className="flex items-center rounded-full bg-muted p-0.5 ml-1">
+            <div className="relative flex items-center rounded-full bg-muted p-0.5 ml-1">
+              <motion.div
+                className="absolute top-0.5 bottom-0.5 rounded-full bg-primary shadow-sm"
+                layout
+                transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                style={{
+                  left: mode === "website" ? "2px" : "50%",
+                  right: mode === "seo" ? "2px" : "50%",
+                }}
+              />
               <button
                 onClick={() => handleModeSwitch("website")}
                 className={cn(
-                  "px-3.5 py-1 text-xs font-semibold rounded-full transition-all duration-200",
-                  mode === "website"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                  "relative z-10 px-3.5 py-1 text-xs font-semibold rounded-full transition-colors duration-200",
+                  mode === "website" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 Website
@@ -228,10 +235,8 @@ export default function WebsiteDepartment() {
               <button
                 onClick={() => handleModeSwitch("seo")}
                 className={cn(
-                  "px-3.5 py-1 text-xs font-semibold rounded-full transition-all duration-200",
-                  mode === "seo"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                  "relative z-10 px-3.5 py-1 text-xs font-semibold rounded-full transition-colors duration-200",
+                  mode === "seo" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 SEO
