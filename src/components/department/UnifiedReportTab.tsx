@@ -12,7 +12,10 @@ import {
 import { useSeoAnalytics, type SeoKeyword } from "@/hooks/useSeoAnalytics";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import { addVSALogoToAllPages } from "@/lib/pdf-logo";
+import {
+  PDF_COLORS, renderPDFHeader, renderSectionHeader, renderKPICards,
+  getTableStyles, colorChangeCell, finalizePDF, ensureSpace,
+} from "@/lib/pdf-theme";
 
 interface Props {
   clinicId: string;
@@ -60,8 +63,7 @@ function pctText(cur: number, prev: number): string {
   if (prev === 0 && cur === 0) return "No change";
   if (prev === 0) return `+${cur} (new)`;
   const pct = Math.round(((cur - prev) / prev) * 1000) / 10;
-  const sign = pct >= 0 ? "+" : "";
-  return `${sign}${pct}%`;
+  return `${pct >= 0 ? "+" : ""}${pct}%`;
 }
 
 interface WebMetrics {
@@ -98,19 +100,14 @@ export function UnifiedReportTab({ clinicId }: Props) {
   const [generating, setGenerating] = useState(false);
   const [clinicName, setClinicName] = useState("");
 
-  // Website data
   const [webMetrics, setWebMetrics] = useState<WebMetrics | null>(null);
   const [prevWebMetrics, setPrevWebMetrics] = useState<WebMetrics | null>(null);
 
-  // SEO data
   const { rows: seoRows } = useSeoAnalytics(clinicId);
   const latestSeo = seoRows.length > 0 ? seoRows[seoRows.length - 1] : null;
   const prevSeo = seoRows.length > 1 ? seoRows[seoRows.length - 2] : null;
 
-  // Google Ads data
   const [adsData, setAdsData] = useState<any>(null);
-
-  // Social Media data
   const [socialData, setSocialData] = useState<any[]>([]);
 
   const range = useMemo(() => getDateRange(period), [period]);
@@ -120,40 +117,13 @@ export function UnifiedReportTab({ clinicId }: Props) {
     if (!clinicId) { setLoading(false); return; }
     const fetchAll = async () => {
       setLoading(true);
-      const [
-        { data: pvData },
-        { data: prevPvData },
-        { data: clinicData },
-        { data: adsRow },
-        { data: socialRows },
-      ] = await Promise.all([
-        supabase.from("website_pageviews")
-          .select("session_id, path, created_at")
-          .eq("clinic_id", clinicId)
-          .gte("created_at", range.from.toISOString())
-          .lte("created_at", range.to.toISOString()),
-        supabase.from("website_pageviews")
-          .select("session_id, path, created_at")
-          .eq("clinic_id", clinicId)
-          .gte("created_at", prevRange.from.toISOString())
-          .lte("created_at", prevRange.to.toISOString()),
+      const [{ data: pvData }, { data: prevPvData }, { data: clinicData }, { data: adsRow }, { data: socialRows }] = await Promise.all([
+        supabase.from("website_pageviews").select("session_id, path, created_at").eq("clinic_id", clinicId).gte("created_at", range.from.toISOString()).lte("created_at", range.to.toISOString()),
+        supabase.from("website_pageviews").select("session_id, path, created_at").eq("clinic_id", clinicId).gte("created_at", prevRange.from.toISOString()).lte("created_at", prevRange.to.toISOString()),
         supabase.from("clinics").select("clinic_name").eq("id", clinicId).single(),
-        supabase.from("analytics")
-          .select("metrics_json")
-          .eq("clinic_id", clinicId)
-          .eq("platform", "google_ads")
-          .eq("metric_type", "monthly_summary")
-          .order("recorded_at", { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase.from("analytics")
-          .select("platform, metric_type, value, date")
-          .eq("clinic_id", clinicId)
-          .in("platform", ["facebook", "instagram"])
-          .order("recorded_at", { ascending: false })
-          .limit(20),
+        supabase.from("analytics").select("metrics_json").eq("clinic_id", clinicId).eq("platform", "google_ads").eq("metric_type", "monthly_summary").order("recorded_at", { ascending: false }).limit(1).maybeSingle(),
+        supabase.from("analytics").select("platform, metric_type, value, date").eq("clinic_id", clinicId).in("platform", ["facebook", "instagram"]).order("recorded_at", { ascending: false }).limit(20),
       ]);
-
       const pv = (pvData || []) as { session_id: string; path: string; created_at: string }[];
       const prevPv = (prevPvData || []) as { session_id: string; path: string; created_at: string }[];
       setWebMetrics(pv.length > 0 ? calcWebMetrics(pv) : null);
@@ -175,37 +145,17 @@ export function UnifiedReportTab({ clinicId }: Props) {
     try {
       const doc = new jsPDF();
       const dateStr = `${format(range.from, "MMM d, yyyy")} – ${format(range.to, "MMM d, yyyy")}`;
-      let y = 14;
 
-      // ──────── TITLE ────────
-      doc.setFontSize(22);
-      doc.setTextColor(40, 40, 40);
-      doc.text("Unified Performance Report", 14, (y += 10));
-      doc.setFontSize(12);
-      doc.setTextColor(100, 100, 100);
-      doc.text(clinicName, 14, (y += 8));
-      doc.text(dateStr, 14, (y += 6));
-      doc.setDrawColor(200, 200, 200);
-      doc.line(14, (y += 4), 196, y);
-      y += 6;
-
-      // Helper color for section headers
-      const sectionColor = (rgb: number[]) => {
-        doc.setFontSize(15);
-        doc.setTextColor(rgb[0], rgb[1], rgb[2]);
-      };
+      // ── Header ──
+      let y = renderPDFHeader(doc, "Unified Performance Report", clinicName, dateStr, PDF_COLORS.dark);
 
       // ──────── 1. WEBSITE ────────
-      sectionColor([249, 115, 22]);
-      doc.text("Website", 14, (y += 4));
-      doc.setFontSize(9);
-      doc.setTextColor(130, 130, 130);
-      y += 4;
+      y = renderSectionHeader(doc, "Website Analytics", y, PDF_COLORS.website);
 
       if (webMetrics) {
         const pm = prevWebMetrics || { totalViews: 0, totalSessions: 0, bounceRate: 0, avgDuration: 0, pagesPerSession: 0 };
         autoTable(doc, {
-          startY: y + 2,
+          startY: y,
           head: [["Metric", "Current", "Previous", "Change"]],
           body: [
             ["Page Views", webMetrics.totalViews.toLocaleString(), pm.totalViews.toLocaleString(), pctText(webMetrics.totalViews, pm.totalViews)],
@@ -214,39 +164,24 @@ export function UnifiedReportTab({ clinicId }: Props) {
             ["Avg. Session", formatDuration(webMetrics.avgDuration), formatDuration(pm.avgDuration), pctText(webMetrics.avgDuration, pm.avgDuration)],
             ["Pages/Session", webMetrics.pagesPerSession.toString(), pm.pagesPerSession.toString(), pctText(webMetrics.pagesPerSession, pm.pagesPerSession)],
           ],
-          theme: "striped",
-          headStyles: { fillColor: [249, 115, 22] },
-          styles: { fontSize: 9 },
-          didParseCell: (data: any) => {
-            if (data.section === "body" && data.column.index === 3) {
-              const val = data.cell.text[0] || "";
-              if (val.startsWith("+")) data.cell.styles.textColor = [22, 163, 74];
-              else if (val.startsWith("-")) data.cell.styles.textColor = [220, 38, 38];
-              else data.cell.styles.textColor = [120, 120, 120];
-            }
-          },
+          ...getTableStyles(PDF_COLORS.website),
+          didParseCell: (data: any) => colorChangeCell(data, 3),
         });
         y = (doc as any).lastAutoTable?.finalY || y + 40;
       } else {
-        doc.text("No website data available for this period.", 14, y + 2);
-        y += 8;
+        doc.setFontSize(9);
+        doc.setTextColor(...PDF_COLORS.light);
+        doc.text("No website data available for this period.", 21, y + 2);
+        y += 10;
       }
 
       // ──────── 2. SEO ────────
-      y += 8;
-      if (y > 240) { doc.addPage(); y = 20; }
-      sectionColor([20, 184, 166]);
-      doc.text("SEO", 14, y);
-      y += 4;
+      y = ensureSpace(doc, y + 8, 60);
+      y = renderSectionHeader(doc, "SEO Performance", y, PDF_COLORS.seo, latestSeo ? `Month: ${latestSeo.month}` : undefined);
 
       if (latestSeo) {
-        doc.setFontSize(8);
-        doc.setTextColor(130, 130, 130);
-        doc.text(`Month: ${latestSeo.month}${prevSeo ? ` (vs ${prevSeo.month})` : ""}`, 14, y);
-        y += 2;
-
         autoTable(doc, {
-          startY: y + 2,
+          startY: y,
           head: [["Metric", "Current", "Previous", "Change"]],
           body: [
             ["Domain Authority", latestSeo.domain_authority.toString(), prevSeo?.domain_authority?.toString() || "—", prevSeo ? pctText(latestSeo.domain_authority, prevSeo.domain_authority) : "—"],
@@ -254,59 +189,39 @@ export function UnifiedReportTab({ clinicId }: Props) {
             ["Keywords Top 10", latestSeo.keywords_top_10.toString(), prevSeo?.keywords_top_10?.toString() || "—", prevSeo ? pctText(latestSeo.keywords_top_10, prevSeo.keywords_top_10) : "—"],
             ["Organic Traffic", latestSeo.organic_traffic.toLocaleString(), prevSeo?.organic_traffic?.toLocaleString() || "—", prevSeo ? pctText(latestSeo.organic_traffic, prevSeo.organic_traffic) : "—"],
           ],
-          theme: "striped",
-          headStyles: { fillColor: [20, 184, 166] },
-          styles: { fontSize: 9 },
-          didParseCell: (data: any) => {
-            if (data.section === "body" && data.column.index === 3) {
-              const val = data.cell.text[0] || "";
-              if (val.startsWith("+")) data.cell.styles.textColor = [22, 163, 74];
-              else if (val.startsWith("-")) data.cell.styles.textColor = [220, 38, 38];
-              else data.cell.styles.textColor = [120, 120, 120];
-            }
-          },
+          ...getTableStyles(PDF_COLORS.seo),
+          didParseCell: (data: any) => colorChangeCell(data, 3),
         });
         y = (doc as any).lastAutoTable?.finalY || y + 40;
 
-        // Top Keywords
         const kws: SeoKeyword[] = latestSeo.top_keywords || [];
         if (kws.length > 0) {
+          y = ensureSpace(doc, y + 6, 50);
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...PDF_COLORS.seo);
+          doc.text("Top Keywords", 21, y);
           y += 4;
-          if (y > 240) { doc.addPage(); y = 20; }
-          doc.setFontSize(11);
-          doc.setTextColor(20, 184, 166);
-          doc.text("Top Keywords", 14, y);
           autoTable(doc, {
-            startY: y + 4,
+            startY: y,
             head: [["#", "Keyword", "Position", "Change"]],
             body: kws.map((kw, i) => [(i + 1).toString(), kw.keyword, kw.position.toString(), kw.change]),
-            theme: "striped",
-            headStyles: { fillColor: [20, 184, 166] },
-            styles: { fontSize: 8 },
+            ...getTableStyles(PDF_COLORS.seo),
             columnStyles: { 0: { cellWidth: 12 }, 1: { cellWidth: 90 } },
-            didParseCell: (data: any) => {
-              if (data.section === "body" && data.column.index === 3) {
-                const val = data.cell.text[0] || "";
-                if (val.startsWith("+")) data.cell.styles.textColor = [22, 163, 74];
-                else if (val.startsWith("-")) data.cell.styles.textColor = [220, 38, 38];
-              }
-            },
+            didParseCell: (data: any) => colorChangeCell(data, 3),
           });
           y = (doc as any).lastAutoTable?.finalY || y + 30;
         }
       } else {
         doc.setFontSize(9);
-        doc.setTextColor(130, 130, 130);
-        doc.text("No SEO data available.", 14, y);
-        y += 6;
+        doc.setTextColor(...PDF_COLORS.light);
+        doc.text("No SEO data available.", 21, y + 2);
+        y += 10;
       }
 
       // ──────── 3. GOOGLE ADS ────────
-      y += 8;
-      if (y > 220) { doc.addPage(); y = 20; }
-      sectionColor([59, 130, 246]);
-      doc.text("Google Ads", 14, y);
-      y += 4;
+      y = ensureSpace(doc, y + 8, 60);
+      y = renderSectionHeader(doc, "Google Ads", y, PDF_COLORS.googleAds);
 
       if (adsData) {
         const m = adsData as any;
@@ -318,7 +233,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
         const cpc = clicks > 0 ? fmtCurrency(Math.round((cost / clicks) * 100) / 100) : "$0.00";
 
         autoTable(doc, {
-          startY: y + 2,
+          startY: y,
           head: [["Metric", "Value"]],
           body: [
             ["Ad Spend", fmtCurrency(cost)],
@@ -328,48 +243,41 @@ export function UnifiedReportTab({ clinicId }: Props) {
             ["CTR", ctr],
             ["Avg. CPC", cpc],
           ],
-          theme: "striped",
-          headStyles: { fillColor: [59, 130, 246] },
-          styles: { fontSize: 9 },
-          columnStyles: { 1: { fontStyle: "bold" } },
+          ...getTableStyles(PDF_COLORS.googleAds),
+          columnStyles: { 1: { fontStyle: "bold" as const } },
         });
         y = (doc as any).lastAutoTable?.finalY || y + 40;
 
-        // Campaigns
         const campaigns = (m.campaigns || []) as any[];
         if (campaigns.length > 0) {
+          y = ensureSpace(doc, y + 6, 50);
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "bold");
+          doc.setTextColor(...PDF_COLORS.googleAds);
+          doc.text("Campaign Performance", 21, y);
           y += 4;
-          if (y > 220) { doc.addPage(); y = 20; }
-          doc.setFontSize(11);
-          doc.setTextColor(59, 130, 246);
-          doc.text("Campaign Performance", 14, y);
           autoTable(doc, {
-            startY: y + 4,
+            startY: y,
             head: [["Campaign", "Spend", "Clicks", "Conv.", "CTR"]],
             body: campaigns.sort((a: any, b: any) => (b.cost || 0) - (a.cost || 0)).slice(0, 10).map((c: any) => {
               const campCtr = c.impressions > 0 ? `${(Math.round((c.clicks / c.impressions) * 10000) / 100)}%` : "0%";
               return [c.name, fmtCurrency(c.cost || 0), (c.clicks || 0).toLocaleString(), Math.round(c.conversions || 0).toString(), campCtr];
             }),
-            theme: "striped",
-            headStyles: { fillColor: [59, 130, 246] },
-            styles: { fontSize: 8 },
+            ...getTableStyles(PDF_COLORS.googleAds),
             columnStyles: { 0: { cellWidth: 60 } },
           });
           y = (doc as any).lastAutoTable?.finalY || y + 30;
         }
       } else {
         doc.setFontSize(9);
-        doc.setTextColor(130, 130, 130);
-        doc.text("No Google Ads data available.", 14, y);
-        y += 6;
+        doc.setTextColor(...PDF_COLORS.light);
+        doc.text("No Google Ads data available.", 21, y + 2);
+        y += 10;
       }
 
       // ──────── 4. SOCIAL MEDIA ────────
-      y += 8;
-      if (y > 220) { doc.addPage(); y = 20; }
-      sectionColor([168, 85, 247]);
-      doc.text("Social Media", 14, y);
-      y += 4;
+      y = ensureSpace(doc, y + 8, 60);
+      y = renderSectionHeader(doc, "Social Media", y, PDF_COLORS.social);
 
       if (socialData.length > 0) {
         const platformStats: Record<string, Record<string, number>> = {};
@@ -379,39 +287,24 @@ export function UnifiedReportTab({ clinicId }: Props) {
           const mt = r.metric_type || "records";
           platformStats[p][mt] = (platformStats[p][mt] || 0) + (r.value || 1);
         });
-
         const body = Object.entries(platformStats).map(([platform, metrics]) => {
           const metricStr = Object.entries(metrics).map(([k, v]) => `${k}: ${v}`).join(", ");
           return [platform, metricStr];
         });
-
         autoTable(doc, {
-          startY: y + 2,
+          startY: y,
           head: [["Platform", "Metrics"]],
           body,
-          theme: "striped",
-          headStyles: { fillColor: [168, 85, 247] },
-          styles: { fontSize: 9 },
+          ...getTableStyles(PDF_COLORS.social),
           columnStyles: { 0: { cellWidth: 40 } },
         });
-        y = (doc as any).lastAutoTable?.finalY || y + 30;
       } else {
         doc.setFontSize(9);
-        doc.setTextColor(130, 130, 130);
-        doc.text("No social media data available.", 14, y);
-        y += 6;
+        doc.setTextColor(...PDF_COLORS.light);
+        doc.text("No social media data available.", 21, y + 2);
       }
 
-      // ──────── FOOTER ────────
-      const pageCount = doc.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text(`Generated on ${format(new Date(), "MMM d, yyyy 'at' h:mm a")}  •  Page ${i} of ${pageCount}`, 14, 290);
-      }
-
-      await addVSALogoToAllPages(doc);
+      await finalizePDF(doc);
       doc.save(`${clinicName.replace(/\s+/g, "_")}_Unified_Report_${format(range.from, "yyyy-MM-dd")}.pdf`);
     } finally {
       setGenerating(false);
@@ -438,9 +331,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-muted-foreground">Report Period</label>
               <Select value={period} onValueChange={(v) => setPeriod(v as ReportPeriod)}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger className="w-[200px]"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {(Object.entries(periodLabels) as [ReportPeriod, string][]).map(([k, v]) => (
                     <SelectItem key={k} value={k}>{v}</SelectItem>
@@ -448,11 +339,7 @@ export function UnifiedReportTab({ clinicId }: Props) {
                 </SelectContent>
               </Select>
             </div>
-            <Button
-              onClick={generatePDF}
-              disabled={loading || !hasAnyData || generating}
-              className="gap-2"
-            >
+            <Button onClick={generatePDF} disabled={loading || !hasAnyData || generating} className="gap-2">
               <Download className="h-4 w-4" />
               {generating ? "Generating…" : "Download Unified Report"}
             </Button>
@@ -462,7 +349,6 @@ export function UnifiedReportTab({ clinicId }: Props) {
         </CardContent>
       </Card>
 
-      {/* Data availability preview */}
       {!loading && (
         <Card>
           <CardHeader className="pb-3">
@@ -472,34 +358,10 @@ export function UnifiedReportTab({ clinicId }: Props) {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <DeptStatus
-                icon={Globe}
-                label="Website"
-                available={!!webMetrics}
-                summary={webMetrics ? `${webMetrics.totalViews} views, ${webMetrics.totalSessions} visitors` : undefined}
-                color="text-orange-500"
-              />
-              <DeptStatus
-                icon={Search}
-                label="SEO"
-                available={!!latestSeo}
-                summary={latestSeo ? `DA ${latestSeo.domain_authority}, ${latestSeo.organic_traffic} organic` : undefined}
-                color="text-teal-500"
-              />
-              <DeptStatus
-                icon={Megaphone}
-                label="Google Ads"
-                available={!!adsData}
-                summary={adsData ? `${fmtCurrency(adsData.cost || 0)} spend, ${(adsData.clicks || 0).toLocaleString()} clicks` : undefined}
-                color="text-blue-500"
-              />
-              <DeptStatus
-                icon={Share2}
-                label="Social Media"
-                available={socialData.length > 0}
-                summary={socialData.length > 0 ? `${socialData.length} data points` : undefined}
-                color="text-purple-500"
-              />
+              <DeptStatus icon={Globe} label="Website" available={!!webMetrics} summary={webMetrics ? `${webMetrics.totalViews} views, ${webMetrics.totalSessions} visitors` : undefined} color="text-orange-500" />
+              <DeptStatus icon={Search} label="SEO" available={!!latestSeo} summary={latestSeo ? `DA ${latestSeo.domain_authority}, ${latestSeo.organic_traffic} organic` : undefined} color="text-teal-500" />
+              <DeptStatus icon={Megaphone} label="Google Ads" available={!!adsData} summary={adsData ? `${fmtCurrency(adsData.cost || 0)} spend, ${(adsData.clicks || 0).toLocaleString()} clicks` : undefined} color="text-blue-500" />
+              <DeptStatus icon={Share2} label="Social Media" available={socialData.length > 0} summary={socialData.length > 0 ? `${socialData.length} data points` : undefined} color="text-purple-500" />
             </div>
           </CardContent>
         </Card>
