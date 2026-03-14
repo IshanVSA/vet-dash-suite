@@ -571,6 +571,7 @@ export default function ClinicDetail() {
             accounts={googleAccounts.accounts}
             refreshToken={googleAccounts.refresh_token}
             clinicId={id}
+            clinicName={clinic?.clinic_name || ""}
             onClose={() => {
               setGoogleAccounts(null);
               setSearchParams({}, { replace: true });
