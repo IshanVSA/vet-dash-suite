@@ -17,6 +17,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { NewTicketDialog } from "@/components/department/NewTicketDialog";
 import { ChatAssistant } from "@/components/chat/ChatAssistant";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { motion, AnimatePresence } from "framer-motion";
 
 const departmentServices: Record<string, { label: string; services: string[] }> = {
   website: { label: "Website", services: ["Time Changes", "Pop-up Offers", "Theme Updates", "Add/Remove Team Members", "New Forms", "Paper-to-Digital Conversion", "Price List Updates", "Tech Issues", "Others"] },
@@ -152,9 +153,18 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-background">
-      {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />
-      )}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-foreground/20 backdrop-blur-sm lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Sidebar */}
       <aside className={cn(
@@ -165,31 +175,35 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       )}>
         {/* Logo */}
         <div className={cn("flex items-center h-16 border-b border-[hsl(var(--sidebar-border))]", collapsed ? "px-3 justify-center" : "px-5 gap-3")}>
-          <img src={vsaLogo} alt="VSA Vet Media" className="h-9 w-9 rounded-xl object-cover shadow-lg shrink-0" />
+          <div className="relative shrink-0">
+            <img src={vsaLogo} alt="VSA Vet Media" className="h-9 w-9 rounded-xl object-cover ring-1 ring-white/10 shrink-0" />
+            <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-success ring-2 ring-[hsl(var(--sidebar-background))]" />
+          </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
-              <h1 className="font-bold text-sm tracking-tight">
-                <span className="text-[hsl(var(--sidebar-primary))]">VSA</span> Vetmedia
+              <h1 className="font-semibold text-sm tracking-tight">
+                <span className="text-[hsl(var(--sidebar-primary))]">VSA</span>{" "}
+                <span className="text-[hsl(var(--sidebar-foreground))]/90">Vetmedia</span>
               </h1>
               <p className="text-[10px] text-[hsl(var(--sidebar-muted))] tracking-wide">
-                {new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
               </p>
             </div>
           )}
-          <button onClick={toggleCollapse} className="hidden lg:flex p-1.5 rounded-md hover:bg-[hsl(var(--sidebar-accent))]/50 transition-colors shrink-0" title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
+          <button onClick={toggleCollapse} className="hidden lg:flex p-1.5 rounded-lg hover:bg-[hsl(var(--sidebar-accent))]/50 transition-colors duration-200 shrink-0" title={collapsed ? "Expand sidebar" : "Collapse sidebar"}>
             {collapsed ? <PanelLeft className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" /> : <PanelLeftClose className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" />}
           </button>
-          <button className="lg:hidden p-1 rounded-md hover:bg-[hsl(var(--sidebar-accent))]" onClick={() => setSidebarOpen(false)}>
+          <button className="lg:hidden p-1 rounded-lg hover:bg-[hsl(var(--sidebar-accent))]" onClick={() => setSidebarOpen(false)}>
             <X className="h-4 w-4 text-[hsl(var(--sidebar-muted))]" />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className={cn("flex-1 py-4 space-y-5 overflow-y-auto", collapsed ? "px-1.5" : "px-3")}>
+        <nav className={cn("flex-1 py-5 space-y-6 overflow-y-auto", collapsed ? "px-2" : "px-3")}>
           {sections.map((section, si) => (
             <div key={si}>
               {section.title && !collapsed && (
-                <p className="px-3 mb-2 text-[10px] font-bold tracking-[0.15em] text-[hsl(var(--sidebar-muted))]/60 uppercase select-none">
+                <p className="px-3 mb-2.5 text-[10px] font-semibold tracking-[0.15em] text-[hsl(var(--sidebar-muted))]/50 uppercase select-none">
                   {section.title}
                 </p>
               )}
@@ -204,16 +218,24 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       onClick={() => setSidebarOpen(false)}
                       title={collapsed ? item.label : undefined}
                       className={cn(
-                        "flex items-center rounded-lg font-medium transition-all duration-150 group relative",
-                        collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2 text-[13px]",
+                        "flex items-center rounded-lg font-medium transition-all duration-200 group relative",
+                        collapsed ? "justify-center px-2 py-2.5" : "gap-3 px-3 py-2.5 text-[13px]",
                         active
-                          ? "bg-[hsl(var(--sidebar-primary))]/15 text-[hsl(var(--sidebar-primary))]"
-                          : "text-[hsl(var(--sidebar-muted))] hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]/40"
+                          ? "bg-[hsl(var(--sidebar-primary))]/12 text-[hsl(var(--sidebar-primary))]"
+                          : "text-[hsl(var(--sidebar-muted))] hover:text-[hsl(var(--sidebar-foreground))] hover:bg-[hsl(var(--sidebar-accent))]/30"
                       )}
                     >
+                      {/* Active indicator bar */}
+                      {active && (
+                        <motion.div
+                          layoutId="sidebar-active"
+                          className="absolute left-0 top-1.5 bottom-1.5 w-[3px] rounded-full bg-[hsl(var(--sidebar-primary))]"
+                          transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                        />
+                      )}
                       <div className="relative shrink-0">
                         <item.icon className={cn(
-                          "h-[18px] w-[18px] transition-colors duration-150",
+                          "h-[18px] w-[18px] transition-colors duration-200",
                           active ? "text-[hsl(var(--sidebar-primary))]" : "group-hover:text-[hsl(var(--sidebar-foreground))]"
                         )} />
                         {collapsed && (item.badge ?? 0) > 0 && (
@@ -224,7 +246,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
                       </div>
                       {!collapsed && (
                         <>
-                          {dotColor && <div className={cn("h-1.5 w-1.5 rounded-full shrink-0", dotColor)} />}
+                          {dotColor && <div className={cn("h-1.5 w-1.5 rounded-full shrink-0 transition-transform duration-200 group-hover:scale-125", dotColor)} />}
                           <span className="flex-1">{item.label}</span>
                         </>
                       )}
@@ -242,10 +264,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         </nav>
 
         {/* User footer */}
-        <div className={cn("py-3 border-t border-[hsl(var(--sidebar-border))]", collapsed ? "px-1.5" : "px-3")}>
+        <div className={cn("py-3 border-t border-[hsl(var(--sidebar-border))]", collapsed ? "px-2" : "px-3")}>
           {!collapsed && (
-            <div className="flex items-center gap-3 px-3 py-2 mb-2 rounded-lg bg-[hsl(var(--sidebar-accent))]/40">
-              <div className="h-7 w-7 rounded-md bg-[hsl(var(--sidebar-primary))]/20 flex items-center justify-center shrink-0">
+            <div className="flex items-center gap-3 px-3 py-2.5 mb-2 rounded-lg bg-[hsl(var(--sidebar-accent))]/30">
+              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-[hsl(var(--sidebar-primary))]/20 to-[hsl(var(--sidebar-primary))]/5 flex items-center justify-center shrink-0 ring-1 ring-[hsl(var(--sidebar-primary))]/10">
                 <span className="text-[11px] font-bold text-[hsl(var(--sidebar-primary))]">
                   {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
                 </span>
@@ -274,28 +296,28 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       <main className="flex-1 min-w-0 flex flex-col">
         {/* Top header */}
-        <header className="sticky top-0 z-30 bg-card/95 backdrop-blur-sm border-b border-border/50 px-4 lg:px-8 h-12 flex items-center gap-4">
-          <button className="lg:hidden p-1.5 rounded-lg hover:bg-muted transition-colors" onClick={() => setSidebarOpen(true)}>
+        <header className="sticky top-0 z-30 bg-card/80 backdrop-blur-xl border-b border-border/40 px-4 lg:px-8 h-14 flex items-center gap-4" style={{ boxShadow: "var(--shadow-xs)" }}>
+          <button className="lg:hidden p-1.5 rounded-lg hover:bg-muted transition-colors duration-200" onClick={() => setSidebarOpen(true)}>
             <Menu className="h-5 w-5 text-foreground" />
           </button>
           
           {currentPageTitle && (
             <div className="hidden sm:flex items-center gap-2 text-sm">
-              <span className="text-muted-foreground text-xs">VSA</span>
-              <ChevronRight className="h-3 w-3 text-muted-foreground/40" />
-              <span className="font-medium text-foreground text-xs">{currentPageTitle}</span>
+              <span className="text-muted-foreground text-xs font-medium">VSA</span>
+              <ChevronRight className="h-3 w-3 text-muted-foreground/30" />
+              <span className="font-semibold text-foreground text-xs">{currentPageTitle}</span>
             </div>
           )}
 
           <div className="flex-1" />
 
-          <Button variant="outline" size="sm" className="h-7 gap-1.5 text-[11px] font-medium" onClick={() => setDeptPickerOpen(true)}>
+          <Button variant="outline" size="sm" className="h-8 gap-1.5 text-[11px] font-medium" onClick={() => setDeptPickerOpen(true)}>
             <Plus className="h-3 w-3" />
             <span className="hidden sm:inline">New Ticket</span>
           </Button>
 
           <button
-            className="relative p-1.5 rounded-lg hover:bg-muted transition-colors"
+            className="relative p-2 rounded-lg hover:bg-muted/50 transition-colors duration-200"
             onClick={() => {
               document.documentElement.classList.toggle("dark");
               localStorage.setItem("theme", document.documentElement.classList.contains("dark") ? "dark" : "light");
@@ -307,14 +329,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
           <NotificationBell />
 
-          <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center">
+          <div className="h-8 w-8 rounded-lg bg-primary/8 flex items-center justify-center ring-1 ring-primary/10">
             <span className="text-[11px] font-bold text-primary">
               {profile?.full_name?.charAt(0)?.toUpperCase() || "U"}
             </span>
           </div>
         </header>
         
-        <div className="flex-1 p-4 lg:p-6">
+        <div className="flex-1 p-4 lg:p-8">
           <PageTransition>
             {children}
           </PageTransition>
@@ -333,7 +355,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
               <Button
                 key={key}
                 variant="outline"
-                className="h-auto py-3 flex flex-col gap-1"
+                className="h-auto py-4 flex flex-col gap-1 hover:border-primary/30 hover:bg-primary/5"
                 onClick={() => { setGlobalTicketDept(key); setDeptPickerOpen(false); setGlobalTicketOpen(true); }}
               >
                 <span className="text-sm font-medium">{label}</span>
