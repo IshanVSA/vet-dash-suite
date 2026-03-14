@@ -85,6 +85,7 @@ export default function AnalyticsContent({ clinicId }: { clinicId?: string }) {
 
   return (
     <div className="space-y-4 sm:space-y-6">
+      <DateRangeFilter dateRange={dateRange} onDateRangeChange={setDateRange} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         {summaryStats.map((stat, i) => (
           <Card key={i} className="overflow-hidden hover-lift animate-fade-in" style={{ animationDelay: `${i * 60}ms`, animationFillMode: "both" }}>

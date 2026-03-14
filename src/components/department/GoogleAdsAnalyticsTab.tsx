@@ -46,6 +46,10 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<string | null>(null);
   const [hasCredentials, setHasCredentials] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange>({
+    from: subDays(new Date(), 30),
+    to: new Date(),
+  });
 
   const fetchAnalytics = async () => {
     if (!clinicId) { setLoading(false); return; }
