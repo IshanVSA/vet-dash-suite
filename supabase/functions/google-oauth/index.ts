@@ -188,36 +188,7 @@ Deno.serve(async (req) => {
         }
       }
 
-      // If single account, auto-save
-      if (accounts.length === 1) {
-        const acct = accounts[0];
-        const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
-        const { data: existing } = await supabase
-          .from("clinic_api_credentials")
-          .select("id")
-          .eq("clinic_id", clinic_id)
-          .maybeSingle();
-
-        const updateData = {
-          google_ads_refresh_token: refreshToken,
-          google_ads_customer_id: acct.customer_id,
-          google_ads_login_customer_id: acct.login_customer_id,
-          google_ads_account_name: acct.name,
-        };
-
-        if (existing) {
-          await supabase.from("clinic_api_credentials").update(updateData).eq("clinic_id", clinic_id);
-        } else {
-          await supabase.from("clinic_api_credentials").insert({ clinic_id, ...updateData });
-        }
-
-        return new Response(null, {
-          status: 302,
-          headers: { Location: `${redirectBase}/clinics/${clinic_id}?google=connected` },
-        });
-      }
-
-      // Multiple accounts: redirect for selection
+      // Always show account selection dialog (similar to Meta page selection)
       const encoded = btoa(JSON.stringify({ accounts, refresh_token: refreshToken }));
       return new Response(null, {
         status: 302,
