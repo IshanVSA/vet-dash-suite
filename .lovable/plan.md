@@ -1,38 +1,53 @@
 
 
-## Summary
+## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
 
-Three changes: (1) Rename "Website" to "Website + SEO" everywhere, (2) Add a pill toggle (Website / SEO mode) inside that page, where SEO mode shows all current SEO department content, (3) Replace the standalone SEO department page with a static "AI SEO — Coming Soon" page.
+### Summary
+Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
 
-## Changes
+### Changes
 
-### 1. `src/pages/WebsiteDepartment.tsx` — Add pill mode switch
+**1. Edge Function: `supabase/functions/generate-content/index.ts`**
+- Remove the `callClaude` function entirely
+- Remove the Claude API key lookup and Claude execution block
+- Keep only the OpenAI call
+- This means only one `content_version` row is created per request
 
-- Add a `mode` state: `"website" | "seo"` (default `"website"`)
-- Render a pill/segmented toggle in the header area (next to the title) with two options: **Website** and **SEO**
-- When mode is `"website"`: render existing Website tabs and content (unchanged)
-- When mode is `"seo"`: render all SEO tabs and content (Overview with SEO KPIs, Tickets, SEO Thread, Reports, Uploads) — import and reuse the same SEO hooks (`useSeoAnalytics`, `useDepartmentTeam("seo")`) and components (`SeoReportsTab`, `TopKeywordsCard`, `UpdateSeoAnalyticsDialog`, etc.) currently in `SeoDepartment.tsx`
-- Update page title from "Website" to "Website + SEO"
-- The pill switch styling: rounded-full background with two segments, active segment gets `bg-primary text-primary-foreground`, inactive gets `text-muted-foreground`
+**2. `src/components/content-requests/ContentRequestCard.tsx`**
+- Remove the `ModelToggleView` component (no longer needed with single version)
+- Render the single `ContentVersionCard` directly when versions exist
+- Rename `onConciergePrefer` prop to `onSendForReview`
 
-### 2. `src/pages/SeoDepartment.tsx` — Replace with static "AI SEO" coming soon
+**3. `src/components/content-requests/ContentVersionCard.tsx`**
+- Remove the "Concierge Pick" badge references
+- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
+- Rename `onConciergePrefer` prop to `onSendForReview`
+- Remove Claude-specific badge styling
+- Simplify the model name badge (just show "AI Generated" or "OpenAI")
 
-- Gut the entire file and replace with a simple `DashboardLayout` wrapper containing a centered "Coming Soon" card (reuse `ComingSoonTab` or similar pattern)
-- Title/icon changed to "AI SEO" with a sparkle/bot icon
+**4. `src/pages/ContentRequests.tsx`**
+- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
+- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
+- Update prop names passed to `ContentRequestCard`
 
-### 3. `src/components/DashboardLayout.tsx` — Update nav labels
+**5. `src/pages/AdminReview.tsx`**
+- Remove reference to "Client selected: {model_name}" badge since there's only one model now
+- Keep everything else the same (final approve logic is unchanged)
 
-- Change sidebar nav label from `"Website"` to `"Website + SEO"` (in `adminSections`, `conciergeSections`, `clientSections`)
-- Change `"SEO"` to `"AI SEO"` with a different icon (e.g., `Sparkles` instead of `Search`)
-- Update `pageTitles` accordingly
-- Update `departmentServices` key labels if needed
+**6. Status labels in `ContentRequestCard.tsx`**
+- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
 
-### 4. `src/App.tsx` — No route changes needed
+### Technical Details
 
-Routes stay the same (`/website` and `/seo`), just the content changes.
+- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
+- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
+- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
+- No database schema changes needed
 
-### 5. PDF reports / other references
-
-- `SeoReportsTab` and related report components will still work since they're now rendered inside the Website+SEO page when in SEO mode
-- No structural changes needed to report generation
+### Files to modify
+1. `supabase/functions/generate-content/index.ts` -- remove Claude
+2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
+3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
+4. `src/pages/ContentRequests.tsx` -- rename function
+5. `src/pages/AdminReview.tsx` -- remove model name badge
 
