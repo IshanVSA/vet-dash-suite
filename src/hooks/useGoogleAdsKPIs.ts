@@ -40,7 +40,7 @@ export function useGoogleAdsKPIs(clinicId: string): GoogleAdsKPIs {
         .maybeSingle();
 
       if (!data?.metrics_json) {
-        setState(prev => ({ ...prev, loading: false, hasData: false }));
+      setState({ loading: false, hasData: false, clicks: 0, impressions: 0, cost: 0, conversions: 0, ctr: 0, dailyTrend: [], campaigns: [] });
         return;
       }
 
