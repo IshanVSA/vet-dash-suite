@@ -155,110 +155,145 @@ Deno.serve(async (req) => {
         });
       }
 
-      // Fetch details for each accessible account and check for manager (MCC) accounts
-      const accounts: { customer_id: string; name: string; login_customer_id: string }[] = [];
-      
+      // Build account list (supports MCC by querying customer_client directly)
+      const accountsMap = new Map<string, { customer_id: string; name: string; login_customer_id: string }>();
+
+      const parseSearchStream = (raw: string): any[] => {
+        try {
+          const parsed = JSON.parse(raw);
+          return Array.isArray(parsed) ? parsed : [parsed];
+        } catch {
+          // Some environments may return newline-delimited JSON chunks
+          return raw
+            .split("\n")
+            .map((line) => line.trim())
+            .filter(Boolean)
+            .flatMap((line) => {
+              try {
+                const parsed = JSON.parse(line);
+                return Array.isArray(parsed) ? parsed : [parsed];
+              } catch {
+                return [];
+              }
+            });
+        }
+      };
+
+      const searchGoogleAds = async ({
+        customerId,
+        loginCustomerId,
+        query,
+      }: {
+        customerId: string;
+        loginCustomerId: string;
+        query: string;
+      }) => {
+        const res = await fetch(
+          `https://googleads.googleapis.com/v23/customers/${customerId}/googleAds:searchStream`,
+          {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              "developer-token": GOOGLE_ADS_DEVELOPER_TOKEN,
+              "login-customer-id": loginCustomerId,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ query }),
+          }
+        );
+
+        const text = await res.text();
+        if (!res.ok) {
+          console.warn(
+            `googleAds:searchStream failed for customer ${customerId} (login ${loginCustomerId})`,
+            res.status,
+            text.substring(0, 500)
+          );
+          return null;
+        }
+
+        const batches = parseSearchStream(text);
+        if (batches.length === 0) {
+          console.warn(`Empty/invalid searchStream response for customer ${customerId}:`, text.substring(0, 500));
+          return null;
+        }
+
+        return batches;
+      };
+
+      const upsertAccount = (account: { customer_id: string; name: string; login_customer_id: string }) => {
+        if (!accountsMap.has(account.customer_id)) {
+          accountsMap.set(account.customer_id, account);
+        }
+      };
+
       for (const rn of resourceNames) {
         const custId = rn.replace("customers/", "");
+
         try {
-          const detailRes = await fetch(
-            `https://googleads.googleapis.com/v23/customers/${custId}`,
-            {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                "developer-token": GOOGLE_ADS_DEVELOPER_TOKEN,
-                "login-customer-id": custId,
-              },
-            }
-          );
-          const detailText = await detailRes.text();
-          let detail: { descriptiveName?: string; manager?: boolean } = {};
-          try {
-            detail = JSON.parse(detailText);
-          } catch {
-            console.warn(`Non-JSON detail response for ${custId}:`, detailText.substring(0, 300));
-          }
+          // Try to load child client accounts (works when custId is an MCC/manager account)
+          const childQuery = `SELECT
+            customer_client.id,
+            customer_client.descriptive_name,
+            customer_client.manager,
+            customer_client.status
+          FROM customer_client
+          WHERE customer_client.manager = false
+            AND customer_client.status = 'ENABLED'`;
 
-          // If this is a manager (MCC) account, fetch its child client accounts
-          if (detail.manager) {
-            console.log(`Account ${custId} is a manager account, fetching sub-accounts...`);
-            try {
-              const query = `SELECT
-                customer_client.client_customer,
-                customer_client.descriptive_name,
-                customer_client.id,
-                customer_client.manager,
-                customer_client.status
-              FROM customer_client
-              WHERE customer_client.manager = false AND customer_client.status = 'ENABLED'`;
+          const childBatches = await searchGoogleAds({
+            customerId: custId,
+            loginCustomerId: custId,
+            query: childQuery,
+          });
 
-              const searchRes = await fetch(
-                `https://googleads.googleapis.com/v23/customers/${custId}/googleAds:searchStream`,
-                {
-                  method: "POST",
-                  headers: {
-                    Authorization: `Bearer ${accessToken}`,
-                    "developer-token": GOOGLE_ADS_DEVELOPER_TOKEN,
-                    "login-customer-id": custId,
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({ query }),
-                }
-              );
-              const searchText = await searchRes.text();
-              
-              if (searchRes.ok) {
-                try {
-                  const searchData = JSON.parse(searchText);
-                  // searchStream returns an array of result batches
-                  const results = Array.isArray(searchData) ? searchData : [searchData];
-                  for (const batch of results) {
-                    const rows = batch.results || [];
-                    for (const row of rows) {
-                      const cc = row.customerClient;
-                      if (cc) {
-                        const childId = String(cc.id);
-                        accounts.push({
-                          customer_id: childId,
-                          name: cc.descriptiveName || childId,
-                          login_customer_id: custId, // MCC ID is the login-customer-id
-                        });
-                      }
-                    }
-                  }
-                } catch {
-                  console.warn(`Failed to parse sub-accounts for MCC ${custId}:`, searchText.substring(0, 500));
-                }
-              } else {
-                console.warn(`Failed to fetch sub-accounts for MCC ${custId}:`, searchRes.status, searchText.substring(0, 500));
-                // Fallback: add the MCC itself
-                accounts.push({
-                  customer_id: custId,
-                  name: detail.descriptiveName || custId,
+          let childCount = 0;
+          if (childBatches) {
+            for (const batch of childBatches) {
+              const rows = batch.results || [];
+              for (const row of rows) {
+                const cc = row.customerClient;
+                if (!cc) continue;
+
+                const childId = String(cc.id || "").trim();
+                if (!childId) continue;
+
+                upsertAccount({
+                  customer_id: childId,
+                  name: cc.descriptiveName || childId,
                   login_customer_id: custId,
                 });
+                childCount += 1;
               }
-            } catch (e) {
-              console.warn(`Error fetching sub-accounts for MCC ${custId}:`, e);
-              accounts.push({
-                customer_id: custId,
-                name: detail.descriptiveName || custId,
-                login_customer_id: custId,
-              });
             }
-          } else {
-            // Regular (non-manager) account
-            accounts.push({
-              customer_id: custId,
-              name: detail.descriptiveName || custId,
-              login_customer_id: custId,
-            });
           }
+
+          if (childCount > 0) {
+            console.log(`Loaded ${childCount} sub-accounts from manager ${custId}`);
+            continue;
+          }
+
+          // Fallback: treat as a direct/non-manager account and fetch its display name
+          const selfQuery = `SELECT customer.id, customer.descriptive_name FROM customer LIMIT 1`;
+          const selfBatches = await searchGoogleAds({
+            customerId: custId,
+            loginCustomerId: custId,
+            query: selfQuery,
+          });
+
+          const selfRow = selfBatches?.[0]?.results?.[0]?.customer;
+          upsertAccount({
+            customer_id: custId,
+            name: selfRow?.descriptiveName || custId,
+            login_customer_id: custId,
+          });
         } catch (e) {
-          console.warn(`Failed to fetch details for ${custId}:`, e);
-          accounts.push({ customer_id: custId, name: custId, login_customer_id: custId });
+          console.warn(`Failed to process accessible account ${custId}:`, e);
+          upsertAccount({ customer_id: custId, name: custId, login_customer_id: custId });
         }
       }
+
+      const accounts = Array.from(accountsMap.values()).sort((a, b) => a.name.localeCompare(b.name));
 
       if (accounts.length === 0) {
         return new Response(null, {
