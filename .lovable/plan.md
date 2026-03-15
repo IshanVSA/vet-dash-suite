@@ -1,53 +1,18 @@
 
 
-## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
+## Problem
 
-### Summary
-Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
+The `AnimatePresence` wrapper around the `TabsContent` components breaks Radix Tabs. When `mode="wait"` is used, the exiting `motion.div` unmounts before the new one mounts. During that gap, the `TabsContent` components are removed from the DOM, and Radix loses track of the active tab content. The SEO tab content never appears.
 
-### Changes
+## Fix
 
-**1. Edge Function: `supabase/functions/generate-content/index.ts`**
-- Remove the `callClaude` function entirely
-- Remove the Claude API key lookup and Claude execution block
-- Keep only the OpenAI call
-- This means only one `content_version` row is created per request
+Remove `AnimatePresence` + `motion.div` from **inside** the `<Tabs>` component and instead use a simpler approach that doesn't interfere with Radix's internal state management:
 
-**2. `src/components/content-requests/ContentRequestCard.tsx`**
-- Remove the `ModelToggleView` component (no longer needed with single version)
-- Render the single `ContentVersionCard` directly when versions exist
-- Rename `onConciergePrefer` prop to `onSendForReview`
+1. **Replace `AnimatePresence`/`motion.div` wrapping TabsContent** with a single `motion.div` keyed on `mode` that does NOT use `AnimatePresence mode="wait"`. Instead, use a simple opacity+transform transition on the content wrapper without unmounting via AnimatePresence.
 
-**3. `src/components/content-requests/ContentVersionCard.tsx`**
-- Remove the "Concierge Pick" badge references
-- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
-- Rename `onConciergePrefer` prop to `onSendForReview`
-- Remove Claude-specific badge styling
-- Simplify the model name badge (just show "AI Generated" or "OpenAI")
+2. **Concrete approach**: Remove `AnimatePresence` entirely. Keep a single `motion.div` with `key={mode}` using `initial`/`animate` (no `exit`). This re-triggers the enter animation on mode switch without blocking Radix's rendering. The content swaps instantly (React re-renders with new key) while the fade-slide animation plays on mount.
 
-**4. `src/pages/ContentRequests.tsx`**
-- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
-- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
-- Update prop names passed to `ContentRequestCard`
+### Changes — `src/pages/WebsiteDepartment.tsx`
 
-**5. `src/pages/AdminReview.tsx`**
-- Remove reference to "Client selected: {model_name}" badge since there's only one model now
-- Keep everything else the same (final approve logic is unchanged)
-
-**6. Status labels in `ContentRequestCard.tsx`**
-- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
-
-### Technical Details
-
-- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
-- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
-- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
-- No database schema changes needed
-
-### Files to modify
-1. `supabase/functions/generate-content/index.ts` -- remove Claude
-2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
-3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
-4. `src/pages/ContentRequests.tsx` -- rename function
-5. `src/pages/AdminReview.tsx` -- remove model name badge
+- Lines 263-293: Remove `<AnimatePresence mode="wait">` wrapper. Keep just a `<motion.div>` with `key={mode}`, `initial={{ opacity: 0, x: mode === "seo" ? 24 : -24 }}`, `animate={{ opacity: 1, x: 0 }}`, and the transition. No `exit` prop, no `AnimatePresence`.
 
