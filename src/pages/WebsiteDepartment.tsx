@@ -213,15 +213,11 @@ export default function WebsiteDepartment() {
             </div>
 
             {/* Pill toggle */}
-            <div className="relative flex items-center rounded-full bg-muted p-0.5 ml-1">
+            <div className="relative inline-flex items-center rounded-full bg-muted p-0.5 ml-1">
               <motion.div
-                className="absolute top-0.5 bottom-0.5 rounded-full bg-primary shadow-sm"
-                layout
+                className="absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-full bg-primary shadow-sm"
+                animate={{ x: mode === "website" ? 2 : "calc(100% + 2px)" }}
                 transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                style={{
-                  left: mode === "website" ? "2px" : "50%",
-                  right: mode === "seo" ? "2px" : "50%",
-                }}
               />
               <button
                 onClick={() => handleModeSwitch("website")}
