@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Search, MessageSquare, Hash, Link2, TrendingUp, Pencil, Eye, TrendingDown, Clock, Layers } from "lucide-react";
@@ -260,14 +260,12 @@ export default function WebsiteDepartment() {
             ))}
           </TabsList>
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={mode}
-              initial={{ opacity: 0, x: mode === "seo" ? 24 : -24 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: mode === "seo" ? -24 : 24 }}
-              transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
-            >
+          <motion.div
+            key={mode}
+            initial={{ opacity: 0, x: mode === "seo" ? 24 : -24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.25, ease: [0.25, 0.1, 0.25, 1] }}
+          >
           {mode === "website" ? (
             <>
               <TabsContent value="overview" className="mt-4">
@@ -289,8 +287,7 @@ export default function WebsiteDepartment() {
               <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
             </>
           )}
-            </motion.div>
-          </AnimatePresence>
+          </motion.div>
         </Tabs>
       </div>
 
