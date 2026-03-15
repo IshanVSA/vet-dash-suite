@@ -226,7 +226,7 @@ export default function WebsiteDepartment() {
               <button
                 onClick={() => handleModeSwitch("website")}
                 className={cn(
-                  "relative z-10 px-3.5 py-1 text-xs font-semibold rounded-full transition-colors duration-200",
+                  "relative z-10 w-[72px] py-1 text-xs font-semibold rounded-full transition-colors duration-200 text-center",
                   mode === "website" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
@@ -235,7 +235,7 @@ export default function WebsiteDepartment() {
               <button
                 onClick={() => handleModeSwitch("seo")}
                 className={cn(
-                  "relative z-10 px-3.5 py-1 text-xs font-semibold rounded-full transition-colors duration-200",
+                  "relative z-10 w-[72px] py-1 text-xs font-semibold rounded-full transition-colors duration-200 text-center",
                   mode === "seo" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
                 )}
               >
