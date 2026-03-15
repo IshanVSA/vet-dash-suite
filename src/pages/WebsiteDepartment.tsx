@@ -38,8 +38,7 @@ const websiteTabs = [
 
 const websiteServices = [
   "Time Changes", "Pop-up Offers", "Theme Updates", "Add/Remove Team Members",
-  "New Forms", "Paper-to-Digital Conversion", "Price List Updates",
-  "3rd-Party Integrations", "Payment Options", "Others",
+  "New Forms", "Price List Updates", "Others",
 ];
 
 // ── SEO config ──
