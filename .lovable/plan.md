@@ -1,53 +1,53 @@
 
 
-# Custom Quick Action Forms for Website Department
+## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
 
-## Overview
-Replace the generic ticket dialog with service-specific forms when a quick action is clicked. Each form collects structured data tailored to that service type, then stores it as a formatted description in the existing `department_tickets` table (no schema changes needed).
+### Summary
+Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
 
-## Custom Form Designs
+### Changes
 
-| Quick Action | Custom Fields |
-|---|---|
-| **Time Changes** | 7-day grid: each day has a toggle (open/closed) + open time + close time inputs |
-| **Pop-up Offers** | Offer title, offer description/text, start date, end date, target page (dropdown or text), image upload |
-| **Theme Updates** | Description of changes, color preferences (text), reference image uploads |
-| **Add/Remove Team Members** | Action toggle (Add/Remove), member name, member role/title, member email, member phone, photo upload |
-| **New Forms** | Form purpose/name, list of fields needed (textarea), where to place it on the site (text), any special requirements |
-| **Price List Updates** | Description of changes, file upload for updated price list (PDF/Excel/image) |
-| **Others** | Falls back to the existing generic form (title + description + attachments) |
+**1. Edge Function: `supabase/functions/generate-content/index.ts`**
+- Remove the `callClaude` function entirely
+- Remove the Claude API key lookup and Claude execution block
+- Keep only the OpenAI call
+- This means only one `content_version` row is created per request
 
-All forms also retain: **Priority selector** and **Notes field**.
+**2. `src/components/content-requests/ContentRequestCard.tsx`**
+- Remove the `ModelToggleView` component (no longer needed with single version)
+- Render the single `ContentVersionCard` directly when versions exist
+- Rename `onConciergePrefer` prop to `onSendForReview`
 
-## Technical Approach
+**3. `src/components/content-requests/ContentVersionCard.tsx`**
+- Remove the "Concierge Pick" badge references
+- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
+- Rename `onConciergePrefer` prop to `onSendForReview`
+- Remove Claude-specific badge styling
+- Simplify the model name badge (just show "AI Generated" or "OpenAI")
 
-### No Database Changes
-- Store structured form data as a formatted string in the existing `description` column
-- Each form serializes its fields into a readable text block (e.g., "Monday: 9:00 AM - 5:00 PM, Tuesday: Closed...")
-- Attachments still use the existing `attachments` array + storage bucket
+**4. `src/pages/ContentRequests.tsx`**
+- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
+- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
+- Update prop names passed to `ContentRequestCard`
 
-### New Files
-1. **`src/components/department/ticket-forms/TimeChangesForm.tsx`** — Day-of-week grid with time pickers
-2. **`src/components/department/ticket-forms/PopupOffersForm.tsx`** — Offer details + date range
-3. **`src/components/department/ticket-forms/ThemeUpdatesForm.tsx`** — Description + image references
-4. **`src/components/department/ticket-forms/AddRemoveTeamForm.tsx`** — Add/remove toggle + member details
-5. **`src/components/department/ticket-forms/NewFormsForm.tsx`** — Form purpose + field descriptions
-6. **`src/components/department/ticket-forms/PriceListForm.tsx`** — Description + file upload
+**5. `src/pages/AdminReview.tsx`**
+- Remove reference to "Client selected: {model_name}" badge since there's only one model now
+- Keep everything else the same (final approve logic is unchanged)
 
-### Modified Files
-1. **`src/components/department/NewTicketDialog.tsx`** — When `defaultType` matches a known service, render the corresponding custom form component instead of the generic description textarea. The dialog shell (title, priority, notes, attachments, submit button) remains the same — only the middle "details" section swaps based on type. Each custom form exposes its data via a callback, which gets serialized into the `description` field on submit.
+**6. Status labels in `ContentRequestCard.tsx`**
+- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
 
-2. **`src/components/department/DepartmentOverview.tsx`** — No changes needed (already passes `defaultType` to `NewTicketDialog`).
+### Technical Details
 
-### Form Data Flow
-```text
-User clicks "Time Changes" badge
-  → NewTicketDialog opens with defaultType="Time Changes"
-  → Renders <TimeChangesForm onChange={setFormData} />
-  → On submit: description = serializeTimeChanges(formData)
-  → Insert into department_tickets as usual
-```
+- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
+- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
+- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
+- No database schema changes needed
 
-### Auto-generated Title
-For custom forms, the title will be auto-generated from the service type (e.g., "Time Changes Request") so the user doesn't need to type one — though they can still edit it.
+### Files to modify
+1. `supabase/functions/generate-content/index.ts` -- remove Claude
+2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
+3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
+4. `src/pages/ContentRequests.tsx` -- rename function
+5. `src/pages/AdminReview.tsx` -- remove model name badge
 
