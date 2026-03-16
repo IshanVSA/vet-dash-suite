@@ -40,6 +40,7 @@ export default function ClinicDetail() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { role } = useUserRole();
   const [clinic, setClinic] = useState<ClinicData | null>(null);
+  const [aiSeoEnabled, setAiSeoEnabled] = useState(false);
   const [creds, setCreds] = useState<ClinicCredentials>({
     meta_page_access_token: null, meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null,
     google_ads_refresh_token: null, google_ads_customer_id: null, google_ads_login_customer_id: null, google_ads_account_name: null,
