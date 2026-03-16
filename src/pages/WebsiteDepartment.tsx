@@ -241,7 +241,7 @@ export default function WebsiteDepartment() {
           <div className="flex items-center gap-2">
             {mode === "seo" && canEditSeo && selectedClinicId && (
               <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setSeoDialogOpen(true)}>
-                <Pencil className="h-3 w-3" /> Update
+                <Upload className="h-3 w-3" /> Upload SEO Report
               </Button>
             )}
             <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />

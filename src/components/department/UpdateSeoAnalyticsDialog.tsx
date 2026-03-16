@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Upload, Loader2, FileText } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import type { SeoKeyword, UpsertSeoPayload } from "@/hooks/useSeoAnalytics";
 
 interface Props {
@@ -35,6 +36,9 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
   const [kw10, setKw10] = useState(String(defaults?.keywords_top_10 ?? ""));
   const [traffic, setTraffic] = useState(String(defaults?.organic_traffic ?? ""));
   const [keywords, setKeywords] = useState<SeoKeyword[]>(defaults?.top_keywords || [{ keyword: "", position: 0, change: "" }]);
+  const [isExtracting, setIsExtracting] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const addKeyword = () => setKeywords([...keywords, { keyword: "", position: 0, change: "" }]);
   const removeKeyword = (i: number) => setKeywords(keywords.filter((_, idx) => idx !== i));
@@ -42,6 +46,63 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
     const updated = [...keywords];
     updated[i] = { ...updated[i], [field]: val };
     setKeywords(updated);
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== "application/pdf") {
+      toast.error("Please upload a PDF file");
+      return;
+    }
+
+    if (file.size > 20 * 1024 * 1024) {
+      toast.error("File must be under 20MB");
+      return;
+    }
+
+    setUploadedFileName(file.name);
+    setIsExtracting(true);
+
+    try {
+      const reader = new FileReader();
+      const base64 = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          resolve(result.split(",")[1]);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      const { data, error } = await supabase.functions.invoke("extract-seo-report", {
+        body: { pdfBase64: base64 },
+      });
+
+      if (error) throw error;
+
+      // Auto-populate fields
+      if (data.month) setMonth(data.month);
+      if (data.domain_authority != null) setDa(String(data.domain_authority));
+      if (data.backlinks != null) setBacklinks(String(data.backlinks));
+      if (data.keywords_top_10 != null) setKw10(String(data.keywords_top_10));
+      if (data.organic_traffic != null) setTraffic(String(data.organic_traffic));
+      if (data.top_keywords?.length > 0) {
+        setKeywords(data.top_keywords.map((kw: any) => ({
+          keyword: kw.keyword || "",
+          position: kw.position || 0,
+          change: kw.change || "",
+        })));
+      }
+
+      toast.success("Data extracted from PDF! Please review and save.");
+    } catch (err) {
+      console.error("PDF extraction error:", err);
+      toast.error("Failed to extract data from PDF. You can fill in the fields manually.");
+    } finally {
+      setIsExtracting(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -68,10 +129,48 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Update SEO Analytics</DialogTitle>
+          <DialogTitle>Upload SEO Report</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* PDF Upload Area */}
+          <div
+            className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+              isExtracting
+                ? "border-primary/50 bg-primary/5"
+                : "border-border hover:border-primary/40 hover:bg-muted/30"
+            }`}
+            onClick={() => !isExtracting && fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              className="hidden"
+              onChange={handleFileUpload}
+              disabled={isExtracting}
+            />
+            {isExtracting ? (
+              <div className="flex flex-col items-center gap-2">
+                <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                <p className="text-sm font-medium text-foreground">Extracting data from PDF…</p>
+                <p className="text-xs text-muted-foreground">This may take a few seconds</p>
+              </div>
+            ) : uploadedFileName ? (
+              <div className="flex flex-col items-center gap-2">
+                <FileText className="h-8 w-8 text-primary" />
+                <p className="text-sm font-medium text-foreground">{uploadedFileName}</p>
+                <p className="text-xs text-muted-foreground">Click to upload a different file</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <Upload className="h-8 w-8 text-muted-foreground" />
+                <p className="text-sm font-medium text-foreground">Upload SEO Report PDF</p>
+                <p className="text-xs text-muted-foreground">AI will extract metrics automatically</p>
+              </div>
+            )}
+          </div>
+
           <div>
             <Label>Month</Label>
             <Input type="month" value={month} onChange={e => setMonth(e.target.value)} />
@@ -136,7 +235,7 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
+          <Button onClick={handleSubmit} disabled={isSubmitting || isExtracting}>
             {isSubmitting ? "Saving…" : "Save"}
           </Button>
         </DialogFooter>
