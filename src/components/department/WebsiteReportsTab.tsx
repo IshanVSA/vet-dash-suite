@@ -314,7 +314,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
               <PreviewStat icon={Eye} label="Page Views" value={metrics.totalViews.toLocaleString()} change={changes.views} />
               <PreviewStat icon={Users} label="Visitors" value={metrics.totalSessions.toLocaleString()} change={changes.visitors} />
-              <PreviewStat icon={TrendingDown} label="Bounce Rate" value={`${metrics.bounceRate}%`} change={changes.bounce} />
+              <PreviewStat icon={TrendingUp} label="Engagement Rate" value={`${metrics.engagementRate}%`} change={changes.engagement} />
               <PreviewStat icon={Clock} label="Avg. Session" value={formatDuration(metrics.avgDuration)} change={changes.duration} />
               <PreviewStat icon={Globe} label="Pages/Session" value={metrics.pagesPerSession.toString()} change={changes.pages} />
             </div>
