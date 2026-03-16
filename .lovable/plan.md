@@ -1,53 +1,26 @@
 
 
-## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
+# Replace Bounce Rate with "Engagement Rate" in Website Analytics
 
-### Summary
-Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
+## What changes
+Replace the "Bounce Rate" KPI card with **"Engagement Rate"** — a more positive, client-friendly metric. Engagement Rate = percentage of sessions with more than 1 pageview (essentially `100% - bounceRate`). This aligns with Google Analytics 4's shift away from bounce rate toward engagement-based metrics.
 
-### Changes
+## Why it's better for clients
+- Bounce Rate is negative framing ("how many people left") — confusing and discouraging for clients
+- Engagement Rate is positive framing ("how many people explored your site") — intuitive and motivating
+- Higher = better, which is easier for clients to understand
 
-**1. Edge Function: `supabase/functions/generate-content/index.ts`**
-- Remove the `callClaude` function entirely
-- Remove the Claude API key lookup and Claude execution block
-- Keep only the OpenAI call
-- This means only one `content_version` row is created per request
+## Files to change
 
-**2. `src/components/content-requests/ContentRequestCard.tsx`**
-- Remove the `ModelToggleView` component (no longer needed with single version)
-- Render the single `ContentVersionCard` directly when versions exist
-- Rename `onConciergePrefer` prop to `onSendForReview`
+### 1. `src/components/department/WebsiteAnalyticsTab.tsx`
+- In `calcKPIs`: compute `engagementRate = 100 - bounceRate` (round to 1 decimal)
+- Replace the Bounce Rate `StatsCard` with `title="Engagement Rate"`, show `engagementRate%`, use a positive icon like `TrendingUp` instead of `TrendingDown`
+- Flip the `pctChange` call: remove `invertBetter` flag since higher engagement is naturally positive
 
-**3. `src/components/content-requests/ContentVersionCard.tsx`**
-- Remove the "Concierge Pick" badge references
-- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
-- Rename `onConciergePrefer` prop to `onSendForReview`
-- Remove Claude-specific badge styling
-- Simplify the model name badge (just show "AI Generated" or "OpenAI")
+### 2. `src/hooks/useWebsiteKPIs.ts`
+- Rename `bounceRate`/`bounceRatePrev` to `engagementRate`/`engagementRatePrev` in the interface and calculation (`100 - bounceRate`)
+- This hook is used by the Website department overview cards
 
-**4. `src/pages/ContentRequests.tsx`**
-- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
-- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
-- Update prop names passed to `ContentRequestCard`
-
-**5. `src/pages/AdminReview.tsx`**
-- Remove reference to "Client selected: {model_name}" badge since there's only one model now
-- Keep everything else the same (final approve logic is unchanged)
-
-**6. Status labels in `ContentRequestCard.tsx`**
-- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
-
-### Technical Details
-
-- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
-- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
-- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
-- No database schema changes needed
-
-### Files to modify
-1. `supabase/functions/generate-content/index.ts` -- remove Claude
-2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
-3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
-4. `src/pages/ContentRequests.tsx` -- rename function
-5. `src/pages/AdminReview.tsx` -- remove model name badge
+### 3. `src/components/department/DepartmentOverview.tsx` (if it references bounce rate)
+- Update any KPI card label from "Bounce Rate" to "Engagement Rate" and flip the value
 
