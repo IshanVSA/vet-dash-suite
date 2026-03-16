@@ -189,7 +189,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard title="Page Views" value={current.totalViews.toLocaleString()} icon={Eye} change={viewsChange.text} changeType={viewsChange.type} index={0} />
         <StatsCard title="Unique Visitors" value={current.uniqueVisitors.toLocaleString()} icon={Users} change={visitorsChange.text} changeType={visitorsChange.type} index={1} />
-        <StatsCard title="Bounce Rate" value={`${current.bounceRate}%`} icon={TrendingDown} change={bounceChange.text} changeType={bounceChange.type} index={2} />
+        <StatsCard title="Engagement Rate" value={`${current.engagementRate}%`} icon={TrendingUp} change={engagementChange.text} changeType={engagementChange.type} index={2} />
         <StatsCard title="Avg. Session" value={formatDuration(current.avgDuration)} icon={Clock} change={durationChange.text} changeType={durationChange.type} index={3} />
       </div>
 

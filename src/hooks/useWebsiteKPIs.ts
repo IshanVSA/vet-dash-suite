@@ -107,8 +107,8 @@ export function useWebsiteKPIs(clinicId?: string): WebsiteKPIs {
       setData({
         visitorsToday,
         visitorsLastWeek,
-        bounceRate: current.bounceRate,
-        bounceRatePrev: prev.bounceRate,
+        engagementRate: current.engagementRate,
+        engagementRatePrev: prev.engagementRate,
         avgSessionDuration: current.avgDuration,
         avgSessionDurationPrev: prev.avgDuration,
         pagesPerSession: current.pagesPerSession,
