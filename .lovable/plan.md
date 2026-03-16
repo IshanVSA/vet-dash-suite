@@ -1,53 +1,77 @@
 
 
-## Plan: Single Model (OpenAI Only) + Simplified Workflow Labels
+# PDF Upload + AI Extraction for SEO Analytics
 
-### Summary
-Remove Claude from content generation entirely, keep only OpenAI. Replace "Mark Preferred" with "Send for Review" for the concierge. Simplify the UI since there's only one version (no toggle needed). Keep the existing 5-stage workflow but update labels.
+## Overview
+Replace the manual SEO analytics form with a PDF upload flow. Team members upload a monthly SEO report PDF, an edge function extracts the key metrics using OpenAI, and the data is saved to `seo_analytics` automatically.
 
-### Changes
+## How It Works
 
-**1. Edge Function: `supabase/functions/generate-content/index.ts`**
-- Remove the `callClaude` function entirely
-- Remove the Claude API key lookup and Claude execution block
-- Keep only the OpenAI call
-- This means only one `content_version` row is created per request
+```text
+User clicks "Upload SEO Report" → selects PDF
+  → PDF uploaded to Supabase Storage (department-files bucket)
+  → PDF content sent to edge function "extract-seo-report"
+  → OpenAI extracts: DA, backlinks, keywords top 10, organic traffic, top keywords
+  → Extracted data shown in dialog for review/edit
+  → User confirms → upsert into seo_analytics table
+```
 
-**2. `src/components/content-requests/ContentRequestCard.tsx`**
-- Remove the `ModelToggleView` component (no longer needed with single version)
-- Render the single `ContentVersionCard` directly when versions exist
-- Rename `onConciergePrefer` prop to `onSendForReview`
+## Data Extraction from PDF
 
-**3. `src/components/content-requests/ContentVersionCard.tsx`**
-- Remove the "Concierge Pick" badge references
-- Change the concierge action button from "Mark Preferred" (with Star icon) to **"Send for Review"** (with a Send/ArrowRight icon)
-- Rename `onConciergePrefer` prop to `onSendForReview`
-- Remove Claude-specific badge styling
-- Simplify the model name badge (just show "AI Generated" or "OpenAI")
+Based on the uploaded sample PDF, the AI will extract:
+- **Domain Authority**: from backlink profile or KPI dashboard
+- **Backlinks**: count of referring domains with DA > 40
+- **Keywords in Top 10**: from keyword rankings table
+- **Organic Traffic**: total sessions from traffic analysis
+- **Top Keywords**: keyword name, position, and change from the keyword rankings table
+- **Month**: from the report date/title
 
-**4. `src/pages/ContentRequests.tsx`**
-- Rename `setConciergePreferred` to `sendForReview` (same DB logic -- sets `concierge_preferred` flag and status to `concierge_preferred`)
-- Update the toast message from "Marked as preferred! Sent to admin for review." to "Sent for review!"
-- Update prop names passed to `ContentRequestCard`
+## Files to Create/Modify
 
-**5. `src/pages/AdminReview.tsx`**
-- Remove reference to "Client selected: {model_name}" badge since there's only one model now
-- Keep everything else the same (final approve logic is unchanged)
+### 1. New Edge Function: `supabase/functions/extract-seo-report/index.ts`
+- Accepts a PDF file URL or base64 content
+- Uses OpenAI GPT-4o-mini to parse the text and extract structured JSON
+- Returns: `{ month, domain_authority, backlinks, keywords_top_10, organic_traffic, top_keywords[] }`
+- Prompt instructs OpenAI to find KPI values, keyword rankings table, and traffic totals
 
-**6. Status labels in `ContentRequestCard.tsx`**
-- Update `statusConfig`: change `concierge_preferred` label from "Concierge Preferred" to "Under Review"
+### 2. Modify: `src/components/department/UpdateSeoAnalyticsDialog.tsx`
+- Add a file upload dropzone at the top of the dialog
+- When PDF is selected:
+  - Read as base64, send to `extract-seo-report` edge function
+  - Show loading state ("Extracting data from PDF...")
+  - Auto-populate all form fields with extracted values
+- Keep all manual fields editable so team can review/correct before saving
+- The dialog becomes a "review & confirm" step after AI extraction
 
-### Technical Details
+### 3. Modify: `src/pages/WebsiteDepartment.tsx`
+- Change the "Update" button label to "Upload SEO Report"
+- Update the icon from Pencil to Upload
 
-- The `concierge_preferred` database column and status value remain unchanged to avoid migrations -- only the UI labels change
-- The workflow stages stay the same: `generated` -> `concierge_preferred` -> `admin_approved` -> `client_selected` -> `final_approved`
-- The edge function will only produce one version per request, so the toggle switch becomes unnecessary
-- No database schema changes needed
+### 4. Config: `supabase/config.toml`
+- Add `[functions.extract-seo-report]` with `verify_jwt = false`
 
-### Files to modify
-1. `supabase/functions/generate-content/index.ts` -- remove Claude
-2. `src/components/content-requests/ContentRequestCard.tsx` -- remove toggle, rename prop
-3. `src/components/content-requests/ContentVersionCard.tsx` -- rename button/badge
-4. `src/pages/ContentRequests.tsx` -- rename function
-5. `src/pages/AdminReview.tsx` -- remove model name badge
+## Edge Function Design
+
+The function will:
+1. Receive PDF as base64 in the request body
+2. Send the PDF text content to OpenAI with a structured extraction prompt
+3. Use JSON mode to get reliable structured output
+4. Return the extracted data
+
+OpenAI prompt will instruct:
+- Find organic traffic total (sessions)
+- Find domain authority score
+- Count backlinks with DA > 40
+- Count keywords ranking in top 10
+- Extract keyword table with position and change values
+- Determine the report month from the date
+
+## UX Flow
+1. Team member clicks "Upload SEO Report"
+2. Dialog opens with a file upload area + all the existing manual fields
+3. User selects a PDF → "Extracting..." spinner appears
+4. Fields auto-populate with extracted values
+5. User reviews, edits if needed, clicks "Save"
+
+No database changes needed — uses existing `seo_analytics` table and `department-files` storage bucket.
 
