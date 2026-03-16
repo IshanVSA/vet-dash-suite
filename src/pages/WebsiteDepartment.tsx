@@ -168,7 +168,7 @@ export default function WebsiteDepartment() {
 
   const websiteKpis = [
     { label: "Visitors Today", value: kpiData.loading ? "—" : kpiData.visitorsToday.toLocaleString(), change: kpiData.loading ? "" : visitorsChange.text, changeType: visitorsChange.type, icon: Eye, gradient: "blue" as const },
-    { label: "Bounce Rate", value: kpiData.loading ? "—" : `${kpiData.bounceRate}%`, change: kpiData.loading ? "" : bounceChangeAdjusted.text, changeType: bounceChangeAdjusted.type, icon: TrendingDown, gradient: "green" as const },
+    { label: "Engagement Rate", value: kpiData.loading ? "—" : `${kpiData.engagementRate}%`, change: kpiData.loading ? "" : engagementChange.text, changeType: engagementChange.type, icon: TrendingUp, gradient: "green" as const },
     { label: "Avg. Session", value: kpiData.loading ? "—" : formatDuration(kpiData.avgSessionDuration), change: kpiData.loading ? "" : durationChange.text, changeType: durationChange.type, icon: Clock, gradient: "amber" as const },
     { label: "Pages/Session", value: kpiData.loading ? "—" : kpiData.pagesPerSession.toString(), change: kpiData.loading ? "" : pagesChange.text, changeType: pagesChange.type, icon: Layers, gradient: "purple" as const },
   ];
