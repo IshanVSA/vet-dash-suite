@@ -45,7 +45,7 @@ const websiteServices = [
 const seoTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "tickets", label: "Tickets", icon: Ticket },
-  { value: "seo-thread", label: "SEO Thread", icon: MessageSquare },
+  { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "reports", label: "Reports", icon: FileText },
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
