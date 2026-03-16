@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.ticket-automation]
 verify_jwt = false
+
+[functions.extract-seo-report]
+verify_jwt = false
