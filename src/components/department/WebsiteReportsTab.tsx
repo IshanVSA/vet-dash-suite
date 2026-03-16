@@ -210,7 +210,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
         body: [
           ["Page Views", metrics.totalViews.toLocaleString(), pm.totalViews.toLocaleString(), changes.views.text],
           ["Unique Visitors", metrics.totalSessions.toLocaleString(), pm.totalSessions.toLocaleString(), changes.visitors.text],
-          ["Bounce Rate", `${metrics.bounceRate}%`, `${pm.bounceRate}%`, changes.bounce.text],
+          ["Engagement Rate", `${metrics.engagementRate}%`, `${pm.engagementRate}%`, changes.engagement.text],
           ["Avg. Session Duration", formatDuration(metrics.avgDuration), formatDuration(pm.avgDuration), changes.duration.text],
           ["Pages per Session", metrics.pagesPerSession.toString(), pm.pagesPerSession.toString(), changes.pages.text],
         ],
