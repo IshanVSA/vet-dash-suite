@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Download, Eye, Users, TrendingDown, Clock, Globe, BarChart3, ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { FileText, Download, Eye, Users, TrendingUp, Clock, Globe, BarChart3, ArrowUp, ArrowDown, Minus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -65,7 +65,7 @@ function formatDuration(s: number): string {
 interface Metrics {
   totalViews: number;
   totalSessions: number;
-  bounceRate: number;
+  engagementRate: number;
   avgDuration: number;
   pagesPerSession: number;
   topPages: { path: string; views: number; visitors: number }[];
@@ -84,6 +84,7 @@ function calcMetrics(views: Pageview[]): Metrics {
   const totalViews = views.length;
   const bounces = sessionList.filter(s => s.length === 1).length;
   const bounceRate = totalSessions > 0 ? Math.round((bounces / totalSessions) * 1000) / 10 : 0;
+  const engagementRate = Math.round((100 - bounceRate) * 10) / 10;
   const pagesPerSession = totalSessions > 0 ? Math.round((totalViews / totalSessions) * 10) / 10 : 0;
   const durations = sessionList
     .filter(s => s.length > 1)
@@ -123,7 +124,7 @@ function calcMetrics(views: Pageview[]): Metrics {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, count]) => ({ date, count }));
 
-  return { totalViews, totalSessions, bounceRate, avgDuration, pagesPerSession, topPages, topReferrers, dailyTraffic };
+  return { totalViews, totalSessions, engagementRate, avgDuration, pagesPerSession, topPages, topReferrers, dailyTraffic };
 }
 
 function pctChange(cur: number, prev: number, invertBetter = false): { pct: number; text: string; type: "positive" | "negative" | "neutral" } {
@@ -169,11 +170,11 @@ export function WebsiteReportsTab({ clinicId }: Props) {
 
   const changes = useMemo(() => {
     if (!metrics) return null;
-    const pm = prevMetrics || { totalViews: 0, totalSessions: 0, bounceRate: 0, avgDuration: 0, pagesPerSession: 0 };
+    const pm = prevMetrics || { totalViews: 0, totalSessions: 0, engagementRate: 0, avgDuration: 0, pagesPerSession: 0 };
     return {
       views: pctChange(metrics.totalViews, pm.totalViews),
       visitors: pctChange(metrics.totalSessions, pm.totalSessions),
-      bounce: pctChange(metrics.bounceRate, pm.bounceRate, true),
+      engagement: pctChange(metrics.engagementRate, pm.engagementRate),
       duration: pctChange(metrics.avgDuration, pm.avgDuration),
       pages: pctChange(metrics.pagesPerSession, pm.pagesPerSession),
     };
@@ -192,11 +193,11 @@ export function WebsiteReportsTab({ clinicId }: Props) {
       let y = renderPDFHeader(doc, "Website Performance Report", clinicName, dateStr, PDF_COLORS.website);
 
       // ── KPI Cards ──
-      const pm = prevMetrics || { totalViews: 0, totalSessions: 0, bounceRate: 0, avgDuration: 0, pagesPerSession: 0 };
+      const pm = prevMetrics || { totalViews: 0, totalSessions: 0, engagementRate: 0, avgDuration: 0, pagesPerSession: 0 };
       y = renderKPICards(doc, y, [
         { label: "Page Views", value: metrics.totalViews.toLocaleString(), change: changes.views.text },
         { label: "Visitors", value: metrics.totalSessions.toLocaleString(), change: changes.visitors.text },
-        { label: "Bounce Rate", value: `${metrics.bounceRate}%`, change: changes.bounce.text },
+        { label: "Engagement Rate", value: `${metrics.engagementRate}%`, change: changes.engagement.text },
         { label: "Avg. Session", value: formatDuration(metrics.avgDuration), change: changes.duration.text },
       ], PDF_COLORS.website);
 
@@ -209,7 +210,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
         body: [
           ["Page Views", metrics.totalViews.toLocaleString(), pm.totalViews.toLocaleString(), changes.views.text],
           ["Unique Visitors", metrics.totalSessions.toLocaleString(), pm.totalSessions.toLocaleString(), changes.visitors.text],
-          ["Bounce Rate", `${metrics.bounceRate}%`, `${pm.bounceRate}%`, changes.bounce.text],
+          ["Engagement Rate", `${metrics.engagementRate}%`, `${pm.engagementRate}%`, changes.engagement.text],
           ["Avg. Session Duration", formatDuration(metrics.avgDuration), formatDuration(pm.avgDuration), changes.duration.text],
           ["Pages per Session", metrics.pagesPerSession.toString(), pm.pagesPerSession.toString(), changes.pages.text],
         ],
@@ -313,7 +314,7 @@ export function WebsiteReportsTab({ clinicId }: Props) {
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
               <PreviewStat icon={Eye} label="Page Views" value={metrics.totalViews.toLocaleString()} change={changes.views} />
               <PreviewStat icon={Users} label="Visitors" value={metrics.totalSessions.toLocaleString()} change={changes.visitors} />
-              <PreviewStat icon={TrendingDown} label="Bounce Rate" value={`${metrics.bounceRate}%`} change={changes.bounce} />
+              <PreviewStat icon={TrendingUp} label="Engagement Rate" value={`${metrics.engagementRate}%`} change={changes.engagement} />
               <PreviewStat icon={Clock} label="Avg. Session" value={formatDuration(metrics.avgDuration)} change={changes.duration} />
               <PreviewStat icon={Globe} label="Pages/Session" value={metrics.pagesPerSession.toString()} change={changes.pages} />
             </div>
