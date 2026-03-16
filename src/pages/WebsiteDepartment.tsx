@@ -274,7 +274,7 @@ export default function WebsiteDepartment() {
                 <DepartmentOverview kpis={seoKpis} services={seoServices} trafficData={seoTrafficData.length > 0 ? seoTrafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={seoTeam} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} />
               </TabsContent>
               <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={seoServices} clinicId={selectedClinicId} /></TabsContent>
-              <TabsContent value="seo-thread" className="mt-4"><ComingSoonTab label="SEO Thread" /></TabsContent>
+              <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
               <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
               <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
             </>
