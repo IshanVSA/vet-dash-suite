@@ -199,6 +199,7 @@ export type Database = {
       clinics: {
         Row: {
           address: string | null
+          ai_seo_enabled: boolean
           assigned_concierge_id: string | null
           clinic_name: string
           created_at: string
@@ -212,6 +213,7 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          ai_seo_enabled?: boolean
           assigned_concierge_id?: string | null
           clinic_name: string
           created_at?: string
@@ -225,6 +227,7 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          ai_seo_enabled?: boolean
           assigned_concierge_id?: string | null
           clinic_name?: string
           created_at?: string

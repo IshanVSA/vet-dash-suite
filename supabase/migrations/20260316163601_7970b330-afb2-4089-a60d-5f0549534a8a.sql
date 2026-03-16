@@ -1,0 +1,1 @@
+ALTER TABLE public.clinics ADD COLUMN IF NOT EXISTS ai_seo_enabled boolean NOT NULL DEFAULT false;

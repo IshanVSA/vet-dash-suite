@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -7,7 +7,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, RefreshCw, Loader2, Users } from "lucide-react";
+import { ArrowLeft, RefreshCw, Loader2, Users, Sparkles } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { format } from "date-fns";
@@ -38,6 +40,7 @@ export default function ClinicDetail() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { role } = useUserRole();
   const [clinic, setClinic] = useState<ClinicData | null>(null);
+  const [aiSeoEnabled, setAiSeoEnabled] = useState(false);
   const [creds, setCreds] = useState<ClinicCredentials>({
     meta_page_access_token: null, meta_page_id: null, meta_instagram_business_id: null, meta_page_name: null,
     google_ads_refresh_token: null, google_ads_customer_id: null, google_ads_login_customer_id: null, google_ads_account_name: null,
@@ -57,7 +60,10 @@ export default function ClinicDetail() {
 
   useEffect(() => {
     if (!id) return;
-    supabase.from("clinics").select("clinic_name").eq("id", id).maybeSingle().then(({ data }) => setClinic(data));
+    supabase.from("clinics").select("clinic_name, ai_seo_enabled").eq("id", id).maybeSingle().then(({ data }) => {
+      setClinic(data);
+      setAiSeoEnabled((data as any)?.ai_seo_enabled ?? false);
+    });
     fetchCredentials();
     fetchAnalytics();
     fetchTeamMembers();
@@ -543,6 +549,41 @@ export default function ClinicDetail() {
                 onRefresh={() => { fetchCredentials(); fetchAnalytics(); }}
               />
               <TrackingSetupCard clinicId={id!} />
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    AI SEO Plan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm font-medium">Enable AI SEO Access</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Toggle to grant this clinic access to AI SEO tools
+                      </p>
+                    </div>
+                    <Switch
+                      checked={aiSeoEnabled}
+                      onCheckedChange={async (checked) => {
+                        setAiSeoEnabled(checked);
+                        const { error } = await supabase
+                          .from("clinics")
+                          .update({ ai_seo_enabled: checked } as any)
+                          .eq("id", id!);
+                        if (error) {
+                          setAiSeoEnabled(!checked);
+                          toast.error("Failed to update AI SEO access");
+                        } else {
+                          toast.success(`AI SEO ${checked ? "enabled" : "disabled"} for this clinic`);
+                        }
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           )}
         </Tabs>
