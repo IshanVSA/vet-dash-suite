@@ -549,6 +549,41 @@ export default function ClinicDetail() {
                 onRefresh={() => { fetchCredentials(); fetchAnalytics(); }}
               />
               <TrackingSetupCard clinicId={id!} />
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Sparkles className="h-4 w-4 text-primary" />
+                    AI SEO Plan
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <Label className="text-sm font-medium">Enable AI SEO Access</Label>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        Toggle to grant this clinic access to AI SEO tools
+                      </p>
+                    </div>
+                    <Switch
+                      checked={aiSeoEnabled}
+                      onCheckedChange={async (checked) => {
+                        setAiSeoEnabled(checked);
+                        const { error } = await supabase
+                          .from("clinics")
+                          .update({ ai_seo_enabled: checked } as any)
+                          .eq("id", id!);
+                        if (error) {
+                          setAiSeoEnabled(!checked);
+                          toast.error("Failed to update AI SEO access");
+                        } else {
+                          toast.success(`AI SEO ${checked ? "enabled" : "disabled"} for this clinic`);
+                        }
+                      }}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
             </TabsContent>
           )}
         </Tabs>
