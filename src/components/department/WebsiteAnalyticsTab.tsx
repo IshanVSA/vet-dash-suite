@@ -171,7 +171,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
 
   const viewsChange = pctChange(current.totalViews, prev.totalViews);
   const visitorsChange = pctChange(current.uniqueVisitors, prev.uniqueVisitors);
-  const bounceChange = pctChange(current.bounceRate, prev.bounceRate, true);
+  const engagementChange = pctChange(current.engagementRate, prev.engagementRate);
   const durationChange = pctChange(current.avgDuration, prev.avgDuration);
 
   const formatDuration = (s: number) => {
