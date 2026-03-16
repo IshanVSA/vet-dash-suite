@@ -86,7 +86,8 @@ export function useWebsiteKPIs(clinicId?: string): WebsiteKPIs {
           ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
           : 0;
 
-        return { bounceRate, avgDuration, pagesPerSession };
+        const engagementRate = Math.round((1000 - bounceRate * 10)) / 10;
+        return { engagementRate, avgDuration, pagesPerSession };
       };
 
       const current = calcMetrics(currentWeek);
