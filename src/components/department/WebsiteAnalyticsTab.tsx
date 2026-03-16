@@ -75,7 +75,8 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
           return (Math.max(...times) - Math.min(...times)) / 1000;
         });
       const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
-      return { totalViews, uniqueVisitors: totalSessions, bounceRate, avgDuration };
+      const engagementRate = Math.round((100 - bounceRate) * 10) / 10;
+      return { totalViews, uniqueVisitors: totalSessions, engagementRate, avgDuration };
     };
 
     const current = calcKPIs(currentPeriod);
