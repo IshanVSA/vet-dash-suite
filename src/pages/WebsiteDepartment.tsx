@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Search, MessageSquare, Hash, Link2, TrendingUp, Pencil, Eye, TrendingDown, Clock, Layers } from "lucide-react";
+import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Search, MessageSquare, Hash, Link2, TrendingUp, Pencil, Eye, Clock, Layers } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
@@ -162,14 +162,13 @@ export default function WebsiteDepartment() {
 
   // Website KPIs
   const visitorsChange = formatChange(kpiData.visitorsToday, kpiData.visitorsLastWeek);
-  const bounceChange = formatChange(kpiData.bounceRate, kpiData.bounceRatePrev, "%");
-  const bounceChangeAdjusted = { ...bounceChange, type: bounceChange.type === "positive" ? "negative" as const : bounceChange.type === "negative" ? "positive" as const : "neutral" as const };
+  const engagementChange = formatChange(kpiData.engagementRate, kpiData.engagementRatePrev, "%");
   const durationChange = formatChange(kpiData.avgSessionDuration, kpiData.avgSessionDurationPrev);
   const pagesChange = formatChange(kpiData.pagesPerSession, kpiData.pagesPerSessionPrev);
 
   const websiteKpis = [
     { label: "Visitors Today", value: kpiData.loading ? "—" : kpiData.visitorsToday.toLocaleString(), change: kpiData.loading ? "" : visitorsChange.text, changeType: visitorsChange.type, icon: Eye, gradient: "blue" as const },
-    { label: "Bounce Rate", value: kpiData.loading ? "—" : `${kpiData.bounceRate}%`, change: kpiData.loading ? "" : bounceChangeAdjusted.text, changeType: bounceChangeAdjusted.type, icon: TrendingDown, gradient: "green" as const },
+    { label: "Engagement Rate", value: kpiData.loading ? "—" : `${kpiData.engagementRate}%`, change: kpiData.loading ? "" : engagementChange.text, changeType: engagementChange.type, icon: TrendingUp, gradient: "green" as const },
     { label: "Avg. Session", value: kpiData.loading ? "—" : formatDuration(kpiData.avgSessionDuration), change: kpiData.loading ? "" : durationChange.text, changeType: durationChange.type, icon: Clock, gradient: "amber" as const },
     { label: "Pages/Session", value: kpiData.loading ? "—" : kpiData.pagesPerSession.toString(), change: kpiData.loading ? "" : pagesChange.text, changeType: pagesChange.type, icon: Layers, gradient: "purple" as const },
   ];

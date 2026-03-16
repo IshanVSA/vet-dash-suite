@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 interface WebsiteKPIs {
   visitorsToday: number;
   visitorsLastWeek: number;
-  bounceRate: number;
-  bounceRatePrev: number;
+  engagementRate: number;
+  engagementRatePrev: number;
   avgSessionDuration: number;
   avgSessionDurationPrev: number;
   pagesPerSession: number;
@@ -17,7 +17,7 @@ interface WebsiteKPIs {
 export function useWebsiteKPIs(clinicId?: string): WebsiteKPIs {
   const [data, setData] = useState<WebsiteKPIs>({
     visitorsToday: 0, visitorsLastWeek: 0,
-    bounceRate: 0, bounceRatePrev: 0,
+    engagementRate: 0, engagementRatePrev: 0,
     avgSessionDuration: 0, avgSessionDurationPrev: 0,
     pagesPerSession: 0, pagesPerSessionPrev: 0,
     dailyTraffic: [],
@@ -86,7 +86,8 @@ export function useWebsiteKPIs(clinicId?: string): WebsiteKPIs {
           ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length)
           : 0;
 
-        return { bounceRate, avgDuration, pagesPerSession };
+        const engagementRate = Math.round((1000 - bounceRate * 10)) / 10;
+        return { engagementRate, avgDuration, pagesPerSession };
       };
 
       const current = calcMetrics(currentWeek);
@@ -106,8 +107,8 @@ export function useWebsiteKPIs(clinicId?: string): WebsiteKPIs {
       setData({
         visitorsToday,
         visitorsLastWeek,
-        bounceRate: current.bounceRate,
-        bounceRatePrev: prev.bounceRate,
+        engagementRate: current.engagementRate,
+        engagementRatePrev: prev.engagementRate,
         avgSessionDuration: current.avgDuration,
         avgSessionDurationPrev: prev.avgDuration,
         pagesPerSession: current.pagesPerSession,

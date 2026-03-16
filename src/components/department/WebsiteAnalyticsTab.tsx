@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
-import { Eye, Users, TrendingDown, FileText, Globe, Clock } from "lucide-react";
+import { Eye, Users, TrendingUp, FileText, Globe, Clock } from "lucide-react";
 import { StatsCard } from "@/components/StatsCard";
 import { DateRangeFilter } from "@/components/department/DateRangeFilter";
 
@@ -75,7 +75,8 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
           return (Math.max(...times) - Math.min(...times)) / 1000;
         });
       const avgDuration = durations.length > 0 ? Math.round(durations.reduce((a, b) => a + b, 0) / durations.length) : 0;
-      return { totalViews, uniqueVisitors: totalSessions, bounceRate, avgDuration };
+      const engagementRate = Math.round((100 - bounceRate) * 10) / 10;
+      return { totalViews, uniqueVisitors: totalSessions, engagementRate, avgDuration };
     };
 
     const current = calcKPIs(currentPeriod);
@@ -170,7 +171,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
 
   const viewsChange = pctChange(current.totalViews, prev.totalViews);
   const visitorsChange = pctChange(current.uniqueVisitors, prev.uniqueVisitors);
-  const bounceChange = pctChange(current.bounceRate, prev.bounceRate, true);
+  const engagementChange = pctChange(current.engagementRate, prev.engagementRate);
   const durationChange = pctChange(current.avgDuration, prev.avgDuration);
 
   const formatDuration = (s: number) => {
@@ -188,7 +189,7 @@ export function WebsiteAnalyticsTab({ clinicId }: Props) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatsCard title="Page Views" value={current.totalViews.toLocaleString()} icon={Eye} change={viewsChange.text} changeType={viewsChange.type} index={0} />
         <StatsCard title="Unique Visitors" value={current.uniqueVisitors.toLocaleString()} icon={Users} change={visitorsChange.text} changeType={visitorsChange.type} index={1} />
-        <StatsCard title="Bounce Rate" value={`${current.bounceRate}%`} icon={TrendingDown} change={bounceChange.text} changeType={bounceChange.type} index={2} />
+        <StatsCard title="Engagement Rate" value={`${current.engagementRate}%`} icon={TrendingUp} change={engagementChange.text} changeType={engagementChange.type} index={2} />
         <StatsCard title="Avg. Session" value={formatDuration(current.avgDuration)} icon={Clock} change={durationChange.text} changeType={durationChange.type} index={3} />
       </div>
 
