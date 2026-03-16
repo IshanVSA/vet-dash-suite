@@ -65,7 +65,7 @@ function formatDuration(s: number): string {
 interface Metrics {
   totalViews: number;
   totalSessions: number;
-  bounceRate: number;
+  engagementRate: number;
   avgDuration: number;
   pagesPerSession: number;
   topPages: { path: string; views: number; visitors: number }[];
