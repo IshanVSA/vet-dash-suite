@@ -17,7 +17,7 @@ interface WebsiteKPIs {
 export function useWebsiteKPIs(clinicId?: string): WebsiteKPIs {
   const [data, setData] = useState<WebsiteKPIs>({
     visitorsToday: 0, visitorsLastWeek: 0,
-    bounceRate: 0, bounceRatePrev: 0,
+    engagementRate: 0, engagementRatePrev: 0,
     avgSessionDuration: 0, avgSessionDurationPrev: 0,
     pagesPerSession: 0, pagesPerSessionPrev: 0,
     dailyTraffic: [],
