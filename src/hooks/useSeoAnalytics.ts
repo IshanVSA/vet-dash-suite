@@ -8,6 +8,50 @@ export interface SeoKeyword {
   change: string;
 }
 
+export interface SeoExtendedData {
+  total_keywords_tracked?: number;
+  keywords_top_3?: number;
+  keywords_top_20?: number;
+  keywords_top_50?: number;
+  keywords_not_ranking?: number;
+  new_keywords_gained?: number;
+  keywords_improved?: number;
+  keywords_declined?: number;
+  avg_position?: number;
+  bounce_rate?: number;
+  avg_session_duration?: string;
+  pages_per_session?: number;
+  new_vs_returning?: { new: number; returning: number };
+  top_landing_pages?: { page: string; sessions: number; bounce_rate: number }[];
+  top_traffic_sources?: { source: string; sessions: number; percentage: number }[];
+  referring_domains?: number;
+  referring_domains_list?: { domain: string; da: number; type: string }[];
+  new_backlinks_gained?: number;
+  lost_backlinks?: number;
+  dofollow_backlinks?: number;
+  nofollow_backlinks?: number;
+  backlink_types?: { guest_post: number; directory: number; citation: number; editorial: number; other: number };
+  page_speed_mobile?: number;
+  page_speed_desktop?: number;
+  core_web_vitals?: { lcp: string; fid: string; cls: string; status: string };
+  crawl_errors?: number;
+  indexed_pages?: number;
+  sitemap_pages?: number;
+  technical_issues?: { issue: string; count: number; severity: string }[];
+  top_pages_by_traffic?: { page: string; traffic: number; change: string }[];
+  content_recommendations?: string[];
+  local_seo?: { google_business_profile: string; reviews_count: number; avg_rating: number; local_pack_keywords: number };
+  competitor_comparison?: { competitor: string; da: number; traffic: number; keywords: number }[];
+  monthly_traffic_breakdown?: { organic: number; direct: number; referral: number; social: number; paid: number };
+  device_breakdown?: { desktop: number; mobile: number; tablet: number };
+  geo_breakdown?: { country: string; sessions: number; percentage: number }[];
+  conversion_data?: { goals_completed: number; conversion_rate: number };
+  report_period?: string;
+  report_title?: string;
+  client_name?: string;
+  website_url?: string;
+}
+
 export interface SeoAnalyticsRow {
   id: string;
   clinic_id: string;
@@ -17,6 +61,7 @@ export interface SeoAnalyticsRow {
   keywords_top_10: number;
   organic_traffic: number;
   top_keywords: SeoKeyword[];
+  extended_data: SeoExtendedData;
   updated_by: string | null;
   created_at: string;
   updated_at: string;
@@ -30,6 +75,7 @@ export interface UpsertSeoPayload {
   keywords_top_10: number;
   organic_traffic: number;
   top_keywords: SeoKeyword[];
+  extended_data?: SeoExtendedData;
 }
 
 export function useSeoAnalytics(clinicId?: string) {
@@ -48,7 +94,10 @@ export function useSeoAnalytics(clinicId?: string) {
         .eq("clinic_id", clinicId)
         .order("month", { ascending: true });
       if (error) throw error;
-      return (data || []) as unknown as SeoAnalyticsRow[];
+      return (data || []).map((r: any) => ({
+        ...r,
+        extended_data: r.extended_data || {},
+      })) as unknown as SeoAnalyticsRow[];
     },
     enabled: !!clinicId,
   });
@@ -64,7 +113,6 @@ export function useSeoAnalytics(clinicId?: string) {
 
   const upsertMutation = useMutation({
     mutationFn: async (payload: UpsertSeoPayload) => {
-      // Check if record exists
       const { data: existing } = await (supabase
         .from("seo_analytics" as any)
         .select("id")
@@ -72,17 +120,20 @@ export function useSeoAnalytics(clinicId?: string) {
         .eq("month", payload.month)
         .maybeSingle() as any);
 
+      const record = {
+        domain_authority: payload.domain_authority,
+        backlinks: payload.backlinks,
+        keywords_top_10: payload.keywords_top_10,
+        organic_traffic: payload.organic_traffic,
+        top_keywords: payload.top_keywords,
+        extended_data: payload.extended_data || {},
+        updated_by: user?.id,
+      };
+
       if (existing?.id) {
         const { error } = await (supabase
           .from("seo_analytics" as any)
-          .update({
-            domain_authority: payload.domain_authority,
-            backlinks: payload.backlinks,
-            keywords_top_10: payload.keywords_top_10,
-            organic_traffic: payload.organic_traffic,
-            top_keywords: payload.top_keywords,
-            updated_by: user?.id,
-          })
+          .update(record)
           .eq("id", existing.id) as any);
         if (error) throw error;
       } else {
@@ -91,12 +142,7 @@ export function useSeoAnalytics(clinicId?: string) {
           .insert({
             clinic_id: payload.clinic_id,
             month: payload.month,
-            domain_authority: payload.domain_authority,
-            backlinks: payload.backlinks,
-            keywords_top_10: payload.keywords_top_10,
-            organic_traffic: payload.organic_traffic,
-            top_keywords: payload.top_keywords,
-            updated_by: user?.id,
+            ...record,
           }) as any);
         if (error) throw error;
       }

@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { Plus, Trash2, Upload, Loader2, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { SeoKeyword, UpsertSeoPayload } from "@/hooks/useSeoAnalytics";
+import type { SeoKeyword, UpsertSeoPayload, SeoExtendedData } from "@/hooks/useSeoAnalytics";
 
 interface Props {
   open: boolean;
@@ -21,6 +21,7 @@ interface Props {
     keywords_top_10: number;
     organic_traffic: number;
     top_keywords: SeoKeyword[];
+    extended_data?: SeoExtendedData;
   };
 }
 
@@ -36,6 +37,7 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
   const [kw10, setKw10] = useState(String(defaults?.keywords_top_10 ?? ""));
   const [traffic, setTraffic] = useState(String(defaults?.organic_traffic ?? ""));
   const [keywords, setKeywords] = useState<SeoKeyword[]>(defaults?.top_keywords || [{ keyword: "", position: 0, change: "" }]);
+  const [extendedData, setExtendedData] = useState<SeoExtendedData>(defaults?.extended_data || {});
   const [isExtracting, setIsExtracting] = useState(false);
   const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,7 +84,6 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
 
       if (error) throw error;
 
-      // Auto-populate fields
       if (data.month) setMonth(data.month);
       if (data.domain_authority != null) setDa(String(data.domain_authority));
       if (data.backlinks != null) setBacklinks(String(data.backlinks));
@@ -94,6 +95,9 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
           position: kw.position || 0,
           change: kw.change || "",
         })));
+      }
+      if (data.extended_data) {
+        setExtendedData(data.extended_data);
       }
 
       toast.success("Data extracted from PDF! Please review and save.");
@@ -115,6 +119,7 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
       keywords_top_10: parseInt(kw10) || 0,
       organic_traffic: parseInt(traffic) || 0,
       top_keywords: keywords.filter(k => k.keyword.trim()),
+      extended_data: extendedData,
     };
     try {
       await onSubmit(payload);
@@ -133,7 +138,6 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
         </DialogHeader>
 
         <div className="space-y-4">
-          {/* PDF Upload Area */}
           <div
             className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
               isExtracting
@@ -166,7 +170,7 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
               <div className="flex flex-col items-center gap-2">
                 <Upload className="h-8 w-8 text-muted-foreground" />
                 <p className="text-sm font-medium text-foreground">Upload SEO Report PDF</p>
-                <p className="text-xs text-muted-foreground">AI will extract metrics automatically</p>
+                <p className="text-xs text-muted-foreground">AI will extract all metrics automatically</p>
               </div>
             )}
           </div>
@@ -205,25 +209,9 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
             <div className="space-y-2">
               {keywords.map((kw, i) => (
                 <div key={i} className="flex gap-2 items-start">
-                  <Input
-                    placeholder="Keyword"
-                    value={kw.keyword}
-                    onChange={e => updateKeyword(i, "keyword", e.target.value)}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    placeholder="Pos"
-                    value={kw.position || ""}
-                    onChange={e => updateKeyword(i, "position", parseInt(e.target.value) || 0)}
-                    className="w-16"
-                  />
-                  <Input
-                    placeholder="+/-"
-                    value={kw.change}
-                    onChange={e => updateKeyword(i, "change", e.target.value)}
-                    className="w-16"
-                  />
+                  <Input placeholder="Keyword" value={kw.keyword} onChange={e => updateKeyword(i, "keyword", e.target.value)} className="flex-1" />
+                  <Input type="number" placeholder="Pos" value={kw.position || ""} onChange={e => updateKeyword(i, "position", parseInt(e.target.value) || 0)} className="w-16" />
+                  <Input placeholder="+/-" value={kw.change} onChange={e => updateKeyword(i, "change", e.target.value)} className="w-16" />
                   <Button type="button" variant="ghost" size="icon" className="shrink-0 h-10 w-10 text-muted-foreground hover:text-destructive" onClick={() => removeKeyword(i)}>
                     <Trash2 className="h-3.5 w-3.5" />
                   </Button>
@@ -231,6 +219,18 @@ export function UpdateSeoAnalyticsDialog({ open, onOpenChange, clinicId, onSubmi
               ))}
             </div>
           </div>
+
+          {Object.keys(extendedData).length > 0 && (
+            <div className="rounded-lg border border-border/60 p-3 bg-muted/20">
+              <p className="text-xs font-medium text-muted-foreground mb-1">Extended data extracted</p>
+              <p className="text-[10px] text-muted-foreground">
+                {Object.keys(extendedData).filter(k => {
+                  const v = (extendedData as any)[k];
+                  return v !== null && v !== 0 && v !== "" && !(Array.isArray(v) && v.length === 0);
+                }).length} additional data points will be saved
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter>

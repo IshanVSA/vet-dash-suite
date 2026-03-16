@@ -660,6 +660,7 @@ export type Database = {
           clinic_id: string
           created_at: string
           domain_authority: number
+          extended_data: Json | null
           id: string
           keywords_top_10: number
           month: string
@@ -673,6 +674,7 @@ export type Database = {
           clinic_id: string
           created_at?: string
           domain_authority?: number
+          extended_data?: Json | null
           id?: string
           keywords_top_10?: number
           month: string
@@ -686,6 +688,7 @@ export type Database = {
           clinic_id?: string
           created_at?: string
           domain_authority?: number
+          extended_data?: Json | null
           id?: string
           keywords_top_10?: number
           month?: string

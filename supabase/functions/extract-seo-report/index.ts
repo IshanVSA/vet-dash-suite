@@ -13,7 +13,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Auth check
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
@@ -53,7 +52,6 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Decode base64 PDF and extract text using unpdf
     const binaryStr = atob(pdfBase64);
     const bytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) {
@@ -80,23 +78,65 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Truncate to avoid token limits
-    const truncated = pdfText.slice(0, 12000);
+    const truncated = pdfText.slice(0, 16000);
 
-    const systemPrompt = `You are an SEO report data extractor. Given the text content of a PDF SEO report, extract the following metrics as JSON. Be precise and pull numbers directly from the report.
+    const systemPrompt = `You are an SEO report data extractor. Given the text content of a PDF SEO report, extract EVERY piece of data you can find. Be thorough and precise.
 
 Return a JSON object with these fields:
-- month: string in "YYYY-MM" format (derive from the report date)
-- domain_authority: number (the DA score, look in backlink profile or KPI section; if only individual DA values for referring domains are listed, use 0)
-- backlinks: number (count of referring domains or backlinks, preferably those with DA > 40)
-- keywords_top_10: number (count of keywords ranking in the top 10 positions)
-- organic_traffic: number (total sessions/visits for the reporting period)
-- top_keywords: array of objects with { keyword: string, position: number, change: string }
-  - For position, use the average/current position number (round to nearest integer)
-  - For change, use "+N", "-N", "new", or "—" if no change data
-  - Only include keywords that have ranking data (skip "NO DATA" entries)
 
-If a value cannot be found, use 0 for numbers and [] for arrays.
+PRIMARY METRICS:
+- month: string "YYYY-MM" format (derive from report date)
+- domain_authority: number (DA score)
+- backlinks: number (total backlinks or referring domains count)
+- keywords_top_10: number (keywords ranking in top 10)
+- organic_traffic: number (total sessions/visits)
+- top_keywords: array of { keyword: string, position: number, change: string }
+  - change: "+N", "-N", "new", or "—"
+
+EXTENDED DATA (put everything else in "extended_data" object):
+- total_keywords_tracked: number (total keywords being tracked)
+- keywords_top_3: number (keywords in positions 1-3)
+- keywords_top_20: number (keywords in positions 11-20)
+- keywords_top_50: number (keywords in positions 21-50)
+- keywords_not_ranking: number (keywords with no ranking)
+- new_keywords_gained: number
+- keywords_improved: number (keywords that moved up)
+- keywords_declined: number (keywords that moved down)
+- avg_position: number (average keyword position)
+- bounce_rate: number (as percentage)
+- avg_session_duration: string (e.g. "2m 30s")
+- pages_per_session: number
+- new_vs_returning: { new: number, returning: number } (percentages)
+- top_landing_pages: array of { page: string, sessions: number, bounce_rate: number }
+- top_traffic_sources: array of { source: string, sessions: number, percentage: number }
+- referring_domains: number
+- referring_domains_list: array of { domain: string, da: number, type: string }
+- new_backlinks_gained: number
+- lost_backlinks: number
+- dofollow_backlinks: number
+- nofollow_backlinks: number
+- backlink_types: { guest_post: number, directory: number, citation: number, editorial: number, other: number }
+- page_speed_mobile: number (score 0-100)
+- page_speed_desktop: number (score 0-100)
+- core_web_vitals: { lcp: string, fid: string, cls: string, status: string }
+- crawl_errors: number
+- indexed_pages: number
+- sitemap_pages: number
+- technical_issues: array of { issue: string, count: number, severity: string }
+- top_pages_by_traffic: array of { page: string, traffic: number, change: string }
+- content_recommendations: array of strings
+- local_seo: { google_business_profile: string, reviews_count: number, avg_rating: number, local_pack_keywords: number }
+- competitor_comparison: array of { competitor: string, da: number, traffic: number, keywords: number }
+- monthly_traffic_breakdown: { organic: number, direct: number, referral: number, social: number, paid: number }
+- device_breakdown: { desktop: number, mobile: number, tablet: number }
+- geo_breakdown: array of { country: string, sessions: number, percentage: number }
+- conversion_data: { goals_completed: number, conversion_rate: number }
+- report_period: string (e.g. "March 2026" or "Feb 2026 - Mar 2026")
+- report_title: string
+- client_name: string
+- website_url: string
+
+Only include fields in extended_data that have actual data in the PDF. Use 0 for missing numbers, [] for missing arrays, null for missing objects.
 Always return valid JSON only, no markdown or explanation.`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -109,9 +149,9 @@ Always return valid JSON only, no markdown or explanation.`;
         model: "gpt-4o-mini",
         messages: [
           { role: "system", content: systemPrompt },
-          { role: "user", content: `Extract SEO metrics from this report:\n\n${truncated}` },
+          { role: "user", content: `Extract ALL SEO metrics from this report:\n\n${truncated}` },
         ],
-        max_tokens: 4096,
+        max_tokens: 8192,
         temperature: 0,
         response_format: { type: "json_object" },
       }),
