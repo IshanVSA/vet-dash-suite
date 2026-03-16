@@ -1,10 +1,9 @@
 import { useState, useMemo, useCallback } from "react";
-import { format } from "date-fns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FileText, Download, Globe, Link2, Hash, TrendingUp, BarChart3 } from "lucide-react";
-import { useSeoAnalytics, type SeoKeyword } from "@/hooks/useSeoAnalytics";
+import { useSeoAnalytics, type SeoKeyword, type SeoExtendedData } from "@/hooks/useSeoAnalytics";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
@@ -63,12 +62,23 @@ export function SeoReportsTab({ clinicId }: Props) {
     setGenerating(true);
     try {
       const doc = new jsPDF();
+      const ext: SeoExtendedData = current.extended_data || {};
 
       // ── Header ──
-      const subtitle = prevMonth ? `Month: ${current.month} vs ${prevMonth.month}` : `Month: ${current.month}`;
+      const subtitle = ext.report_period
+        ? `Report Period: ${ext.report_period}`
+        : prevMonth ? `Month: ${current.month} vs ${prevMonth.month}` : `Month: ${current.month}`;
       let y = renderPDFHeader(doc, "SEO Performance Report", clinicName, subtitle, PDF_COLORS.seo);
 
-      // ── KPI Cards ──
+      // Website URL
+      if (ext.website_url) {
+        doc.setFontSize(8);
+        doc.setTextColor(...PDF_COLORS.light);
+        doc.text(`Website: ${ext.website_url}`, 14, y - 4);
+        y += 2;
+      }
+
+      // ── Primary KPI Cards ──
       y = renderKPICards(doc, y, [
         { label: "Domain Authority", value: current.domain_authority.toString(), change: prevMonth ? pctText(current.domain_authority, prevMonth.domain_authority) : undefined },
         { label: "Backlinks", value: current.backlinks.toLocaleString(), change: prevMonth ? pctText(current.backlinks, prevMonth.backlinks) : undefined },
@@ -76,8 +86,55 @@ export function SeoReportsTab({ clinicId }: Props) {
         { label: "Organic Traffic", value: current.organic_traffic.toLocaleString(), change: prevMonth ? pctText(current.organic_traffic, prevMonth.organic_traffic) : undefined },
       ], PDF_COLORS.seo);
 
-      // ── Key Metrics Table ──
-      y = renderSectionHeader(doc, "Key Metrics", y, PDF_COLORS.seo, prevMonth ? `Compared to ${prevMonth.month}` : undefined);
+      // ── Secondary Metrics ──
+      const secondaryMetrics: string[][] = [];
+      if (ext.avg_position) secondaryMetrics.push(["Average Position", ext.avg_position.toFixed(1)]);
+      if (ext.bounce_rate) secondaryMetrics.push(["Bounce Rate", `${ext.bounce_rate}%`]);
+      if (ext.avg_session_duration) secondaryMetrics.push(["Avg Session Duration", ext.avg_session_duration]);
+      if (ext.pages_per_session) secondaryMetrics.push(["Pages per Session", ext.pages_per_session.toString()]);
+      if (ext.total_keywords_tracked) secondaryMetrics.push(["Total Keywords Tracked", ext.total_keywords_tracked.toString()]);
+      if (ext.referring_domains) secondaryMetrics.push(["Referring Domains", ext.referring_domains.toString()]);
+      if (ext.indexed_pages) secondaryMetrics.push(["Indexed Pages", ext.indexed_pages.toLocaleString()]);
+
+      if (secondaryMetrics.length > 0) {
+        y = renderSectionHeader(doc, "Additional Metrics", y, PDF_COLORS.seo);
+        autoTable(doc, {
+          startY: y,
+          head: [["Metric", "Value"]],
+          body: secondaryMetrics,
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Keyword Distribution ──
+      const kwDistRows: string[][] = [];
+      if (ext.keywords_top_3 !== undefined) kwDistRows.push(["Top 3", ext.keywords_top_3.toString()]);
+      kwDistRows.push(["Top 10", current.keywords_top_10.toString()]);
+      if (ext.keywords_top_20 !== undefined) kwDistRows.push(["Top 20", ext.keywords_top_20.toString()]);
+      if (ext.keywords_top_50 !== undefined) kwDistRows.push(["Top 50", ext.keywords_top_50.toString()]);
+      if (ext.keywords_improved !== undefined) kwDistRows.push(["Keywords Improved", ext.keywords_improved.toString()]);
+      if (ext.keywords_declined !== undefined) kwDistRows.push(["Keywords Declined", ext.keywords_declined.toString()]);
+      if (ext.new_keywords_gained !== undefined) kwDistRows.push(["New Keywords Gained", ext.new_keywords_gained.toString()]);
+      if (ext.keywords_not_ranking !== undefined) kwDistRows.push(["Not Ranking", ext.keywords_not_ranking.toString()]);
+
+      if (kwDistRows.length > 1) {
+        y = ensureSpace(doc, y, 50);
+        y = renderSectionHeader(doc, "Keyword Distribution", y, PDF_COLORS.seo);
+        autoTable(doc, {
+          startY: y,
+          head: [["Range", "Count"]],
+          body: kwDistRows,
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Key Metrics Comparison ──
+      y = ensureSpace(doc, y, 60);
+      y = renderSectionHeader(doc, "Key Metrics Comparison", y, PDF_COLORS.seo, prevMonth ? `${current.month} vs ${prevMonth.month}` : undefined);
 
       autoTable(doc, {
         startY: y,
@@ -92,28 +149,311 @@ export function SeoReportsTab({ clinicId }: Props) {
         didParseCell: (data: any) => colorChangeCell(data, 3),
       });
       y = (doc as any).lastAutoTable?.finalY || y + 50;
+      y += 4;
 
       // ── Top Keywords ──
       const keywords: SeoKeyword[] = current.top_keywords || [];
       if (keywords.length > 0) {
-        y = ensureSpace(doc, y + 8, 60);
-        y = renderSectionHeader(doc, "Top Keywords", y, PDF_COLORS.seo);
+        y = ensureSpace(doc, y, 60);
+        y = renderSectionHeader(doc, "Top Keywords", y, PDF_COLORS.seo, `${keywords.length} keywords tracked`);
 
         autoTable(doc, {
           startY: y,
           head: [["#", "Keyword", "Position", "Change"]],
-          body: keywords.map((kw, i) => [(i + 1).toString(), kw.keyword, kw.position.toString(), kw.change]),
+          body: keywords.map((kw, i) => [(i + 1).toString(), kw.keyword, `#${kw.position}`, kw.change]),
           ...getTableStyles(PDF_COLORS.seo),
           columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 90 } },
           didParseCell: (data: any) => colorChangeCell(data, 3),
         });
         y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
       }
 
-      // ── Traffic Trend ──
+      // ── Backlink Profile ──
+      const hasBacklinkData = ext.referring_domains || ext.new_backlinks_gained || ext.dofollow_backlinks;
+      if (hasBacklinkData) {
+        y = ensureSpace(doc, y, 50);
+        y = renderSectionHeader(doc, "Backlink Profile", y, PDF_COLORS.seo);
+
+        const blRows: string[][] = [];
+        if (ext.referring_domains !== undefined) blRows.push(["Referring Domains", ext.referring_domains.toString()]);
+        if (ext.new_backlinks_gained !== undefined) blRows.push(["New Backlinks Gained", `+${ext.new_backlinks_gained}`]);
+        if (ext.lost_backlinks !== undefined) blRows.push(["Lost Backlinks", ext.lost_backlinks.toString()]);
+        if (ext.dofollow_backlinks !== undefined) blRows.push(["Dofollow Backlinks", ext.dofollow_backlinks.toString()]);
+        if (ext.nofollow_backlinks !== undefined) blRows.push(["Nofollow Backlinks", ext.nofollow_backlinks.toString()]);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Metric", "Value"]],
+          body: blRows,
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Referring Domains List ──
+      if (ext.referring_domains_list && ext.referring_domains_list.length > 0) {
+        y = ensureSpace(doc, y, 50);
+        y = renderSectionHeader(doc, "Referring Domains", y, PDF_COLORS.seo, `${ext.referring_domains_list.length} domains`);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Domain", "DA", "Type"]],
+          body: ext.referring_domains_list.map(rd => [rd.domain, rd.da.toString(), rd.type]),
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Page Speed & Core Web Vitals ──
+      if (ext.page_speed_mobile || ext.page_speed_desktop || ext.core_web_vitals) {
+        y = ensureSpace(doc, y, 50);
+        y = renderSectionHeader(doc, "Page Speed & Core Web Vitals", y, PDF_COLORS.seo);
+
+        const speedRows: string[][] = [];
+        if (ext.page_speed_mobile !== undefined) speedRows.push(["Mobile Speed Score", `${ext.page_speed_mobile}/100`]);
+        if (ext.page_speed_desktop !== undefined) speedRows.push(["Desktop Speed Score", `${ext.page_speed_desktop}/100`]);
+        if (ext.core_web_vitals) {
+          speedRows.push(["LCP (Largest Contentful Paint)", ext.core_web_vitals.lcp]);
+          speedRows.push(["FID (First Input Delay)", ext.core_web_vitals.fid]);
+          speedRows.push(["CLS (Cumulative Layout Shift)", ext.core_web_vitals.cls]);
+          if (ext.core_web_vitals.status) speedRows.push(["Core Web Vitals Status", ext.core_web_vitals.status]);
+        }
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Metric", "Value"]],
+          body: speedRows,
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Technical Health ──
+      if (ext.indexed_pages || ext.crawl_errors || ext.sitemap_pages) {
+        y = ensureSpace(doc, y, 50);
+        y = renderSectionHeader(doc, "Technical Health", y, PDF_COLORS.seo);
+
+        const techRows: string[][] = [];
+        if (ext.indexed_pages !== undefined) techRows.push(["Indexed Pages", ext.indexed_pages.toLocaleString()]);
+        if (ext.sitemap_pages !== undefined) techRows.push(["Sitemap Pages", ext.sitemap_pages.toLocaleString()]);
+        if (ext.crawl_errors !== undefined) techRows.push(["Crawl Errors", ext.crawl_errors.toString()]);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Metric", "Value"]],
+          body: techRows,
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Technical Issues ──
+      if (ext.technical_issues && ext.technical_issues.length > 0) {
+        y = ensureSpace(doc, y, 50);
+        y = renderSectionHeader(doc, "Technical Issues", y, PDF_COLORS.seo, `${ext.technical_issues.length} issues found`);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Issue", "Count", "Severity"]],
+          body: ext.technical_issues.map(i => [i.issue, i.count.toString(), i.severity]),
+          ...getTableStyles(PDF_COLORS.seo),
+          didParseCell: (data: any) => {
+            if (data.section === "body" && data.column.index === 2) {
+              const val = (data.cell.text[0] || "").toLowerCase();
+              data.cell.styles.fontStyle = "bold";
+              if (val === "high" || val === "critical") data.cell.styles.textColor = PDF_COLORS.red;
+              else if (val === "medium") data.cell.styles.textColor = [234, 179, 8]; // amber
+              else data.cell.styles.textColor = PDF_COLORS.light;
+            }
+          },
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Top Landing Pages ──
+      if (ext.top_landing_pages && ext.top_landing_pages.length > 0) {
+        y = ensureSpace(doc, y, 50);
+        y = renderSectionHeader(doc, "Top Landing Pages", y, PDF_COLORS.seo, `${ext.top_landing_pages.length} pages`);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Page", "Sessions", "Bounce Rate"]],
+          body: ext.top_landing_pages.map(p => [p.page, p.sessions.toLocaleString(), `${p.bounce_rate}%`]),
+          ...getTableStyles(PDF_COLORS.seo),
+          columnStyles: { 0: { cellWidth: 100 } },
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Top Traffic Sources ──
+      if (ext.top_traffic_sources && ext.top_traffic_sources.length > 0) {
+        y = ensureSpace(doc, y, 50);
+        y = renderSectionHeader(doc, "Top Traffic Sources", y, PDF_COLORS.seo);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Source", "Sessions", "%"]],
+          body: ext.top_traffic_sources.map(s => [s.source, s.sessions.toLocaleString(), `${s.percentage}%`]),
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Top Pages by Traffic ──
+      if (ext.top_pages_by_traffic && ext.top_pages_by_traffic.length > 0) {
+        y = ensureSpace(doc, y, 50);
+        y = renderSectionHeader(doc, "Top Pages by Traffic", y, PDF_COLORS.seo);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Page", "Traffic", "Change"]],
+          body: ext.top_pages_by_traffic.map(p => [p.page, p.traffic.toLocaleString(), p.change]),
+          ...getTableStyles(PDF_COLORS.seo),
+          columnStyles: { 0: { cellWidth: 100 } },
+          didParseCell: (data: any) => colorChangeCell(data, 2),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Device Breakdown ──
+      if (ext.device_breakdown) {
+        y = ensureSpace(doc, y, 40);
+        y = renderSectionHeader(doc, "Device Breakdown", y, PDF_COLORS.seo);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Device", "Percentage"]],
+          body: [
+            ["Desktop", `${ext.device_breakdown.desktop}%`],
+            ["Mobile", `${ext.device_breakdown.mobile}%`],
+            ["Tablet", `${ext.device_breakdown.tablet}%`],
+          ].filter(r => r[1] !== "0%"),
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Traffic Breakdown ──
+      if (ext.monthly_traffic_breakdown) {
+        y = ensureSpace(doc, y, 40);
+        y = renderSectionHeader(doc, "Traffic Channel Breakdown", y, PDF_COLORS.seo);
+
+        const tb = ext.monthly_traffic_breakdown;
+        autoTable(doc, {
+          startY: y,
+          head: [["Channel", "Percentage"]],
+          body: [
+            ["Organic", `${tb.organic}%`],
+            ["Direct", `${tb.direct}%`],
+            ["Referral", `${tb.referral}%`],
+            ["Social", `${tb.social}%`],
+            ["Paid", `${tb.paid}%`],
+          ].filter(r => r[1] !== "0%"),
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Geographic Breakdown ──
+      if (ext.geo_breakdown && ext.geo_breakdown.length > 0) {
+        y = ensureSpace(doc, y, 50);
+        y = renderSectionHeader(doc, "Geographic Breakdown", y, PDF_COLORS.seo);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Country / Region", "Sessions", "%"]],
+          body: ext.geo_breakdown.map(g => [g.country, g.sessions.toLocaleString(), `${g.percentage}%`]),
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Local SEO ──
+      if (ext.local_seo && (ext.local_seo.reviews_count || ext.local_seo.local_pack_keywords)) {
+        y = ensureSpace(doc, y, 50);
+        y = renderSectionHeader(doc, "Local SEO", y, PDF_COLORS.seo);
+
+        const localRows: string[][] = [];
+        if (ext.local_seo.google_business_profile) localRows.push(["Google Business Profile", ext.local_seo.google_business_profile]);
+        if (ext.local_seo.reviews_count) localRows.push(["Reviews", ext.local_seo.reviews_count.toString()]);
+        if (ext.local_seo.avg_rating) localRows.push(["Average Rating", `${ext.local_seo.avg_rating} ★`]);
+        if (ext.local_seo.local_pack_keywords) localRows.push(["Local Pack Keywords", ext.local_seo.local_pack_keywords.toString()]);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Metric", "Value"]],
+          body: localRows,
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Competitor Comparison ──
+      if (ext.competitor_comparison && ext.competitor_comparison.length > 0) {
+        y = ensureSpace(doc, y, 50);
+        y = renderSectionHeader(doc, "Competitor Comparison", y, PDF_COLORS.seo);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Competitor", "DA", "Traffic", "Keywords"]],
+          body: ext.competitor_comparison.map(c => [c.competitor, c.da.toString(), c.traffic.toLocaleString(), c.keywords.toLocaleString()]),
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Conversions ──
+      if (ext.conversion_data && (ext.conversion_data.goals_completed || ext.conversion_data.conversion_rate)) {
+        y = ensureSpace(doc, y, 40);
+        y = renderSectionHeader(doc, "Conversion Data", y, PDF_COLORS.seo);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["Metric", "Value"]],
+          body: [
+            ["Goals Completed", ext.conversion_data.goals_completed.toString()],
+            ["Conversion Rate", `${ext.conversion_data.conversion_rate}%`],
+          ],
+          ...getTableStyles(PDF_COLORS.seo),
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Content Recommendations ──
+      if (ext.content_recommendations && ext.content_recommendations.length > 0) {
+        y = ensureSpace(doc, y, 50);
+        y = renderSectionHeader(doc, "Content Recommendations", y, PDF_COLORS.seo);
+
+        autoTable(doc, {
+          startY: y,
+          head: [["#", "Recommendation"]],
+          body: ext.content_recommendations.map((r, i) => [(i + 1).toString(), r]),
+          ...getTableStyles(PDF_COLORS.seo),
+          columnStyles: { 0: { cellWidth: 15 }, 1: { cellWidth: 160 } },
+        });
+        y = (doc as any).lastAutoTable?.finalY || y + 50;
+        y += 4;
+      }
+
+      // ── Historical Traffic Trend ──
       if (rows.length > 1) {
-        y = ensureSpace(doc, y + 8, 60);
-        y = renderSectionHeader(doc, "Organic Traffic Trend", y, PDF_COLORS.seo);
+        y = ensureSpace(doc, y, 60);
+        y = renderSectionHeader(doc, "Month-over-Month History", y, PDF_COLORS.seo);
 
         autoTable(doc, {
           startY: y,
@@ -135,6 +475,12 @@ export function SeoReportsTab({ clinicId }: Props) {
   if (!clinicId) {
     return <p className="text-muted-foreground text-sm text-center py-12">Select a clinic to generate reports.</p>;
   }
+
+  const ext: SeoExtendedData = current?.extended_data || {};
+  const hasExtended = current && Object.keys(ext).some(k => {
+    const v = (ext as any)[k];
+    return v !== null && v !== 0 && v !== "" && !(Array.isArray(v) && v.length === 0);
+  });
 
   return (
     <div className="space-y-6">
@@ -161,7 +507,10 @@ export function SeoReportsTab({ clinicId }: Props) {
             </Button>
           </div>
           {isLoading && <p className="text-xs text-muted-foreground mt-3">Loading data…</p>}
-          {!isLoading && months.length === 0 && <p className="text-xs text-muted-foreground mt-3">No SEO data available. Use "Update Analytics" to add data.</p>}
+          {!isLoading && months.length === 0 && <p className="text-xs text-muted-foreground mt-3">No SEO data available. Use "Upload SEO Report" to add data.</p>}
+          {hasExtended && (
+            <p className="text-xs text-success mt-3">✓ Extended data available — PDF will include all detailed sections.</p>
+          )}
         </CardContent>
       </Card>
 
@@ -182,6 +531,21 @@ export function SeoReportsTab({ clinicId }: Props) {
               <PreviewStat icon={Hash} label="Keywords Top 10" value={current.keywords_top_10.toString()} change={pctChange(current.keywords_top_10, prevMonth?.keywords_top_10)} />
               <PreviewStat icon={TrendingUp} label="Organic Traffic" value={current.organic_traffic.toLocaleString()} change={pctChange(current.organic_traffic, prevMonth?.organic_traffic)} />
             </div>
+
+            {/* Extended data summary */}
+            {hasExtended && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 pt-3 border-t border-border/40">
+                {ext.avg_position ? <MiniPreview label="Avg Position" value={ext.avg_position.toFixed(1)} /> : null}
+                {ext.bounce_rate ? <MiniPreview label="Bounce Rate" value={`${ext.bounce_rate}%`} /> : null}
+                {ext.page_speed_mobile ? <MiniPreview label="Mobile Speed" value={`${ext.page_speed_mobile}/100`} /> : null}
+                {ext.page_speed_desktop ? <MiniPreview label="Desktop Speed" value={`${ext.page_speed_desktop}/100`} /> : null}
+                {ext.referring_domains ? <MiniPreview label="Referring Domains" value={ext.referring_domains.toString()} /> : null}
+                {ext.indexed_pages ? <MiniPreview label="Indexed Pages" value={ext.indexed_pages.toLocaleString()} /> : null}
+                {ext.crawl_errors ? <MiniPreview label="Crawl Errors" value={ext.crawl_errors.toString()} /> : null}
+                {ext.total_keywords_tracked ? <MiniPreview label="Keywords Tracked" value={ext.total_keywords_tracked.toString()} /> : null}
+              </div>
+            )}
+
             {current.top_keywords && current.top_keywords.length > 0 && (
               <div>
                 <h4 className="text-xs font-semibold text-muted-foreground mb-2">Top Keywords</h4>
@@ -214,6 +578,15 @@ function PreviewStat({ icon: Icon, label, value, change }: { icon: React.Element
       <p className="text-lg font-bold text-foreground">{value}</p>
       <p className="text-[10px] text-muted-foreground mb-1">{label}</p>
       <span className={`text-[10px] font-medium ${change.color}`}>{change.text}</span>
+    </div>
+  );
+}
+
+function MiniPreview({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="text-center p-2 rounded bg-muted/30">
+      <p className="text-sm font-bold text-foreground">{value}</p>
+      <p className="text-[10px] text-muted-foreground">{label}</p>
     </div>
   );
 }

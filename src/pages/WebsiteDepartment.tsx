@@ -285,7 +285,7 @@ export default function WebsiteDepartment() {
       {mode === "seo" && selectedClinicId && (
         <UpdateSeoAnalyticsDialog
           open={seoDialogOpen} onOpenChange={setSeoDialogOpen} clinicId={selectedClinicId} onSubmit={upsertSeoAnalytics} isSubmitting={isUpserting}
-          defaults={latest ? { month: latest.month, domain_authority: latest.domain_authority, backlinks: latest.backlinks, keywords_top_10: latest.keywords_top_10, organic_traffic: latest.organic_traffic, top_keywords: latest.top_keywords } : undefined}
+          defaults={latest ? { month: latest.month, domain_authority: latest.domain_authority, backlinks: latest.backlinks, keywords_top_10: latest.keywords_top_10, organic_traffic: latest.organic_traffic, top_keywords: latest.top_keywords, extended_data: latest.extended_data } : undefined}
         />
       )}
     </DashboardLayout>
