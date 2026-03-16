@@ -162,8 +162,7 @@ export default function WebsiteDepartment() {
 
   // Website KPIs
   const visitorsChange = formatChange(kpiData.visitorsToday, kpiData.visitorsLastWeek);
-  const bounceChange = formatChange(kpiData.bounceRate, kpiData.bounceRatePrev, "%");
-  const bounceChangeAdjusted = { ...bounceChange, type: bounceChange.type === "positive" ? "negative" as const : bounceChange.type === "negative" ? "positive" as const : "neutral" as const };
+  const engagementChange = formatChange(kpiData.engagementRate, kpiData.engagementRatePrev, "%");
   const durationChange = formatChange(kpiData.avgSessionDuration, kpiData.avgSessionDurationPrev);
   const pagesChange = formatChange(kpiData.pagesPerSession, kpiData.pagesPerSessionPrev);
 
