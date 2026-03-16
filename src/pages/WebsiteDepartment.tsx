@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Search, MessageSquare, Hash, Link2, TrendingUp, Pencil, Eye, Clock, Layers } from "lucide-react";
+import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Search, Hash, Link2, TrendingUp, Eye, Clock, Layers } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
@@ -18,8 +18,8 @@ import { useUserRole } from "@/hooks/useUserRole";
 import { useAuth } from "@/hooks/useAuth";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ComingSoonTab } from "@/components/department/ComingSoonTab";
 import { SeoReportsTab } from "@/components/department/SeoReportsTab";
+import { SeoAnalyticsTab } from "@/components/department/SeoAnalyticsTab";
 import { UpdateSeoAnalyticsDialog } from "@/components/department/UpdateSeoAnalyticsDialog";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -45,7 +45,7 @@ const websiteServices = [
 const seoTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "tickets", label: "Tickets", icon: Ticket },
-  { value: "seo-thread", label: "SEO Thread", icon: MessageSquare },
+  { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "reports", label: "Reports", icon: FileText },
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
@@ -274,7 +274,7 @@ export default function WebsiteDepartment() {
                 <DepartmentOverview kpis={seoKpis} services={seoServices} trafficData={seoTrafficData.length > 0 ? seoTrafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={seoTeam} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} />
               </TabsContent>
               <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={seoServices} clinicId={selectedClinicId} /></TabsContent>
-              <TabsContent value="seo-thread" className="mt-4"><ComingSoonTab label="SEO Thread" /></TabsContent>
+              <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
               <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
               <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
             </>
