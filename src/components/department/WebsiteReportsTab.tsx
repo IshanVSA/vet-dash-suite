@@ -193,11 +193,11 @@ export function WebsiteReportsTab({ clinicId }: Props) {
       let y = renderPDFHeader(doc, "Website Performance Report", clinicName, dateStr, PDF_COLORS.website);
 
       // ── KPI Cards ──
-      const pm = prevMetrics || { totalViews: 0, totalSessions: 0, bounceRate: 0, avgDuration: 0, pagesPerSession: 0 };
+      const pm = prevMetrics || { totalViews: 0, totalSessions: 0, engagementRate: 0, avgDuration: 0, pagesPerSession: 0 };
       y = renderKPICards(doc, y, [
         { label: "Page Views", value: metrics.totalViews.toLocaleString(), change: changes.views.text },
         { label: "Visitors", value: metrics.totalSessions.toLocaleString(), change: changes.visitors.text },
-        { label: "Bounce Rate", value: `${metrics.bounceRate}%`, change: changes.bounce.text },
+        { label: "Engagement Rate", value: `${metrics.engagementRate}%`, change: changes.engagement.text },
         { label: "Avg. Session", value: formatDuration(metrics.avgDuration), change: changes.duration.text },
       ], PDF_COLORS.website);
 
