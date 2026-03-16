@@ -1,0 +1,1 @@
+ALTER TABLE public.seo_analytics ADD COLUMN IF NOT EXISTS extended_data jsonb DEFAULT '{}'::jsonb;
