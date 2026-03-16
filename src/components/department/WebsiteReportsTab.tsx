@@ -84,6 +84,7 @@ function calcMetrics(views: Pageview[]): Metrics {
   const totalViews = views.length;
   const bounces = sessionList.filter(s => s.length === 1).length;
   const bounceRate = totalSessions > 0 ? Math.round((bounces / totalSessions) * 1000) / 10 : 0;
+  const engagementRate = Math.round((100 - bounceRate) * 10) / 10;
   const pagesPerSession = totalSessions > 0 ? Math.round((totalViews / totalSessions) * 10) / 10 : 0;
   const durations = sessionList
     .filter(s => s.length > 1)
