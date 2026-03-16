@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 interface WebsiteKPIs {
   visitorsToday: number;
   visitorsLastWeek: number;
-  bounceRate: number;
-  bounceRatePrev: number;
+  engagementRate: number;
+  engagementRatePrev: number;
   avgSessionDuration: number;
   avgSessionDurationPrev: number;
   pagesPerSession: number;
