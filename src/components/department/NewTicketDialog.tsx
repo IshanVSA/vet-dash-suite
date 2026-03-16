@@ -9,6 +9,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Upload, X, FileIcon, Loader2 } from "lucide-react";
+import { TimeChangesForm } from "./ticket-forms/TimeChangesForm";
+import { PopupOffersForm } from "./ticket-forms/PopupOffersForm";
+import { ThemeUpdatesForm } from "./ticket-forms/ThemeUpdatesForm";
+import { AddRemoveTeamForm } from "./ticket-forms/AddRemoveTeamForm";
+import { NewFormsForm } from "./ticket-forms/NewFormsForm";
+import { PriceListForm } from "./ticket-forms/PriceListForm";
 
 interface NewTicketDialogProps {
   open: boolean;
@@ -25,31 +31,61 @@ interface AttachedFile {
   preview?: string;
 }
 
+const CUSTOM_FORM_TYPES = ["Time Changes", "Pop-up Offers", "Theme Updates", "Add/Remove Team Members", "New Forms", "Price List Updates"];
+
+const AUTO_TITLES: Record<string, string> = {
+  "Time Changes": "Time Changes Request",
+  "Pop-up Offers": "Pop-up Offer Request",
+  "Theme Updates": "Theme Update Request",
+  "Add/Remove Team Members": "Team Member Update Request",
+  "New Forms": "New Form Request",
+  "Price List Updates": "Price List Update Request",
+};
+
 export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "", clinicId }: NewTicketDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [title, setTitle] = useState("");
   const [ticketType, setTicketType] = useState(defaultType);
   const [priority, setPriority] = useState<"regular" | "urgent" | "emergency">("regular");
-  const [description, setDescription] = useState("");
+  const [customDescription, setCustomDescription] = useState("");
+  const [genericDescription, setGenericDescription] = useState("");
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const isCustomForm = CUSTOM_FORM_TYPES.includes(ticketType);
+
   useEffect(() => {
-    if (open && defaultType) setTicketType(defaultType);
+    if (open && defaultType) {
+      setTicketType(defaultType);
+      if (AUTO_TITLES[defaultType]) {
+        setTitle(AUTO_TITLES[defaultType]);
+      }
+    }
   }, [open, defaultType]);
+
+  useEffect(() => {
+    if (AUTO_TITLES[ticketType] && (!title || Object.values(AUTO_TITLES).includes(title))) {
+      setTitle(AUTO_TITLES[ticketType]);
+    }
+  }, [ticketType]);
 
   const reset = () => {
     setTitle("");
     setTicketType("");
     setPriority("regular");
-    setDescription("");
+    setCustomDescription("");
+    setGenericDescription("");
     setNotes("");
     setFiles([]);
   };
+
+  const handleCustomFormChange = useCallback((desc: string) => {
+    setCustomDescription(desc);
+  }, []);
 
   const addFiles = useCallback((newFiles: FileList | File[]) => {
     const arr = Array.from(newFiles).slice(0, 5 - files.length);
@@ -96,15 +132,16 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     }
     if (!user) return;
 
+    const finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
+
     setLoading(true);
 
-    // Create ticket first
     const { data: ticket, error } = await supabase.from("department_tickets" as any).insert({
       title: title.trim(),
       department,
       ticket_type: ticketType,
       priority,
-      description: description.trim() || null,
+      description: finalDescription,
       notes: notes.trim() || null,
       created_by: user.id,
       ...(clinicId ? { clinic_id: clinicId } : {}),
@@ -117,7 +154,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       return;
     }
 
-    // Upload files if any
     if (files.length > 0) {
       setUploading(true);
       const paths = await uploadFiles((ticket as any).id);
@@ -142,11 +178,30 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
+  const renderCustomForm = () => {
+    switch (ticketType) {
+      case "Time Changes":
+        return <TimeChangesForm onChange={handleCustomFormChange} />;
+      case "Pop-up Offers":
+        return <PopupOffersForm onChange={handleCustomFormChange} />;
+      case "Theme Updates":
+        return <ThemeUpdatesForm onChange={handleCustomFormChange} />;
+      case "Add/Remove Team Members":
+        return <AddRemoveTeamForm onChange={handleCustomFormChange} />;
+      case "New Forms":
+        return <NewFormsForm onChange={handleCustomFormChange} />;
+      case "Price List Updates":
+        return <PriceListForm onChange={handleCustomFormChange} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>New Ticket</DialogTitle>
+          <DialogTitle>New Ticket — {ticketType || "Select Type"}</DialogTitle>
           <DialogDescription>Create a new support ticket for this department.</DialogDescription>
         </DialogHeader>
 
@@ -181,10 +236,15 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
             </div>
           </div>
 
-          <div className="space-y-1.5">
-            <Label htmlFor="ticket-desc">Description</Label>
-            <Textarea id="ticket-desc" placeholder="Describe the issue in detail..." value={description} onChange={e => setDescription(e.target.value)} rows={3} maxLength={2000} />
-          </div>
+          {/* Custom or generic description */}
+          {isCustomForm ? (
+            renderCustomForm()
+          ) : (
+            <div className="space-y-1.5">
+              <Label htmlFor="ticket-desc">Description</Label>
+              <Textarea id="ticket-desc" placeholder="Describe the issue in detail..." value={genericDescription} onChange={e => setGenericDescription(e.target.value)} rows={3} maxLength={2000} />
+            </div>
+          )}
 
           {/* Attachments */}
           <div className="space-y-1.5">
