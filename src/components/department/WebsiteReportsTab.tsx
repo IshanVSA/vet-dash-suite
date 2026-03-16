@@ -124,7 +124,7 @@ function calcMetrics(views: Pageview[]): Metrics {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, count]) => ({ date, count }));
 
-  return { totalViews, totalSessions, bounceRate, avgDuration, pagesPerSession, topPages, topReferrers, dailyTraffic };
+  return { totalViews, totalSessions, engagementRate, avgDuration, pagesPerSession, topPages, topReferrers, dailyTraffic };
 }
 
 function pctChange(cur: number, prev: number, invertBetter = false): { pct: number; text: string; type: "positive" | "negative" | "neutral" } {
