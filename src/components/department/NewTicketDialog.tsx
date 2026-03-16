@@ -211,8 +211,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
             <Input id="ticket-title" placeholder="Brief summary of the issue" value={title} onChange={e => setTitle(e.target.value)} maxLength={200} />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
+          <div className={isCustomForm ? "" : "grid grid-cols-2 gap-3"}>
+            <div className={isCustomForm ? "space-y-1.5" : "space-y-1.5"}>
               <Label>Type *</Label>
               <Select value={ticketType} onValueChange={setTicketType}>
                 <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
@@ -223,17 +223,19 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>Priority</Label>
-              <Select value={priority} onValueChange={v => setPriority(v as any)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="regular">Regular (24-48 hrs)</SelectItem>
-                  <SelectItem value="urgent">Urgent</SelectItem>
-                  <SelectItem value="emergency">Emergency</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+            {!isCustomForm && (
+              <div className="space-y-1.5">
+                <Label>Priority</Label>
+                <Select value={priority} onValueChange={v => setPriority(v as any)}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="regular">Regular (24-48 hrs)</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value="emergency">Emergency</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
 
           {/* Custom or generic description */}
