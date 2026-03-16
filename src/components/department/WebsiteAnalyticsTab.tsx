@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
-import { Eye, Users, TrendingDown, FileText, Globe, Clock } from "lucide-react";
+import { Eye, Users, TrendingUp, FileText, Globe, Clock } from "lucide-react";
 import { StatsCard } from "@/components/StatsCard";
 import { DateRangeFilter } from "@/components/department/DateRangeFilter";
 
