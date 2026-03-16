@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Search, MessageSquare, Hash, Link2, TrendingUp, Pencil, Eye, TrendingDown, Clock, Layers } from "lucide-react";
+import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Search, MessageSquare, Hash, Link2, TrendingUp, Pencil, Eye, Clock, Layers } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
