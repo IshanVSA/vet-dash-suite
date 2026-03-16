@@ -170,11 +170,11 @@ export function WebsiteReportsTab({ clinicId }: Props) {
 
   const changes = useMemo(() => {
     if (!metrics) return null;
-    const pm = prevMetrics || { totalViews: 0, totalSessions: 0, bounceRate: 0, avgDuration: 0, pagesPerSession: 0 };
+    const pm = prevMetrics || { totalViews: 0, totalSessions: 0, engagementRate: 0, avgDuration: 0, pagesPerSession: 0 };
     return {
       views: pctChange(metrics.totalViews, pm.totalViews),
       visitors: pctChange(metrics.totalSessions, pm.totalSessions),
-      bounce: pctChange(metrics.bounceRate, pm.bounceRate, true),
+      engagement: pctChange(metrics.engagementRate, pm.engagementRate),
       duration: pctChange(metrics.avgDuration, pm.avgDuration),
       pages: pctChange(metrics.pagesPerSession, pm.pagesPerSession),
     };
