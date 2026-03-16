@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import pdf from "npm:pdf-parse@1.1.1";
+import { getDocumentProxy, extractText } from "npm:unpdf@0.12.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Decode base64 PDF and extract text
+    // Decode base64 PDF and extract text using unpdf
     const binaryStr = atob(pdfBase64);
     const bytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) {
@@ -62,8 +62,9 @@ Deno.serve(async (req) => {
 
     let pdfText: string;
     try {
-      const pdfData = await pdf(Buffer.from(bytes));
-      pdfText = pdfData.text;
+      const doc = await getDocumentProxy(bytes);
+      const { text } = await extractText(doc, { mergePages: true });
+      pdfText = text;
     } catch (e) {
       console.error("PDF parse error:", e);
       return new Response(JSON.stringify({ error: "Could not parse PDF file" }), {
