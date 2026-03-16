@@ -41,31 +41,32 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
       <Label className="text-sm font-medium">Business Hours</Label>
       <div className="space-y-2">
         {DAYS.map(day => (
-          <div key={day} className="flex items-center gap-3 p-2 rounded-md bg-muted/30">
-            <div className="w-24 text-sm font-medium text-foreground">{day}</div>
+          <div key={day} className="flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0">
+            <div className="w-20 shrink-0 text-sm font-medium text-foreground truncate">{day}</div>
             <Switch
               checked={schedule[day].open}
               onCheckedChange={v => update(day, "open", v)}
+              className="shrink-0"
             />
-            <span className="text-xs text-muted-foreground w-10">
+            <span className="text-xs text-muted-foreground w-10 shrink-0">
               {schedule[day].open ? "Open" : "Closed"}
             </span>
             {schedule[day].open && (
-              <>
+              <div className="flex items-center gap-1.5 min-w-0">
                 <Input
                   type="time"
                   value={schedule[day].openTime}
                   onChange={e => update(day, "openTime", e.target.value)}
-                  className="w-28 h-8 text-xs"
+                  className="w-24 h-8 text-xs min-w-0"
                 />
-                <span className="text-muted-foreground text-xs">to</span>
+                <span className="text-muted-foreground text-xs shrink-0">to</span>
                 <Input
                   type="time"
                   value={schedule[day].closeTime}
                   onChange={e => update(day, "closeTime", e.target.value)}
-                  className="w-28 h-8 text-xs"
+                  className="w-24 h-8 text-xs min-w-0"
                 />
-              </>
+              </div>
             )}
           </div>
         ))}
