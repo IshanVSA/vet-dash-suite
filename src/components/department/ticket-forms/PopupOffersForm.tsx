@@ -246,12 +246,12 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       {verificationResult && (
         <div className={`rounded-lg border p-3 space-y-2 text-sm ${
           verificationResult.compliant
-            ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/30"
+            ? "border-primary/30 bg-primary/5"
             : "border-destructive/30 bg-destructive/5"
         }`}>
           <div className="flex items-center gap-2 font-medium">
             {verificationResult.compliant ? (
-              <><ShieldCheck className="h-4 w-4 text-green-600" /> Offer is compliant</>
+              <><ShieldCheck className="h-4 w-4 text-primary" /> Offer is compliant</>
             ) : (
               <><ShieldAlert className="h-4 w-4 text-destructive" /> Compliance issues found</>
             )}
