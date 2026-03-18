@@ -44,7 +44,10 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
       `Start Date: ${startDate ? format(startDate, "PPP") : "(not set)"}`,
       endDate ? `End Date: ${format(endDate, "PPP")}` : "End Date: Ongoing",
     ].join("\n");
-    onChange(`${datePart}\n\nUpdated Business Hours:\n${lines.join("\n")}`);
+    const statHolidayInfo = statHolidayOpen
+      ? `Statutory Holidays: Open (${statHolidayOpenTime} - ${statHolidayCloseTime})`
+      : "Statutory Holidays: Closed";
+    onChange(`${datePart}\n\nUpdated Business Hours:\n${lines.join("\n")}\n\n${statHolidayInfo}`);
   }, [schedule, startDate, endDate, onChange]);
 
   const update = (day: string, field: keyof DaySchedule, value: string | boolean) => {
