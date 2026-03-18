@@ -318,6 +318,22 @@
   .dept-tint-social::before { background: radial-gradient(circle, hsl(var(--dept-social) / 0.12) 0%, transparent 70%); }
   .dept-tint-social::after { color: hsl(var(--dept-social)); }
 
+  /* Dark mode: soften orb and watermark */
+  .dark .dept-tint-website::before,
+  .dark .dept-tint-seo::before,
+  .dark .dept-tint-ai-seo::before,
+  .dark .dept-tint-ads::before,
+  .dark .dept-tint-social::before {
+    opacity: 0.7;
+  }
+  .dark .dept-tint-website::after,
+  .dark .dept-tint-seo::after,
+  .dark .dept-tint-ai-seo::after,
+  .dark .dept-tint-ads::after,
+  .dark .dept-tint-social::after {
+    opacity: 0.025;
+  }
+
   .premium-focus:focus-visible {
     @apply outline-none ring-2 ring-primary/20 ring-offset-2 ring-offset-background;
   }
