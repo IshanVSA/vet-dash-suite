@@ -126,8 +126,16 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   };
 
   const handleSubmit = async () => {
-    if (!title.trim() || !ticketType) {
+    if (!isCustomForm && (!title.trim() || !ticketType)) {
       toast.error("Title and Type are required");
+      return;
+    }
+    if (isCustomForm && !ticketType) {
+      toast.error("Type is required");
+      return;
+    }
+    if (ticketType === "Time Changes" && !customDescription.includes("Start Date:") || (ticketType === "Time Changes" && customDescription.includes("(not set)"))) {
+      toast.error("Start date is required for Time Changes");
       return;
     }
     if (!user) return;
