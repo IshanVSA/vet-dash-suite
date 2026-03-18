@@ -12,6 +12,7 @@ import ClinicDetail from "./pages/ClinicDetail";
 import SocialMedia from "./pages/SocialMedia";
 import WebsiteDepartment from "./pages/WebsiteDepartment";
 import SeoDepartment from "./pages/SeoDepartment";
+import AiSeoDepartment from "./pages/AiSeoDepartment";
 import GoogleAdsDepartment from "./pages/GoogleAdsDepartment";
 import AdminReview from "./pages/AdminReview";
 import Employees from "./pages/Employees";
