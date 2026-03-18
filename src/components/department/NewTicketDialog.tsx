@@ -197,7 +197,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       case "Time Changes":
         return <TimeChangesForm onChange={handleCustomFormChange} />;
       case "Pop-up Offers":
-        return <PopupOffersForm onChange={handleCustomFormChange} />;
+        return <PopupOffersForm onChange={handleCustomFormChange} onConsentChange={setPopupConsented} clinicId={clinicId} />;
       case "Theme Updates":
         return <ThemeUpdatesForm onChange={handleCustomFormChange} />;
       case "Add/Remove Team Members":
