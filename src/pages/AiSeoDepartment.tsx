@@ -9,7 +9,7 @@ export default function AiSeoDepartment() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-4">
+      <div className="space-y-4 dept-tint-ai-seo min-h-full -m-6 p-6">
         <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
           <div className="h-8 w-8 rounded-lg bg-[hsl(var(--dept-ai-seo))]/10 flex items-center justify-center">
             <Sparkles className="h-4 w-4 text-[hsl(var(--dept-ai-seo))]" />
