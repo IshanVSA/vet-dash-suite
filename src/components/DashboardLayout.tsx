@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
   ShieldCheck, LayoutDashboard, UserCheck,
-  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText,
+  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, Search,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,7 @@ const departmentServices: Record<string, { label: string; services: string[] }> 
 const deptDotColors: Record<string, string> = {
   "/website": "bg-[hsl(var(--dept-website))]",
   "/seo": "bg-[hsl(var(--dept-seo))]",
+  "/ai-seo": "bg-[hsl(var(--dept-seo))]",
   "/google-ads": "bg-[hsl(var(--dept-ads))]",
   "/social": "bg-[hsl(var(--dept-social))]",
 };
@@ -49,8 +50,9 @@ interface NavSection {
 const adminSections: NavSection[] = [
   { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
   { title: "DEPARTMENTS", items: [
-    { label: "Website + SEO", icon: Globe, path: "/website" },
-    { label: "AI SEO", icon: Sparkles, path: "/seo" },
+    { label: "Website", icon: Globe, path: "/website" },
+    { label: "SEO", icon: Search, path: "/seo" },
+    { label: "AI SEO", icon: Sparkles, path: "/ai-seo" },
     { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
     { label: "Social Media", icon: Share2, path: "/social" },
   ]},
@@ -69,8 +71,9 @@ const adminSections: NavSection[] = [
 const conciergeSections: NavSection[] = [
   { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
   { title: "DEPARTMENTS", items: [
-    { label: "Website + SEO", icon: Globe, path: "/website" },
-    { label: "AI SEO", icon: Sparkles, path: "/seo" },
+    { label: "Website", icon: Globe, path: "/website" },
+    { label: "SEO", icon: Search, path: "/seo" },
+    { label: "AI SEO", icon: Sparkles, path: "/ai-seo" },
     { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
     { label: "Social Media", icon: Share2, path: "/social" },
   ]},
@@ -82,7 +85,7 @@ const conciergeSections: NavSection[] = [
 ];
 
 const pageTitles: Record<string, string> = {
-  "/": "Dashboard", "/website": "Website + SEO", "/seo": "AI SEO", "/google-ads": "Google Ads",
+  "/": "Dashboard", "/website": "Website", "/seo": "SEO", "/ai-seo": "AI SEO", "/google-ads": "Google Ads",
   "/social": "Social Media", "/review": "Admin Review", "/clinics": "Clinics",
   "/employees": "Team Members", "/clients": "Clients", "/reports": "Reports", "/settings": "Settings",
 };
@@ -123,8 +126,9 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const clientSections: NavSection[] = [
     { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
     { title: "DEPARTMENTS", items: [
-      { label: "Website + SEO", icon: Globe, path: "/website" },
-      { label: "AI SEO", icon: Sparkles, path: "/seo" },
+      { label: "Website", icon: Globe, path: "/website" },
+      { label: "SEO", icon: Search, path: "/seo" },
+      { label: "AI SEO", icon: Sparkles, path: "/ai-seo" },
       { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
       { label: "Social Media", icon: Share2, path: "/social" },
     ]},

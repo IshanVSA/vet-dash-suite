@@ -1,9 +1,7 @@
-import { useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Search, Hash, Link2, TrendingUp, Eye, Clock, Layers } from "lucide-react";
+import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
@@ -13,22 +11,8 @@ import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useWebsiteKPIs } from "@/hooks/useWebsiteKPIs";
-import { useSeoAnalytics } from "@/hooks/useSeoAnalytics";
-import { useUserRole } from "@/hooks/useUserRole";
-import { useAuth } from "@/hooks/useAuth";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { SeoReportsTab } from "@/components/department/SeoReportsTab";
-import { SeoAnalyticsTab } from "@/components/department/SeoAnalyticsTab";
-import { UpdateSeoAnalyticsDialog } from "@/components/department/UpdateSeoAnalyticsDialog";
-import { Card, CardContent } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import type { SeoKeyword } from "@/hooks/useSeoAnalytics";
 
-// ── Website config ──
-const websiteTabs = [
+const tabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "tickets", label: "Tickets", icon: Ticket },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
@@ -36,23 +20,11 @@ const websiteTabs = [
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
 
-const websiteServices = [
+const services = [
   "Time Changes", "Pop-up Offers", "Theme Updates", "Add/Remove Team Members",
   "New Forms", "Price List Updates", "Others",
 ];
 
-// ── SEO config ──
-const seoTabs = [
-  { value: "overview", label: "Overview", icon: LayoutDashboard },
-  { value: "tickets", label: "Tickets", icon: Ticket },
-  { value: "analytics", label: "Analytics", icon: BarChart3 },
-  { value: "reports", label: "Reports", icon: FileText },
-  { value: "uploads", label: "Uploads", icon: Upload },
-];
-
-const seoServices = ["Backlinking", "Ranking Reports", "Keyword Research", "Manual Work Reports", "Search Atlas Integration", "SEO Thread Updates", "Others"];
-
-// ── Helpers ──
 function formatDuration(seconds: number): string {
   if (seconds <= 0) return "0s";
   const m = Math.floor(seconds / 60);
@@ -69,183 +41,47 @@ function formatChange(current: number, previous: number, suffix = ""): { text: s
   return { text: `${sign}${pct}% vs last week`, type: pct > 0 ? "positive" : pct < 0 ? "negative" : "neutral" };
 }
 
-function TopKeywordsCard({ keywords }: { keywords: SeoKeyword[] }) {
-  if (keywords.length === 0) {
-    return (
-      <Card className="border-border/60">
-        <div className="px-4 py-3 border-b border-border/40">
-          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Hash className="h-3.5 w-3.5 text-muted-foreground" /> Top Keywords
-          </h3>
-        </div>
-        <CardContent className="pt-4">
-          <p className="text-sm text-muted-foreground text-center">No keyword data yet.</p>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  return (
-    <Card className="border-border/60">
-      <div className="px-4 py-3 border-b border-border/40">
-        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
-          <Hash className="h-3.5 w-3.5 text-muted-foreground" /> Top Keywords
-        </h3>
-      </div>
-      <CardContent className="p-0">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-12">#</TableHead>
-              <TableHead>Keyword</TableHead>
-              <TableHead className="text-right w-20">Position</TableHead>
-              <TableHead className="text-right w-20">Change</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {keywords.map((kw, i) => (
-              <TableRow key={i}>
-                <TableCell className="font-medium text-muted-foreground">{i + 1}</TableCell>
-                <TableCell className="font-medium">{kw.keyword}</TableCell>
-                <TableCell className="text-right tabular-nums">{kw.position}</TableCell>
-                <TableCell className={`text-right tabular-nums font-medium ${kw.change.startsWith("+") ? "text-success" : kw.change.startsWith("-") ? "text-destructive" : ""}`}>
-                  {kw.change}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-}
-
-function useCanEditSeo() {
-  const { role } = useUserRole();
-  const { user } = useAuth();
-  const { data: profile } = useQuery({
-    queryKey: ["profile-team-role", user?.id],
-    queryFn: async () => {
-      if (!user) return null;
-      const { data } = await supabase.from("profiles").select("team_role").eq("id", user.id).maybeSingle();
-      return data;
-    },
-    enabled: !!user,
-  });
-  return role === "admin" || profile?.team_role === "SEO Lead";
-}
-
-const fallbackSeoKpis = [
-  { label: "Domain Authority", value: 0, icon: Globe, gradient: "blue" as const },
-  { label: "Backlinks", value: 0, icon: Link2, gradient: "green" as const },
-  { label: "Keywords Top 10", value: 0, icon: Hash, gradient: "amber" as const },
-  { label: "Organic Traffic", value: 0, icon: TrendingUp, gradient: "purple" as const },
-];
-
 export default function WebsiteDepartment() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [mode, setMode] = useState<"website" | "seo">("website");
   const currentTab = searchParams.get("tab") || "overview";
   const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
-
-  // Website hooks
-  const { team: websiteTeam } = useDepartmentTeam("website", selectedClinicId);
+  const { team } = useDepartmentTeam("website", selectedClinicId);
   const kpiData = useWebsiteKPIs(selectedClinicId);
-
-  // SEO hooks
-  const { team: seoTeam } = useDepartmentTeam("seo", selectedClinicId);
-  const { latest, trafficData: seoTrafficData, topKeywords, isLoading: seoLoading, upsertSeoAnalytics, isUpserting } = useSeoAnalytics(selectedClinicId);
-  const canEditSeo = useCanEditSeo();
-  const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
   const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
 
-  // Website KPIs
   const visitorsChange = formatChange(kpiData.visitorsToday, kpiData.visitorsLastWeek);
   const engagementChange = formatChange(kpiData.engagementRate, kpiData.engagementRatePrev, "%");
   const durationChange = formatChange(kpiData.avgSessionDuration, kpiData.avgSessionDurationPrev);
   const pagesChange = formatChange(kpiData.pagesPerSession, kpiData.pagesPerSessionPrev);
 
-  const websiteKpis = [
+  const kpis = [
     { label: "Visitors Today", value: kpiData.loading ? "—" : kpiData.visitorsToday.toLocaleString(), change: kpiData.loading ? "" : visitorsChange.text, changeType: visitorsChange.type, icon: Eye, gradient: "blue" as const },
     { label: "Engagement Rate", value: kpiData.loading ? "—" : `${kpiData.engagementRate}%`, change: kpiData.loading ? "" : engagementChange.text, changeType: engagementChange.type, icon: TrendingUp, gradient: "green" as const },
     { label: "Avg. Session", value: kpiData.loading ? "—" : formatDuration(kpiData.avgSessionDuration), change: kpiData.loading ? "" : durationChange.text, changeType: durationChange.type, icon: Clock, gradient: "amber" as const },
     { label: "Pages/Session", value: kpiData.loading ? "—" : kpiData.pagesPerSession.toString(), change: kpiData.loading ? "" : pagesChange.text, changeType: pagesChange.type, icon: Layers, gradient: "purple" as const },
   ];
 
-  const websiteTrafficData = kpiData.dailyTraffic.length > 0 ? kpiData.dailyTraffic : [{ label: "—", value: 0 }];
-
-  // SEO KPIs
-  const seoKpis = latest
-    ? [
-        { label: "Domain Authority", value: latest.domain_authority, icon: Globe, gradient: "blue" as const },
-        { label: "Backlinks", value: latest.backlinks.toLocaleString(), icon: Link2, gradient: "green" as const },
-        { label: "Keywords Top 10", value: latest.keywords_top_10, icon: Hash, gradient: "amber" as const },
-        { label: "Organic Traffic", value: latest.organic_traffic.toLocaleString(), icon: TrendingUp, gradient: "purple" as const },
-      ]
-    : fallbackSeoKpis;
+  const trafficData = kpiData.dailyTraffic.length > 0 ? kpiData.dailyTraffic : [{ label: "—", value: 0 }];
 
   const handleTabChange = (v: string) => {
     setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true });
   };
 
-  const handleModeSwitch = (newMode: "website" | "seo") => {
-    setMode(newMode);
-    setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", "overview"); return next; }, { replace: true });
-  };
-
-  const tabs = mode === "website" ? websiteTabs : seoTabs;
-
   return (
     <DashboardLayout>
       <div className="space-y-4">
-        {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-lg bg-[hsl(var(--dept-website))]/10 flex items-center justify-center">
-              {mode === "website" ? <Globe className="h-4 w-4 text-[hsl(var(--dept-website))]" /> : <Search className="h-4 w-4 text-[hsl(var(--dept-seo))]" />}
+              <Globe className="h-4 w-4 text-[hsl(var(--dept-website))]" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-foreground tracking-tight">Website + SEO</h1>
+              <h1 className="text-lg font-bold text-foreground tracking-tight">Website</h1>
               {selectedClinicName && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinicName}</p>}
             </div>
-
-            {/* Pill toggle */}
-            <div className="relative inline-flex items-center rounded-full bg-muted p-0.5 ml-1">
-              <motion.div
-                className="absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-full bg-primary shadow-sm"
-                animate={{ x: mode === "website" ? 2 : "calc(100% + 2px)" }}
-                transition={{ type: "spring", stiffness: 500, damping: 30 }}
-              />
-              <button
-                onClick={() => handleModeSwitch("website")}
-                className={cn(
-                  "relative z-10 w-[72px] py-1 text-xs font-semibold rounded-full transition-colors duration-200 text-center",
-                  mode === "website" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Website
-              </button>
-              <button
-                onClick={() => handleModeSwitch("seo")}
-                className={cn(
-                  "relative z-10 w-[72px] py-1 text-xs font-semibold rounded-full transition-colors duration-200 text-center",
-                  mode === "seo" ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                SEO
-              </button>
-            </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            {mode === "seo" && canEditSeo && selectedClinicId && (
-              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setSeoDialogOpen(true)}>
-                <Upload className="h-3 w-3" /> Upload SEO Report
-              </Button>
-            )}
-            <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />
-          </div>
+          <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />
         </div>
 
         <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
@@ -258,36 +94,15 @@ export default function WebsiteDepartment() {
             ))}
           </TabsList>
 
-          {mode === "website" ? (
-            <>
-              <TabsContent value="overview" className="mt-4">
-                <DepartmentOverview kpis={websiteKpis} services={websiteServices} trafficData={websiteTrafficData} trafficLabel="Weekly Traffic" team={websiteTeam} department="website" accentColor="hsl(var(--dept-website))" clinicId={selectedClinicId} />
-              </TabsContent>
-              <TabsContent value="tickets" className="mt-4"><TicketsTab department="website" services={websiteServices} clinicId={selectedClinicId} /></TabsContent>
-              <TabsContent value="analytics" className="mt-4"><WebsiteAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
-              <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
-              <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
-            </>
-          ) : (
-            <>
-              <TabsContent value="overview" className="mt-4">
-                <DepartmentOverview kpis={seoKpis} services={seoServices} trafficData={seoTrafficData.length > 0 ? seoTrafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={seoTeam} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} />
-              </TabsContent>
-              <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={seoServices} clinicId={selectedClinicId} /></TabsContent>
-              <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
-              <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
-              <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
-            </>
-          )}
+          <TabsContent value="overview" className="mt-4">
+            <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData} trafficLabel="Weekly Traffic" team={team} department="website" accentColor="hsl(var(--dept-website))" clinicId={selectedClinicId} />
+          </TabsContent>
+          <TabsContent value="tickets" className="mt-4"><TicketsTab department="website" services={services} clinicId={selectedClinicId} /></TabsContent>
+          <TabsContent value="analytics" className="mt-4"><WebsiteAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
+          <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
+          <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
         </Tabs>
       </div>
-
-      {mode === "seo" && selectedClinicId && (
-        <UpdateSeoAnalyticsDialog
-          open={seoDialogOpen} onOpenChange={setSeoDialogOpen} clinicId={selectedClinicId} onSubmit={upsertSeoAnalytics} isSubmitting={isUpserting}
-          defaults={latest ? { month: latest.month, domain_authority: latest.domain_authority, backlinks: latest.backlinks, keywords_top_10: latest.keywords_top_10, organic_traffic: latest.organic_traffic, top_keywords: latest.top_keywords, extended_data: latest.extended_data } : undefined}
-        />
-      )}
     </DashboardLayout>
   );
 }

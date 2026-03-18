@@ -12,6 +12,7 @@ import ClinicDetail from "./pages/ClinicDetail";
 import SocialMedia from "./pages/SocialMedia";
 import WebsiteDepartment from "./pages/WebsiteDepartment";
 import SeoDepartment from "./pages/SeoDepartment";
+import AiSeoDepartment from "./pages/AiSeoDepartment";
 import GoogleAdsDepartment from "./pages/GoogleAdsDepartment";
 import AdminReview from "./pages/AdminReview";
 import Employees from "./pages/Employees";
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/social" element={<ProtectedRoute><SocialMedia /></ProtectedRoute>} />
           <Route path="/website" element={<ProtectedRoute><WebsiteDepartment /></ProtectedRoute>} />
           <Route path="/seo" element={<ProtectedRoute><SeoDepartment /></ProtectedRoute>} />
+          <Route path="/ai-seo" element={<ProtectedRoute><AiSeoDepartment /></ProtectedRoute>} />
           <Route path="/google-ads" element={<ProtectedRoute><GoogleAdsDepartment /></ProtectedRoute>} />
           <Route path="/clinics" element={<ProtectedRoute allowedRoles={["admin", "concierge"]}><Clinics /></ProtectedRoute>} />
           <Route path="/clinics/:id" element={<ProtectedRoute><ClinicDetail /></ProtectedRoute>} />
