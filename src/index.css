@@ -225,7 +225,13 @@
   .dept-border-ads { border-left: 3px solid hsl(var(--dept-ads)); }
   .dept-border-social { border-left: 3px solid hsl(var(--dept-social)); }
 
-  /* Premium focus ring */
+  /* Department page background tints */
+  .dept-tint-website { background-image: radial-gradient(ellipse 60% 50% at 0% 0%, hsl(var(--dept-website) / 0.06) 0%, transparent 70%); }
+  .dept-tint-seo { background-image: radial-gradient(ellipse 60% 50% at 0% 0%, hsl(var(--dept-seo) / 0.06) 0%, transparent 70%); }
+  .dept-tint-ai-seo { background-image: radial-gradient(ellipse 60% 50% at 0% 0%, hsl(var(--dept-ai-seo) / 0.06) 0%, transparent 70%); }
+  .dept-tint-ads { background-image: radial-gradient(ellipse 60% 50% at 0% 0%, hsl(var(--dept-ads) / 0.06) 0%, transparent 70%); }
+  .dept-tint-social { background-image: radial-gradient(ellipse 60% 50% at 0% 0%, hsl(var(--dept-social) / 0.06) 0%, transparent 70%); }
+
   .premium-focus:focus-visible {
     @apply outline-none ring-2 ring-primary/20 ring-offset-2 ring-offset-background;
   }
