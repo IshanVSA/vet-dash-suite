@@ -265,7 +265,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
           )}
 
           {/* Attachments — hidden for Time Changes */}
-          {ticketType !== "Time Changes" && (
+          {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && (
             <div className="space-y-1.5">
               <Label>Attachments <span className="text-muted-foreground font-normal">({files.length}/5)</span></Label>
               <input
