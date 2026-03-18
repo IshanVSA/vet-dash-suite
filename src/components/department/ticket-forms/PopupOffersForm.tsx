@@ -273,7 +273,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
               <p className="text-xs font-medium text-muted-foreground">Suggestions:</p>
               {verificationResult.suggestions.map((sug, i) => (
                 <div key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-                  <Lightbulb className="h-3 w-3 mt-0.5 shrink-0 text-amber-500" />
+                  <Lightbulb className="h-3 w-3 mt-0.5 shrink-0 text-accent-foreground" />
                   <span>{sug}</span>
                 </div>
               ))}
