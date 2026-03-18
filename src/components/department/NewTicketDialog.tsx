@@ -250,67 +250,69 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
             </div>
           )}
 
-          {/* Attachments */}
-          <div className="space-y-1.5">
-            <Label>Attachments <span className="text-muted-foreground font-normal">({files.length}/5)</span></Label>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip"
-              onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = ""; }}
-            />
-            <div
-              className={`border-2 border-dashed rounded-lg p-4 transition-colors cursor-pointer ${
-                dragOver
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:border-primary/50 hover:bg-muted/30"
-              }`}
-              onClick={() => files.length < 5 && fileInputRef.current?.click()}
-              onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-              onDragLeave={() => setDragOver(false)}
-              onDrop={handleDrop}
-            >
-              {files.length === 0 ? (
-                <div className="flex flex-col items-center justify-center text-muted-foreground py-1">
-                  <Upload className="h-5 w-5 mb-1" />
-                  <span className="text-xs">Drag & drop files here or click to browse</span>
-                  <span className="text-[10px] mt-0.5">Images, PDFs, Docs, Spreadsheets (max 5 files)</span>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {files.map((f, i) => (
-                    <div key={i} className="flex items-center gap-2 p-1.5 rounded-md bg-muted/40 group">
-                      {f.preview ? (
-                        <img src={f.preview} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
-                      ) : (
-                        <div className="h-8 w-8 rounded bg-muted flex items-center justify-center shrink-0">
-                          <FileIcon className="h-4 w-4 text-muted-foreground" />
+          {/* Attachments — hidden for Time Changes */}
+          {ticketType !== "Time Changes" && (
+            <div className="space-y-1.5">
+              <Label>Attachments <span className="text-muted-foreground font-normal">({files.length}/5)</span></Label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                className="hidden"
+                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip"
+                onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = ""; }}
+              />
+              <div
+                className={`border-2 border-dashed rounded-lg p-4 transition-colors cursor-pointer ${
+                  dragOver
+                    ? "border-primary bg-primary/5"
+                    : "border-border hover:border-primary/50 hover:bg-muted/30"
+                }`}
+                onClick={() => files.length < 5 && fileInputRef.current?.click()}
+                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={handleDrop}
+              >
+                {files.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center text-muted-foreground py-1">
+                    <Upload className="h-5 w-5 mb-1" />
+                    <span className="text-xs">Drag & drop files here or click to browse</span>
+                    <span className="text-[10px] mt-0.5">Images, PDFs, Docs, Spreadsheets (max 5 files)</span>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {files.map((f, i) => (
+                      <div key={i} className="flex items-center gap-2 p-1.5 rounded-md bg-muted/40 group">
+                        {f.preview ? (
+                          <img src={f.preview} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
+                        ) : (
+                          <div className="h-8 w-8 rounded bg-muted flex items-center justify-center shrink-0">
+                            <FileIcon className="h-4 w-4 text-muted-foreground" />
+                          </div>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-medium truncate text-foreground">{f.file.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{formatSize(f.file.size)}</p>
                         </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <p className="text-xs font-medium truncate text-foreground">{f.file.name}</p>
-                        <p className="text-[10px] text-muted-foreground">{formatSize(f.file.size)}</p>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={e => { e.stopPropagation(); removeFile(i); }}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                        onClick={e => { e.stopPropagation(); removeFile(i); }}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  ))}
-                  {files.length < 5 && (
-                    <p className="text-[10px] text-center text-muted-foreground">Click or drop to add more</p>
-                  )}
-                </div>
-              )}
+                    ))}
+                    {files.length < 5 && (
+                      <p className="text-[10px] text-center text-muted-foreground">Click or drop to add more</p>
+                    )}
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
+          )}
 
           <div className="space-y-1.5">
             <Label htmlFor="ticket-notes">Notes</Label>
