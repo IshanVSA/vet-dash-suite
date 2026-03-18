@@ -154,6 +154,39 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
           ))}
         </div>
       </div>
+
+      {/* Stat Holiday Hours */}
+      <div className="space-y-1.5">
+        <Label className="text-sm font-medium">Statutory Holiday Hours</Label>
+        <div className="flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0">
+          <div className="w-20 shrink-0 text-sm font-medium text-foreground">Stat Holidays</div>
+          <Switch
+            checked={statHolidayOpen}
+            onCheckedChange={setStatHolidayOpen}
+            className="shrink-0"
+          />
+          <span className="text-xs text-muted-foreground w-10 shrink-0">
+            {statHolidayOpen ? "Open" : "Closed"}
+          </span>
+          {statHolidayOpen && (
+            <div className="flex items-center gap-1.5 min-w-0">
+              <Input
+                type="time"
+                value={statHolidayOpenTime}
+                onChange={e => setStatHolidayOpenTime(e.target.value)}
+                className="w-24 h-8 text-xs min-w-0"
+              />
+              <span className="text-muted-foreground text-xs shrink-0">to</span>
+              <Input
+                type="time"
+                value={statHolidayCloseTime}
+                onChange={e => setStatHolidayCloseTime(e.target.value)}
+                className="w-24 h-8 text-xs min-w-0"
+              />
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
