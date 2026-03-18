@@ -11,8 +11,8 @@ export default function AiSeoDepartment() {
     <DashboardLayout>
       <div className="space-y-4">
         <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
-          <div className="h-8 w-8 rounded-lg bg-[hsl(var(--dept-seo))]/10 flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-[hsl(var(--dept-seo))]" />
+          <div className="h-8 w-8 rounded-lg bg-[hsl(var(--dept-ai-seo))]/10 flex items-center justify-center">
+            <Sparkles className="h-4 w-4 text-[hsl(var(--dept-ai-seo))]" />
           </div>
           <h1 className="text-lg font-bold text-foreground tracking-tight">AI SEO</h1>
         </div>
