@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.extract-seo-report]
 verify_jwt = false
+
+[functions.verify-popup-offer]
+verify_jwt = false

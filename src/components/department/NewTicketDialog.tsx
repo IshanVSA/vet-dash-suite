@@ -54,6 +54,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [popupConsented, setPopupConsented] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isCustomForm = CUSTOM_FORM_TYPES.includes(ticketType);
@@ -81,6 +82,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setGenericDescription("");
     setNotes("");
     setFiles([]);
+    setPopupConsented(false);
   };
 
   const handleCustomFormChange = useCallback((desc: string) => {
@@ -138,6 +140,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       toast.error("Start date is required for Time Changes");
       return;
     }
+    if (ticketType === "Pop-up Offers" && !popupConsented) {
+      toast.error("Please verify the offer and provide consent before submitting");
+      return;
+    }
     if (!user) return;
 
     const finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
@@ -191,7 +197,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       case "Time Changes":
         return <TimeChangesForm onChange={handleCustomFormChange} />;
       case "Pop-up Offers":
-        return <PopupOffersForm onChange={handleCustomFormChange} />;
+        return <PopupOffersForm onChange={handleCustomFormChange} onConsentChange={setPopupConsented} clinicId={clinicId} />;
       case "Theme Updates":
         return <ThemeUpdatesForm onChange={handleCustomFormChange} />;
       case "Add/Remove Team Members":
@@ -259,7 +265,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
           )}
 
           {/* Attachments — hidden for Time Changes */}
-          {ticketType !== "Time Changes" && (
+          {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && (
             <div className="space-y-1.5">
               <Label>Attachments <span className="text-muted-foreground font-normal">({files.length}/5)</span></Label>
               <input
@@ -330,7 +336,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={loading || uploading}>
+          <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented)}>
             {uploading ? (
               <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
             ) : loading ? "Creating…" : "Create Ticket"}
