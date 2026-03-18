@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   Building2, Users, BarChart3, Settings, LogOut, Menu, X, ChevronRight,
   ShieldCheck, LayoutDashboard, UserCheck,
-  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, Search,
+  Sun, Moon, PanelLeftClose, PanelLeft, Share2, Megaphone, Globe, Sparkles, Plus, FileText, SearchCode,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -51,7 +51,7 @@ const adminSections: NavSection[] = [
   { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
   { title: "DEPARTMENTS", items: [
     { label: "Website", icon: Globe, path: "/website" },
-    { label: "SEO", icon: Search, path: "/seo" },
+    { label: "SEO", icon: SearchCode, path: "/seo" },
     { label: "AI SEO", icon: Sparkles, path: "/ai-seo" },
     { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
     { label: "Social Media", icon: Share2, path: "/social" },
@@ -72,7 +72,7 @@ const conciergeSections: NavSection[] = [
   { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
   { title: "DEPARTMENTS", items: [
     { label: "Website", icon: Globe, path: "/website" },
-    { label: "SEO", icon: Search, path: "/seo" },
+    { label: "SEO", icon: SearchCode, path: "/seo" },
     { label: "AI SEO", icon: Sparkles, path: "/ai-seo" },
     { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
     { label: "Social Media", icon: Share2, path: "/social" },
@@ -127,7 +127,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
     { title: "DEPARTMENTS", items: [
       { label: "Website", icon: Globe, path: "/website" },
-      { label: "SEO", icon: Search, path: "/seo" },
+      { label: "SEO", icon: SearchCode, path: "/seo" },
       { label: "AI SEO", icon: Sparkles, path: "/ai-seo" },
       { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
       { label: "Social Media", icon: Share2, path: "/social" },
