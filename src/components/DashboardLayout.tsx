@@ -30,7 +30,7 @@ const departmentServices: Record<string, { label: string; services: string[] }> 
 const deptDotColors: Record<string, string> = {
   "/website": "bg-[hsl(var(--dept-website))]",
   "/seo": "bg-[hsl(var(--dept-seo))]",
-  "/ai-seo": "bg-[hsl(var(--dept-seo))]",
+  "/ai-seo": "bg-[hsl(var(--dept-ai-seo))]",
   "/google-ads": "bg-[hsl(var(--dept-ads))]",
   "/social": "bg-[hsl(var(--dept-social))]",
 };
