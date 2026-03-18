@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { CalendarIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
 
 interface DaySchedule {
   open: boolean;
@@ -23,53 +29,124 @@ interface TimeChangesFormProps {
 
 export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
   const [schedule, setSchedule] = useState<WeekSchedule>(defaultSchedule);
+  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [endDate, setEndDate] = useState<Date | undefined>(undefined);
 
   useEffect(() => {
     const lines = DAYS.map(day => {
       const s = schedule[day];
       return s.open ? `${day}: ${s.openTime} - ${s.closeTime}` : `${day}: Closed`;
     });
-    onChange("Updated Business Hours:\n" + lines.join("\n"));
-  }, [schedule, onChange]);
+    const datePart = [
+      `Start Date: ${startDate ? format(startDate, "PPP") : "(not set)"}`,
+      endDate ? `End Date: ${format(endDate, "PPP")}` : "End Date: Ongoing",
+    ].join("\n");
+    onChange(`${datePart}\n\nUpdated Business Hours:\n${lines.join("\n")}`);
+  }, [schedule, startDate, endDate, onChange]);
 
   const update = (day: string, field: keyof DaySchedule, value: string | boolean) => {
     setSchedule(prev => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
   };
 
   return (
-    <div className="space-y-3">
-      <Label className="text-sm font-medium">Business Hours</Label>
-      <div className="space-y-2">
-        {DAYS.map(day => (
-          <div key={day} className="flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0">
-            <div className="w-20 shrink-0 text-sm font-medium text-foreground truncate">{day}</div>
-            <Switch
-              checked={schedule[day].open}
-              onCheckedChange={v => update(day, "open", v)}
-              className="shrink-0"
-            />
-            <span className="text-xs text-muted-foreground w-10 shrink-0">
-              {schedule[day].open ? "Open" : "Closed"}
-            </span>
-            {schedule[day].open && (
-              <div className="flex items-center gap-1.5 min-w-0">
-                <Input
-                  type="time"
-                  value={schedule[day].openTime}
-                  onChange={e => update(day, "openTime", e.target.value)}
-                  className="w-24 h-8 text-xs min-w-0"
-                />
-                <span className="text-muted-foreground text-xs shrink-0">to</span>
-                <Input
-                  type="time"
-                  value={schedule[day].closeTime}
-                  onChange={e => update(day, "closeTime", e.target.value)}
-                  className="w-24 h-8 text-xs min-w-0"
-                />
-              </div>
-            )}
-          </div>
-        ))}
+    <div className="space-y-4">
+      {/* Date range */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">
+            Start Date <span className="text-destructive">*</span>
+          </Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal h-9 text-xs",
+                  !startDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                {startDate ? format(startDate, "PPP") : "Pick start date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={setStartDate}
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+        <div className="space-y-1.5">
+          <Label className="text-sm font-medium">End Date</Label>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-full justify-start text-left font-normal h-9 text-xs",
+                  !endDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-3.5 w-3.5" />
+                {endDate ? format(endDate, "PPP") : "Ongoing"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={endDate}
+                onSelect={setEndDate}
+                disabled={(date) =>
+                  date < (startDate || new Date(new Date().setHours(0, 0, 0, 0)))
+                }
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      </div>
+
+      {/* Schedule grid */}
+      <div className="space-y-1.5">
+        <Label className="text-sm font-medium">Business Hours</Label>
+        <div className="space-y-2">
+          {DAYS.map(day => (
+            <div key={day} className="flex flex-wrap items-center gap-2 p-2 rounded-md bg-muted/30 min-w-0">
+              <div className="w-20 shrink-0 text-sm font-medium text-foreground truncate">{day}</div>
+              <Switch
+                checked={schedule[day].open}
+                onCheckedChange={v => update(day, "open", v)}
+                className="shrink-0"
+              />
+              <span className="text-xs text-muted-foreground w-10 shrink-0">
+                {schedule[day].open ? "Open" : "Closed"}
+              </span>
+              {schedule[day].open && (
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <Input
+                    type="time"
+                    value={schedule[day].openTime}
+                    onChange={e => update(day, "openTime", e.target.value)}
+                    className="w-24 h-8 text-xs min-w-0"
+                  />
+                  <span className="text-muted-foreground text-xs shrink-0">to</span>
+                  <Input
+                    type="time"
+                    value={schedule[day].closeTime}
+                    onChange={e => update(day, "closeTime", e.target.value)}
+                    className="w-24 h-8 text-xs min-w-0"
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
