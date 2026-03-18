@@ -1,70 +1,184 @@
+import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Search, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Globe, Link2, Hash, TrendingUp } from "lucide-react";
+import { DepartmentOverview } from "@/components/department/DepartmentOverview";
+import { TicketsTab } from "@/components/department/TicketsTab";
+import { SeoAnalyticsTab } from "@/components/department/SeoAnalyticsTab";
+import { SeoReportsTab } from "@/components/department/SeoReportsTab";
+import { UploadsTab } from "@/components/department/UploadsTab";
+import { ClinicSelector } from "@/components/department/ClinicSelector";
+import { UpdateSeoAnalyticsDialog } from "@/components/department/UpdateSeoAnalyticsDialog";
+import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
+import { useClinicSelector } from "@/hooks/useClinicSelector";
+import { useSeoAnalytics } from "@/hooks/useSeoAnalytics";
+import { useUserRole } from "@/hooks/useUserRole";
+import { useAuth } from "@/hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent } from "@/components/ui/card";
-import { Sparkles, Lock, ShieldCheck } from "lucide-react";
-import { useAiSeoAccess } from "@/hooks/useAiSeoAccess";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import type { SeoKeyword } from "@/hooks/useSeoAnalytics";
+
+const tabs = [
+  { value: "overview", label: "Overview", icon: LayoutDashboard },
+  { value: "tickets", label: "Tickets", icon: Ticket },
+  { value: "analytics", label: "Analytics", icon: BarChart3 },
+  { value: "reports", label: "Reports", icon: FileText },
+  { value: "uploads", label: "Uploads", icon: Upload },
+];
+
+const services = ["Backlinking", "Ranking Reports", "Keyword Research", "Manual Work Reports", "Search Atlas Integration", "SEO Thread Updates", "Others"];
+
+function TopKeywordsCard({ keywords }: { keywords: SeoKeyword[] }) {
+  if (keywords.length === 0) {
+    return (
+      <Card className="border-border/60">
+        <div className="px-4 py-3 border-b border-border/40">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Hash className="h-3.5 w-3.5 text-muted-foreground" /> Top Keywords
+          </h3>
+        </div>
+        <CardContent className="pt-4">
+          <p className="text-sm text-muted-foreground text-center">No keyword data yet.</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="border-border/60">
+      <div className="px-4 py-3 border-b border-border/40">
+        <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+          <Hash className="h-3.5 w-3.5 text-muted-foreground" /> Top Keywords
+        </h3>
+      </div>
+      <CardContent className="p-0">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-12">#</TableHead>
+              <TableHead>Keyword</TableHead>
+              <TableHead className="text-right w-20">Position</TableHead>
+              <TableHead className="text-right w-20">Change</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {keywords.map((kw, i) => (
+              <TableRow key={i}>
+                <TableCell className="font-medium text-muted-foreground">{i + 1}</TableCell>
+                <TableCell className="font-medium">{kw.keyword}</TableCell>
+                <TableCell className="text-right tabular-nums">{kw.position}</TableCell>
+                <TableCell className={`text-right tabular-nums font-medium ${kw.change.startsWith("+") ? "text-success" : kw.change.startsWith("-") ? "text-destructive" : ""}`}>
+                  {kw.change}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function useCanEditSeo() {
+  const { role } = useUserRole();
+  const { user } = useAuth();
+  const { data: profile } = useQuery({
+    queryKey: ["profile-team-role", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      const { data } = await supabase.from("profiles").select("team_role").eq("id", user.id).maybeSingle();
+      return data;
+    },
+    enabled: !!user,
+  });
+  return role === "admin" || profile?.team_role === "SEO Lead";
+}
+
+const fallbackKpis = [
+  { label: "Domain Authority", value: 0, icon: Globe, gradient: "blue" as const },
+  { label: "Backlinks", value: 0, icon: Link2, gradient: "green" as const },
+  { label: "Keywords Top 10", value: 0, icon: Hash, gradient: "amber" as const },
+  { label: "Organic Traffic", value: 0, icon: TrendingUp, gradient: "purple" as const },
+];
 
 export default function SeoDepartment() {
-  const { hasAccess, isLoading } = useAiSeoAccess();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const currentTab = searchParams.get("tab") || "overview";
+  const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
+  const { team } = useDepartmentTeam("seo", selectedClinicId);
+  const { latest, trafficData, topKeywords, isLoading, upsertSeoAnalytics, isUpserting } = useSeoAnalytics(selectedClinicId);
+  const canEditSeo = useCanEditSeo();
+  const [seoDialogOpen, setSeoDialogOpen] = useState(false);
+
+  const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
+
+  const kpis = latest
+    ? [
+        { label: "Domain Authority", value: latest.domain_authority, icon: Globe, gradient: "blue" as const },
+        { label: "Backlinks", value: latest.backlinks.toLocaleString(), icon: Link2, gradient: "green" as const },
+        { label: "Keywords Top 10", value: latest.keywords_top_10, icon: Hash, gradient: "amber" as const },
+        { label: "Organic Traffic", value: latest.organic_traffic.toLocaleString(), icon: TrendingUp, gradient: "purple" as const },
+      ]
+    : fallbackKpis;
+
+  const handleTabChange = (v: string) => {
+    setSearchParams((prev) => { const next = new URLSearchParams(prev); next.set("tab", v); return next; }, { replace: true });
+  };
 
   return (
     <DashboardLayout>
       <div className="space-y-4">
-        <div className="flex items-center gap-2.5 pb-3 border-b border-border/60">
-          <div className="h-8 w-8 rounded-lg bg-[hsl(var(--dept-seo))]/10 flex items-center justify-center">
-            <Sparkles className="h-4 w-4 text-[hsl(var(--dept-seo))]" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-8 rounded-lg bg-[hsl(var(--dept-seo))]/10 flex items-center justify-center">
+              <Search className="h-4 w-4 text-[hsl(var(--dept-seo))]" />
+            </div>
+            <div>
+              <h1 className="text-lg font-bold text-foreground tracking-tight">SEO</h1>
+              {selectedClinicName && <p className="text-xs text-muted-foreground -mt-0.5">{selectedClinicName}</p>}
+            </div>
           </div>
-          <h1 className="text-lg font-bold text-foreground tracking-tight">AI SEO</h1>
+
+          <div className="flex items-center gap-2">
+            {canEditSeo && selectedClinicId && (
+              <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs" onClick={() => setSeoDialogOpen(true)}>
+                <Upload className="h-3 w-3" /> Upload SEO Report
+              </Button>
+            )}
+            <ClinicSelector clinics={clinics} selectedClinicId={selectedClinicId} onSelect={setSelectedClinicId} loading={clinicsLoading} />
+          </div>
         </div>
 
-        {isLoading ? (
-          <div className="space-y-4">
-            <Skeleton className="h-40 w-full" />
-          </div>
-        ) : hasAccess ? (
-          <Card className="border-dashed">
-            <CardContent className="flex flex-col items-center justify-center py-20 text-center">
-              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center mb-4">
-                <Sparkles className="h-7 w-7 text-primary" />
-              </div>
-              <h3 className="text-xl font-bold text-foreground mb-2">AI SEO</h3>
-              <p className="text-sm text-muted-foreground max-w-md">
-                Our AI-powered SEO tools are coming soon. Stay tuned for intelligent keyword research, automated content optimization, and smart ranking insights.
-              </p>
-              <span className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-                <Sparkles className="h-3 w-3" /> Coming Soon
-              </span>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-border/60 bg-muted/30">
-            <CardContent className="flex flex-col items-center justify-center py-24 text-center">
-              <div className="relative mb-6">
-                <div className="h-20 w-20 rounded-3xl bg-muted flex items-center justify-center">
-                  <Sparkles className="h-10 w-10 text-muted-foreground/40" />
-                </div>
-                <div className="absolute -bottom-2 -right-2 h-9 w-9 rounded-full bg-destructive/10 border-4 border-background flex items-center justify-center">
-                  <Lock className="h-4 w-4 text-destructive" />
-                </div>
-              </div>
-              <h3 className="text-xl font-bold text-foreground mb-2">AI SEO is Locked</h3>
-              <p className="text-sm text-muted-foreground max-w-md mb-6">
-                Unlock AI-powered SEO tools including intelligent keyword research, automated content optimization, and smart ranking insights by upgrading to the AI SEO plan.
-              </p>
-              <div className="flex flex-col items-center gap-3">
-                <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Keyword Research</span>
-                  <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Content Optimization</span>
-                  <span className="flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5" /> Ranking Insights</span>
-                </div>
-                <span className="inline-flex items-center gap-1.5 rounded-full bg-destructive/10 px-4 py-1.5 text-xs font-semibold text-destructive">
-                  <Lock className="h-3 w-3" /> Plan Required
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
+          <TabsList className="w-full justify-start bg-muted/50 h-10 p-1 overflow-x-auto">
+            {tabs.map(tab => (
+              <TabsTrigger key={tab.value} value={tab.value} className="gap-1.5 text-xs data-[state=active]:shadow-sm">
+                <tab.icon className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">{tab.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+
+          <TabsContent value="overview" className="mt-4">
+            <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} />
+          </TabsContent>
+          <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={services} clinicId={selectedClinicId} /></TabsContent>
+          <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
+          <TabsContent value="reports" className="mt-4"><SeoReportsTab clinicId={selectedClinicId} /></TabsContent>
+          <TabsContent value="uploads" className="mt-4"><UploadsTab department="seo" clinicId={selectedClinicId} /></TabsContent>
+        </Tabs>
       </div>
+
+      {selectedClinicId && (
+        <UpdateSeoAnalyticsDialog
+          open={seoDialogOpen} onOpenChange={setSeoDialogOpen} clinicId={selectedClinicId} onSubmit={upsertSeoAnalytics} isSubmitting={isUpserting}
+          defaults={latest ? { month: latest.month, domain_authority: latest.domain_authority, backlinks: latest.backlinks, keywords_top_10: latest.keywords_top_10, organic_traffic: latest.organic_traffic, top_keywords: latest.top_keywords, extended_data: latest.extended_data } : undefined}
+        />
+      )}
     </DashboardLayout>
   );
 }
