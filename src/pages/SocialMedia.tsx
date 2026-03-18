@@ -50,7 +50,7 @@ export default function SocialMedia() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 dept-tint-social min-h-full -m-6 p-6">
+      <div className="space-y-4 dept-tint-social min-h-full -m-6 p-6" data-dept="Social Media">
         {/* Compact page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
           <div className="flex items-center gap-2.5">
