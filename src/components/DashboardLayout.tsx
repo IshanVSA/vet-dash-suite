@@ -50,8 +50,9 @@ interface NavSection {
 const adminSections: NavSection[] = [
   { items: [{ label: "Dashboard", icon: LayoutDashboard, path: "/" }] },
   { title: "DEPARTMENTS", items: [
-    { label: "Website + SEO", icon: Globe, path: "/website" },
-    { label: "AI SEO", icon: Sparkles, path: "/seo" },
+    { label: "Website", icon: Globe, path: "/website" },
+    { label: "SEO", icon: Search, path: "/seo" },
+    { label: "AI SEO", icon: Sparkles, path: "/ai-seo" },
     { label: "Google Ads", icon: Megaphone, path: "/google-ads" },
     { label: "Social Media", icon: Share2, path: "/social" },
   ]},
