@@ -140,6 +140,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       toast.error("Start date is required for Time Changes");
       return;
     }
+    if (ticketType === "Pop-up Offers" && !popupConsented) {
+      toast.error("Please verify the offer and provide consent before submitting");
+      return;
+    }
     if (!user) return;
 
     const finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
