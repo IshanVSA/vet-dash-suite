@@ -131,7 +131,7 @@ export default function SeoDepartment() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-4 dept-tint-seo min-h-full -m-6 p-6">
+      <div className="space-y-4 dept-tint-seo min-h-full -m-6 p-6" data-dept="SEO">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-border/60">
           <div className="flex items-center gap-3">
             <div className="h-8 w-8 rounded-lg bg-[hsl(var(--dept-seo))]/10 flex items-center justify-center">
