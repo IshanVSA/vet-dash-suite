@@ -336,7 +336,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={loading || uploading}>
+          <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented)}>
             {uploading ? (
               <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
             ) : loading ? "Creating…" : "Create Ticket"}
