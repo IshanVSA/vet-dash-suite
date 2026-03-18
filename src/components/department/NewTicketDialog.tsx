@@ -206,24 +206,26 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
         </DialogHeader>
 
         <div className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="ticket-title">Title *</Label>
-            <Input id="ticket-title" placeholder="Brief summary of the issue" value={title} onChange={e => setTitle(e.target.value)} maxLength={200} />
-          </div>
-
-          <div className={isCustomForm ? "" : "grid grid-cols-2 gap-3"}>
-            <div className={isCustomForm ? "space-y-1.5" : "space-y-1.5"}>
-              <Label>Type *</Label>
-              <Select value={ticketType} onValueChange={setTicketType}>
-                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                <SelectContent>
-                  {services.map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          {!isCustomForm && (
+            <div className="space-y-1.5">
+              <Label htmlFor="ticket-title">Title *</Label>
+              <Input id="ticket-title" placeholder="Brief summary of the issue" value={title} onChange={e => setTitle(e.target.value)} maxLength={200} />
             </div>
-            {!isCustomForm && (
+          )}
+
+          {!isCustomForm && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label>Type *</Label>
+                <Select value={ticketType} onValueChange={setTicketType}>
+                  <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                  <SelectContent>
+                    {services.map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-1.5">
                 <Label>Priority</Label>
                 <Select value={priority} onValueChange={v => setPriority(v as any)}>
@@ -235,8 +237,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                   </SelectContent>
                 </Select>
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Custom or generic description */}
           {isCustomForm ? (
