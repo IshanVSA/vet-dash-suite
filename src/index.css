@@ -235,7 +235,7 @@
     overflow: hidden;
   }
 
-  /* Corner accent arc */
+  /* Corner accent arc with entrance animation */
   .dept-tint-website::before,
   .dept-tint-seo::before,
   .dept-tint-ai-seo::before,
@@ -250,6 +250,7 @@
     border-radius: 50%;
     pointer-events: none;
     z-index: 0;
+    animation: dept-orb-in 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
   }
 
   /* Watermark label */
