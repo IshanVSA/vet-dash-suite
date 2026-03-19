@@ -39,6 +39,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
   const [filter, setFilter] = useState("all");
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch team members for assignment dropdown
   const { data: teamMemberProfiles = [] } = useQuery({
