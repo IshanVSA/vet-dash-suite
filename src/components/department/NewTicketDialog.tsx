@@ -341,8 +341,22 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                       <p className="text-[10px] text-center text-muted-foreground">Click or drop to add more</p>
                     )}
                   </div>
-                )}
-              </div>
+          )}
+
+          {/* Promote on social media — only for Add/Remove Team Members */}
+          {ticketType === "Add/Remove Team Members" && customDescription.includes("Action: Add") && (
+            <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
+              <Checkbox
+                id="promote-social"
+                checked={promoteSocial}
+                onCheckedChange={(checked) => setPromoteSocial(checked === true)}
+              />
+              <Label htmlFor="promote-social" className="cursor-pointer text-sm font-normal">
+                Promote new team member on social media
+              </Label>
+            </div>
+          )}
+        </div>
             </div>
           )}
         </div>
