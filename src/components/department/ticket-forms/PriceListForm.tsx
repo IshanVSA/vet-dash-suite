@@ -8,22 +8,33 @@ interface PriceListFormProps {
 
 export function PriceListForm({ onChange }: PriceListFormProps) {
   const [changes, setChanges] = useState("");
+  const [terms, setTerms] = useState("");
 
   useEffect(() => {
     const parts = [
       `Description of Changes: ${changes || "N/A"}`,
+      `Terms & Conditions: ${terms || "N/A"}`,
       "(See attachments for updated price list file)",
     ];
     onChange("Price List Update:\n" + parts.join("\n"));
-  }, [changes, onChange]);
+  }, [changes, terms, onChange]);
+
+  const hasContent = changes.trim() !== "" || terms.trim() !== "";
 
   return (
     <div className="space-y-3">
       <div className="space-y-1.5">
-        <Label>Description of Changes *</Label>
+        <Label>Description of Changes</Label>
         <Textarea placeholder="Describe what prices changed, new services added, etc..." value={changes} onChange={e => setChanges(e.target.value)} rows={3} maxLength={2000} />
       </div>
-      <p className="text-xs text-muted-foreground">Upload your updated price list (PDF, Excel, or image) in the attachments section below.</p>
+      <div className="space-y-1.5">
+        <Label>Terms & Conditions</Label>
+        <Textarea placeholder="Any terms and conditions related to the pricing..." value={terms} onChange={e => setTerms(e.target.value)} rows={3} maxLength={2000} />
+      </div>
+      {!hasContent && (
+        <p className="text-xs text-destructive">At least one field above must be filled.</p>
+      )}
+      <p className="text-xs text-muted-foreground">Upload your updated price list in the attachments section below.</p>
     </div>
   );
 }
