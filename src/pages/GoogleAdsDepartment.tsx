@@ -66,7 +66,7 @@ export default function GoogleAdsDepartment() {
                 <TableCell className="font-medium truncate max-w-[180px]">{c.name}</TableCell>
                 <TableCell className="text-right tabular-nums">{c.spend}</TableCell>
                 <TableCell className="text-right tabular-nums">{c.clicks}</TableCell>
-                <TableCell className="text-right tabular-nums">{c.conversions}</TableCell>
+                <TableCell className="text-right tabular-nums">{c.cpc}</TableCell>
                 <TableCell className="text-right tabular-nums">{c.ctr}</TableCell>
               </TableRow>
             ))}

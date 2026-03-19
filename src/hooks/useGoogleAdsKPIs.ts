@@ -7,16 +7,16 @@ interface GoogleAdsKPIs {
   clicks: number;
   impressions: number;
   cost: number;
-  conversions: number;
+  cpc: number;
   ctr: number;
   dailyTrend: { label: string; value: number }[];
-  campaigns: { name: string; spend: string; clicks: string; conversions: number; ctr: string }[];
+  campaigns: { name: string; spend: string; clicks: string; cpc: string; ctr: string }[];
 }
 
 export function useGoogleAdsKPIs(clinicId: string): GoogleAdsKPIs {
   const [state, setState] = useState<GoogleAdsKPIs>({
     loading: true, hasData: false,
-    clicks: 0, impressions: 0, cost: 0, conversions: 0, ctr: 0,
+    clicks: 0, impressions: 0, cost: 0, cpc: 0, ctr: 0,
     dailyTrend: [], campaigns: [],
   });
 
@@ -27,7 +27,7 @@ export function useGoogleAdsKPIs(clinicId: string): GoogleAdsKPIs {
     }
 
     const fetch = async () => {
-      setState({ loading: true, hasData: false, clicks: 0, impressions: 0, cost: 0, conversions: 0, ctr: 0, dailyTrend: [], campaigns: [] });
+      setState({ loading: true, hasData: false, clicks: 0, impressions: 0, cost: 0, cpc: 0, ctr: 0, dailyTrend: [], campaigns: [] });
 
       const { data } = await supabase
         .from("analytics")
@@ -40,7 +40,7 @@ export function useGoogleAdsKPIs(clinicId: string): GoogleAdsKPIs {
         .maybeSingle();
 
       if (!data?.metrics_json) {
-      setState({ loading: false, hasData: false, clicks: 0, impressions: 0, cost: 0, conversions: 0, ctr: 0, dailyTrend: [], campaigns: [] });
+        setState({ loading: false, hasData: false, clicks: 0, impressions: 0, cost: 0, cpc: 0, ctr: 0, dailyTrend: [], campaigns: [] });
         return;
       }
 
@@ -48,10 +48,9 @@ export function useGoogleAdsKPIs(clinicId: string): GoogleAdsKPIs {
       const clicks = m.clicks || 0;
       const impressions = m.impressions || 0;
       const cost = m.cost || 0;
-      const conversions = m.conversions || 0;
+      const cpc = clicks > 0 ? Math.round((cost / clicks) * 100) / 100 : 0;
       const ctr = impressions > 0 ? Math.round((clicks / impressions) * 10000) / 100 : 0;
 
-      // Last 7 days of daily trends for the overview chart
       const trends = (m.daily_trends || []) as { date: string; clicks: number }[];
       const last7 = trends.slice(-7).map(d => ({
         label: new Date(d.date).toLocaleDateString("en-US", { weekday: "short" }),
@@ -61,17 +60,22 @@ export function useGoogleAdsKPIs(clinicId: string): GoogleAdsKPIs {
       const campaigns = ((m.campaigns || []) as any[])
         .sort((a: any, b: any) => (b.cost || 0) - (a.cost || 0))
         .slice(0, 5)
-        .map((c: any) => ({
-          name: c.name,
-          spend: `$${(c.cost || 0).toFixed(0)}`,
-          clicks: (c.clicks || 0).toLocaleString(),
-          conversions: Math.round(c.conversions || 0),
-          ctr: impressions > 0 ? `${(((c.clicks || 0) / (c.impressions || 1)) * 100).toFixed(1)}%` : "0%",
-        }));
+        .map((c: any) => {
+          const cClicks = c.clicks || 0;
+          const cCost = c.cost || 0;
+          const cImpressions = c.impressions || 1;
+          return {
+            name: c.name,
+            spend: `$${cCost.toFixed(0)}`,
+            clicks: cClicks.toLocaleString(),
+            cpc: cClicks > 0 ? `$${(cCost / cClicks).toFixed(2)}` : "$0.00",
+            ctr: `${((cClicks / cImpressions) * 100).toFixed(1)}%`,
+          };
+        });
 
       setState({
         loading: false, hasData: true,
-        clicks, impressions, cost, conversions, ctr,
+        clicks, impressions, cost, cpc, ctr,
         dailyTrend: last7.length > 0 ? last7 : [{ label: "—", value: 0 }],
         campaigns,
       });
