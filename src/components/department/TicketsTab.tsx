@@ -135,21 +135,6 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
 
   return (
     <div className="space-y-4">
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        {[
-          { label: "Open", count: openCount, color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-          { label: "In Progress", count: inProgressCount, color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-          { label: "Completed", count: completedCount, color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-          { label: "Emergency", count: emergencyCount, color: "bg-destructive/10 text-destructive border-destructive/20" },
-        ].map(s => (
-          <div key={s.label} className={cn("rounded-lg border px-4 py-3 flex items-center justify-between", s.color)}>
-            <span className="text-xs font-medium">{s.label}</span>
-            <span className="text-lg font-bold">{s.count}</span>
-          </div>
-        ))}
-      </div>
-
       {/* Search bar */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
