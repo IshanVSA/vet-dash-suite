@@ -53,10 +53,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
   const [popupConsented, setPopupConsented] = useState(false);
   const [promoteSocial, setPromoteSocial] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isCustomForm = CUSTOM_FORM_TYPES.includes(ticketType);
   const isAddTeamMember = ticketType === "Add/Remove Team Members" && customDescription.includes("Action: Add");
