@@ -82,7 +82,9 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
   }, []);
 
   const stopListening = useCallback(() => {
+    stoppingRef.current = true;
     recognitionRef.current?.stop();
+    recognitionRef.current = null;
     setListening(false);
   }, []);
 
