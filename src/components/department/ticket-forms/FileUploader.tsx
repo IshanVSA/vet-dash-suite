@@ -21,7 +21,7 @@ const formatSize = (bytes: number) => {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 };
 
-export function FileUploader({ files, onFilesChange, maxFiles = 5 }: FileUploaderProps) {
+export function FileUploader({ files, onFilesChange, maxFiles = 5, label = "Attachments" }: FileUploaderProps) {
   const [dragOver, setDragOver] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
