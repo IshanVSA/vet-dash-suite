@@ -61,6 +61,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
   const [offerTitle, setOfferTitle] = useState("");
   const [offerText, setOfferText] = useState("");
   const [termsAndConditions, setTermsAndConditions] = useState("");
+  const [additionalNotes, setAdditionalNotes] = useState("");
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
@@ -96,13 +97,14 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       `Offer Title: ${offerTitle || "N/A"}`,
       `Offer Description: ${offerText || "N/A"}`,
       `Terms & Conditions: ${termsAndConditions || "None"}`,
+      `Additional Notes: ${additionalNotes || "None"}`,
       `Start Date: ${startDate || "N/A"}`,
       `End Date: ${endDate || "N/A"}`,
       `Compliance Body: ${complianceBody || "N/A"}`,
       `Verified: ${verified ? "Yes" : "No"}`,
     ];
     onChange("Pop-up Offer Details:\n" + parts.join("\n"));
-  }, [offerTitle, offerText, termsAndConditions, startDate, endDate, complianceBody, verified, onChange]);
+  }, [offerTitle, offerText, termsAndConditions, additionalNotes, startDate, endDate, complianceBody, verified, onChange]);
 
   // Reset verification when form changes
   const handleFieldChange = useCallback(() => {
@@ -195,6 +197,19 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         />
       </div>
 
+      {/* Additional Notes */}
+      <div className="space-y-1.5">
+        <Label>Additional Notes</Label>
+        <Textarea
+          placeholder="Any additional notes or context..."
+          value={additionalNotes}
+          onChange={e => { setAdditionalNotes(e.target.value); handleFieldChange(); }}
+          rows={2}
+          maxLength={1000}
+          disabled={locked}
+        />
+      </div>
+
       {/* Start & End Date */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
@@ -202,8 +217,10 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           <Input
             type="date"
             value={startDate}
+            min={new Date().toISOString().split("T")[0]}
             onChange={e => { setStartDate(e.target.value); handleFieldChange(); }}
             disabled={locked}
+            className="block w-full"
           />
         </div>
         <div className="space-y-1.5">
@@ -211,8 +228,10 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           <Input
             type="date"
             value={endDate}
+            min={startDate || new Date().toISOString().split("T")[0]}
             onChange={e => { setEndDate(e.target.value); handleFieldChange(); }}
             disabled={locked}
+            className="block w-full"
           />
         </div>
       </div>
