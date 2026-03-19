@@ -1,24 +1,28 @@
 import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers } from "lucide-react";
+import { Globe, LayoutDashboard, Ticket, BarChart3, FileText, Upload, Eye, TrendingUp, Clock, Layers, HeartPulse } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { WebsiteAnalyticsTab } from "@/components/department/WebsiteAnalyticsTab";
 import { WebsiteReportsTab } from "@/components/department/WebsiteReportsTab";
 import { UploadsTab } from "@/components/department/UploadsTab";
+import { WebsiteHealthTab } from "@/components/department/WebsiteHealthTab";
 import { ClinicSelector } from "@/components/department/ClinicSelector";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useWebsiteKPIs } from "@/hooks/useWebsiteKPIs";
+import { useUserRole } from "@/hooks/useUserRole";
 
-const tabs = [
+const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "tickets", label: "Tickets", icon: Ticket },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "reports", label: "Reports", icon: FileText },
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
+
+const healthTab = { value: "health", label: "Health", icon: HeartPulse };
 
 const services = [
   "Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options",
@@ -47,6 +51,9 @@ export default function WebsiteDepartment() {
   const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const { team } = useDepartmentTeam("website", selectedClinicId);
   const kpiData = useWebsiteKPIs(selectedClinicId);
+  const { role } = useUserRole();
+  const canViewHealth = role === "admin" || role === "concierge";
+  const tabs = canViewHealth ? [...baseTabs, healthTab] : baseTabs;
 
   const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
 
@@ -101,6 +108,7 @@ export default function WebsiteDepartment() {
           <TabsContent value="analytics" className="mt-4"><WebsiteAnalyticsTab clinicId={selectedClinicId} /></TabsContent>
           <TabsContent value="reports" className="mt-4"><WebsiteReportsTab clinicId={selectedClinicId} /></TabsContent>
           <TabsContent value="uploads" className="mt-4"><UploadsTab department="website" clinicId={selectedClinicId} /></TabsContent>
+          {canViewHealth && <TabsContent value="health" className="mt-4"><WebsiteHealthTab clinicId={selectedClinicId} /></TabsContent>}
         </Tabs>
       </div>
     </DashboardLayout>
