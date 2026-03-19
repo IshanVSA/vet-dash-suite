@@ -104,7 +104,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       `Verified: ${verified ? "Yes" : "No"}`,
     ];
     onChange("Pop-up Offer Details:\n" + parts.join("\n"));
-  }, [offerTitle, offerText, termsAndConditions, startDate, endDate, complianceBody, verified, onChange]);
+  }, [offerTitle, offerText, termsAndConditions, additionalNotes, startDate, endDate, complianceBody, verified, onChange]);
 
   // Reset verification when form changes
   const handleFieldChange = useCallback(() => {
