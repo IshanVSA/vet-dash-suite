@@ -268,7 +268,15 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
             </div>
           )}
 
-          {/* Attachments — hidden for Time Changes */}
+          {/* Notes / Bio — before attachments for team members, after for others */}
+          {ticketType !== "Pop-up Offers" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="ticket-notes">{ticketType === "Add/Remove Team Members" ? "Bio" : "Notes"}</Label>
+              <Textarea id="ticket-notes" placeholder={ticketType === "Add/Remove Team Members" ? "Short bio for the team member..." : "Additional notes..."} value={notes} onChange={e => setNotes(e.target.value)} rows={2} maxLength={1000} />
+            </div>
+          )}
+
+          {/* Attachments — hidden for Time Changes and Pop-up Offers */}
           {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && (
             <div className="space-y-1.5">
               <Label>Attachments <span className="text-muted-foreground font-normal">({files.length}/5)</span></Label>
@@ -329,13 +337,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                   </div>
                 )}
               </div>
-            </div>
-          )}
-
-          {ticketType !== "Pop-up Offers" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="ticket-notes">Notes</Label>
-              <Textarea id="ticket-notes" placeholder="Additional notes..." value={notes} onChange={e => setNotes(e.target.value)} rows={2} maxLength={1000} />
             </div>
           )}
         </div>
