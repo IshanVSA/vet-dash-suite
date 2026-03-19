@@ -16,7 +16,6 @@ interface Campaign {
   clicks: number;
   impressions: number;
   cost: number;
-  conversions: number;
 }
 
 interface DailyTrend {
