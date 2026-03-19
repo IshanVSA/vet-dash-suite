@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Inbox, LayoutGrid, Kanban, TableProperties } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Inbox, LayoutGrid, Kanban, TableProperties, Search, X } from "lucide-react";
 import { TicketCard } from "./TicketCard";
 import { TicketKanbanView } from "./TicketKanbanView";
 import { TicketTableView } from "./TicketTableView";
