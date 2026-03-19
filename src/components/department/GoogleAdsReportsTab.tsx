@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, DollarSign, MousePointerClick, Target, Percent, Megaphone, BarChart3 } from "lucide-react";
+import { FileText, Download, DollarSign, MousePointerClick, Percent, Megaphone, BarChart3 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
