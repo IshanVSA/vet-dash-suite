@@ -41,10 +41,8 @@ interface ComputedMetrics {
   clicks: number;
   impressions: number;
   cost: number;
-  conversions: number;
   ctr: number;
   cpc: number;
-  costPerConversion: number;
   campaigns: Campaign[];
   dailyTrends: DailyTrend[];
 }
