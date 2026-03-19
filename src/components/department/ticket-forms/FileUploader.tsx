@@ -48,7 +48,7 @@ export function FileUploader({ files, onFilesChange, maxFiles = 5, label = "Atta
 
   return (
     <div className="space-y-1.5">
-      <Label>Attachments <span className="text-muted-foreground font-normal">({files.length}/{maxFiles})</span></Label>
+      <Label>{label} <span className="text-muted-foreground font-normal">({files.length}/{maxFiles})</span></Label>
       <input
         ref={fileInputRef}
         type="file"
