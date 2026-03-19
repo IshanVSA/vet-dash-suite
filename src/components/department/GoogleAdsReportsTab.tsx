@@ -157,11 +157,11 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
 
         autoTable(doc, {
           startY: y,
-          head: [["Campaign", "Spend", "Clicks", "Impressions", "Conv.", "CTR", "CPC"]],
+          head: [["Campaign", "Spend", "Clicks", "Impressions", "CTR", "CPC"]],
           body: computed.campaigns.map(c => {
             const ctr = c.impressions > 0 ? `${(Math.round((c.clicks / c.impressions) * 10000) / 100)}%` : "0%";
             const cpc = c.clicks > 0 ? fmtCurrency(Math.round((c.cost / c.clicks) * 100) / 100) : "$0.00";
-            return [c.name, fmtCurrency(c.cost), c.clicks.toLocaleString(), c.impressions.toLocaleString(), Math.round(c.conversions).toString(), ctr, cpc];
+            return [c.name, fmtCurrency(c.cost), c.clicks.toLocaleString(), c.impressions.toLocaleString(), ctr, cpc];
           }),
           ...getTableStyles(PDF_COLORS.googleAds),
           columnStyles: { 0: { cellWidth: 50 } },
