@@ -1,41 +1,29 @@
 
 
-## Replace Browser Speech API with OpenAI Whisper
+## Fix: Tighten Compliance Verification Prompt
 
-The browser's Web Speech API fails in iframe/cross-origin contexts. We'll replace it with **MediaRecorder** (records audio as a blob) + a new **Supabase edge function** that sends the audio to **OpenAI Whisper** for transcription.
+### Problem
 
-### Flow
+The current system prompt gives the AI generic rules like "start and end dates must be reasonable" which aren't actual CVO (or other regulatory body) rules. The AI invents false compliance issues — e.g., flagging dates as "too far in the future" when no such rule exists.
 
-```text
-[Dictate] → MediaRecorder captures mic audio → [Stop] → audio blob sent to edge function
-→ Edge function sends to OpenAI Whisper API → transcript returned
-→ Dialog opens with transcript in editable textarea → [Autofill Form] → AI extracts fields
-```
+### Solution
 
-### Changes
+Rewrite the system prompt in `supabase/functions/verify-popup-offer/index.ts` to:
 
-**1. New edge function: `supabase/functions/transcribe-audio/index.ts`**
-- Accepts audio file via FormData
-- Sends to `https://api.openai.com/v1/audio/transcriptions` using existing `OPENAI_API_KEY`
-- Model: `whisper-1`
-- Returns `{ text: "..." }`
-- Standard CORS headers
+1. **Only flag genuine regulatory violations** — issues that would actually cause legal/regulatory problems
+2. **Stop inventing rules** — explicitly instruct the AI not to fabricate restrictions that the regulatory body doesn't enforce
+3. **Remove the generic checklist** — replace with body-specific guidance focusing on what each body actually regulates (misleading claims, false advertising, unprofessional conduct)
+4. **Separate real issues from optional suggestions** — issues should only be actual violations; suggestions remain as nice-to-haves
 
-**2. Update `supabase/config.toml`**
-- Add `[functions.transcribe-audio]` with `verify_jwt = false`
+### Updated System Prompt (key changes)
 
-**3. Rewrite `src/components/department/ticket-forms/VoiceDictation.tsx`**
-- Remove all Web Speech API code (`SpeechRecognition`, `recognition.*`)
-- Use `navigator.mediaDevices.getUserMedia()` + `MediaRecorder` to capture audio
-- On Stop: send recorded audio blob to `transcribe-audio` edge function
-- Show loading state ("Transcribing...") while waiting for Whisper response
-- On success: open the existing review dialog with the transcript
-- Remove the `if (!SpeechRecognition) return null` guard so the component always renders
-- Keep the existing dialog, autofill, and cancel logic unchanged
+- Remove "Start and end dates must be reasonable" — no regulatory body has this rule
+- Remove "Must comply with local consumer protection laws" — too vague, causes false flags
+- Add explicit instruction: "Only flag issues that represent actual violations of the regulatory body's published advertising/marketing rules. Do NOT invent or assume rules. If unsure whether something violates a specific rule, do NOT flag it as an issue."
+- Add: "Do NOT flag date ranges, promotional timeframes, or offer durations as compliance issues unless they create a genuinely misleading impression."
+- Keep legitimate checks: misleading claims, outcome guarantees, unsubstantiated superlatives, deceptive terms
 
-### Technical Details
+### File Changed
 
-- MediaRecorder uses `audio/webm` format (widely supported, Whisper accepts it)
-- Audio chunks collected in a ref array, combined into a single blob on stop
-- The component no longer depends on browser speech recognition support
+**`supabase/functions/verify-popup-offer/index.ts`** — rewrite the `systemPrompt` string (lines 23-42), then redeploy.
 
