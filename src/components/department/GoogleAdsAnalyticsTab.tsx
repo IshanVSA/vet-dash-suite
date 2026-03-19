@@ -194,7 +194,7 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
         <StatsCard title="Total Spend" value={`$${computed.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={DollarSign} change="Last 30 days" changeType="neutral" index={0} />
         <StatsCard title="Clicks" value={computed.clicks.toLocaleString()} icon={MousePointerClick} change={`CPC: $${computed.cpc}`} changeType="neutral" index={1} />
         <StatsCard title="Impressions" value={computed.impressions.toLocaleString()} icon={Eye} change={`CTR: ${computed.ctr}%`} changeType="neutral" index={2} />
-        <StatsCard title="Conversions" value={Math.round(computed.conversions).toLocaleString()} icon={Target} change={`Cost/Conv: $${computed.costPerConversion}`} changeType="neutral" index={3} />
+        <StatsCard title="Avg. CPC" value={`$${computed.cpc}`} icon={DollarSign} change={`${computed.clicks.toLocaleString()} clicks`} changeType="neutral" index={3} />
       </div>
 
       {/* Clicks & Impressions Chart */}
