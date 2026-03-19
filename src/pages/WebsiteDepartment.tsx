@@ -22,7 +22,7 @@ const tabs = [
 
 const services = [
   "Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options",
-  "Add/Remove Team Members", "New Forms", "Price List Updates", "Others",
+  "Add/Remove Team Members", "New Forms", "Price List Updates", "Emergency", "Others",
 ];
 
 function formatDuration(seconds: number): string {
