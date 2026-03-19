@@ -210,7 +210,7 @@ serve(async (req) => {
       method: "POST",
       headers: gatewayHeaders,
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gpt-4o-mini",
         messages: finalMessages,
         stream: true,
       }),
