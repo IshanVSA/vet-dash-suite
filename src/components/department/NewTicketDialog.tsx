@@ -182,7 +182,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       case "Add/Remove Team Members":
         return <AddRemoveTeamForm onChange={handleCustomFormChange} />;
       case "New Forms":
-        return <NewFormsForm onChange={handleCustomFormChange} />;
+        return <NewFormsForm onChange={handleCustomFormChange} files={files} onFilesChange={setFiles} />;
       case "Price List Updates":
         return <PriceListForm onChange={handleCustomFormChange} />;
       default:
