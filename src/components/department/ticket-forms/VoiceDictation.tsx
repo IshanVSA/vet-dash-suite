@@ -21,6 +21,8 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
   const [transcript, setTranscript] = useState("");
   const [extracting, setExtracting] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const stoppingRef = useRef(false);
+  const finalTranscriptRef = useRef("");
 
   const startListening = useCallback(() => {
     if (!SpeechRecognition) {
@@ -33,32 +35,45 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
     recognition.interimResults = true;
     recognition.lang = "en-US";
     recognitionRef.current = recognition;
-
-    let finalTranscript = "";
+    stoppingRef.current = false;
+    finalTranscriptRef.current = "";
 
     recognition.onresult = (event: any) => {
       let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
+      let finalT = "";
+      for (let i = 0; i < event.results.length; i++) {
         const t = event.results[i][0].transcript;
         if (event.results[i].isFinal) {
-          finalTranscript += t + " ";
+          finalT += t + " ";
         } else {
           interim = t;
         }
       }
-      setTranscript(finalTranscript + interim);
+      finalTranscriptRef.current = finalT;
+      setTranscript(finalT + interim);
     };
 
     recognition.onerror = (event: any) => {
       console.error("Speech recognition error:", event.error);
-      setListening(false);
       if (event.error === "not-allowed") {
+        stoppingRef.current = true;
+        setListening(false);
         toast.error("Microphone access denied. Please allow mic access.");
       }
+      // For "no-speech" or "network" errors, let onend handle restart
     };
 
     recognition.onend = () => {
-      setListening(false);
+      // Auto-restart if user hasn't explicitly stopped
+      if (!stoppingRef.current && recognitionRef.current) {
+        try {
+          recognitionRef.current.start();
+        } catch {
+          setListening(false);
+        }
+      } else {
+        setListening(false);
+      }
     };
 
     recognition.start();
