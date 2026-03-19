@@ -96,6 +96,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       `Offer Title: ${offerTitle || "N/A"}`,
       `Offer Description: ${offerText || "N/A"}`,
       `Terms & Conditions: ${termsAndConditions || "None"}`,
+      `Additional Notes: ${additionalNotes || "None"}`,
       `Start Date: ${startDate || "N/A"}`,
       `End Date: ${endDate || "N/A"}`,
       `Compliance Body: ${complianceBody || "N/A"}`,

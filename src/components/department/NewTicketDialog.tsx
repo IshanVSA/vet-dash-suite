@@ -328,10 +328,12 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
             </div>
           )}
 
-          <div className="space-y-1.5">
-            <Label htmlFor="ticket-notes">Notes</Label>
-            <Textarea id="ticket-notes" placeholder="Additional notes..." value={notes} onChange={e => setNotes(e.target.value)} rows={2} maxLength={1000} />
-          </div>
+          {ticketType !== "Pop-up Offers" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="ticket-notes">Notes</Label>
+              <Textarea id="ticket-notes" placeholder="Additional notes..." value={notes} onChange={e => setNotes(e.target.value)} rows={2} maxLength={1000} />
+            </div>
+          )}
         </div>
 
         <DialogFooter>
