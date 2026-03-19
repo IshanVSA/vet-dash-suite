@@ -50,3 +50,6 @@ verify_jwt = false
 
 [functions.pagespeed-insights]
 verify_jwt = false
+
+[functions.pagespeed-cron]
+verify_jwt = false
