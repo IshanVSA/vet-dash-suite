@@ -42,5 +42,8 @@ verify_jwt = false
 [functions.verify-popup-offer]
 verify_jwt = false
 
+[functions.transcribe-audio]
+verify_jwt = false
+
 [functions.extract-ticket-fields]
 verify_jwt = false
