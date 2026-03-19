@@ -254,7 +254,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
           )}
 
           {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && ticketType !== "New Forms" && (
-            <FileUploader files={files} onFilesChange={setFiles} />
+            <FileUploader files={files} onFilesChange={setFiles} label={ticketType === "Price List Updates" ? "Upload your price list doc" : "Attachments"} />
           )}
 
           {isAddTeamMember && (
