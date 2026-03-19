@@ -132,6 +132,11 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       toast.error("Please fill in at least one field (Description or Terms & Conditions)");
       return;
     }
+    if (ticketType === "Emergency" && (customDescription.includes("Issue Type: N/A") || customDescription.includes("Description: N/A"))) {
+      toast.error("Issue type and description are required for emergency tickets");
+      return;
+    }
+    }
     if (!user) return;
 
     let finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
