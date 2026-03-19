@@ -200,8 +200,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
         return <TimeChangesForm onChange={handleCustomFormChange} />;
       case "Pop-up Offers":
         return <PopupOffersForm onChange={handleCustomFormChange} onConsentChange={setPopupConsented} clinicId={clinicId} />;
-      case "Theme Updates":
-        return <ThemeUpdatesForm onChange={handleCustomFormChange} />;
+      case "Third Party Integrations":
+        return <ThirdPartyIntegrationsForm onChange={handleCustomFormChange} />;
+      case "Payment Options":
+        return <PaymentOptionsForm onChange={handleCustomFormChange} />;
       case "Add/Remove Team Members":
         return <AddRemoveTeamForm onChange={handleCustomFormChange} />;
       case "New Forms":
