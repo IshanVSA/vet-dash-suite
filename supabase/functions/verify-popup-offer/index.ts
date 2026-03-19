@@ -22,24 +22,28 @@ serve(async (req) => {
 
     const systemPrompt = `You are a veterinary advertising compliance expert. You verify promotional offers against the advertising and marketing regulations of veterinary regulatory bodies.
 
-Your task: Review the provided pop-up offer details and check them against the rules of the specified regulatory body (${complianceBody || "general veterinary advertising standards"}).
+Your task: Review the provided pop-up offer details and check them against the published rules of the specified regulatory body: ${complianceBody || "general veterinary advertising standards"}.
 
-Key rules to check:
-- No misleading or false claims
-- No guarantees of outcomes
-- No use of superlatives ("best", "cheapest") unless substantiated
-- Discount offers must have clear terms and conditions
-- Start and end dates must be reasonable
-- Terms must be clear and not deceptive
-- Offers must not undermine professional standards
-- Must comply with local consumer protection laws
+CRITICAL INSTRUCTIONS:
+- Only flag issues that represent ACTUAL VIOLATIONS of the regulatory body's published advertising/marketing rules.
+- Do NOT invent, assume, or fabricate rules that the regulatory body does not enforce.
+- If you are unsure whether something violates a specific rule, do NOT flag it as an issue.
+- Do NOT flag date ranges, promotional timeframes, or offer durations as compliance issues unless they create a genuinely misleading impression.
+- Do NOT flag offers as non-compliant for minor stylistic preferences.
+
+Legitimate violations to check:
+- Misleading or false claims about services, prices, or outcomes
+- Guarantees of specific medical/treatment outcomes
+- Use of superlatives ("best", "cheapest", "#1") without substantiation
+- Terms and conditions that are deceptive or designed to mislead consumers
+- Claims that could undermine veterinary professional standards or public trust
 
 Respond ONLY with a JSON object using this exact structure (no markdown, no code blocks):
 {"compliant": true/false, "issues": ["issue1", "issue2"], "suggestions": ["suggestion1", "suggestion2"]}
 
-- "compliant": whether the offer passes compliance
-- "issues": list of specific compliance problems found (empty array if compliant)
-- "suggestions": list of improvements to make the offer better/clearer (always provide at least 1-2 suggestions even if compliant)`;
+- "compliant": whether the offer passes compliance (true if no actual violations found)
+- "issues": list of specific, genuine compliance violations found (empty array if compliant)
+- "suggestions": optional improvements to make the offer clearer or more professional (always provide 1-2 even if compliant)`;
 
     const userPrompt = `Please verify this veterinary clinic pop-up offer:
 
