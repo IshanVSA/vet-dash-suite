@@ -2,6 +2,8 @@ import { useState, useRef, useCallback } from "react";
 import { Mic, MicOff, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -10,7 +12,6 @@ interface VoiceDictationProps {
   onFieldsExtracted: (fields: Record<string, any>) => void;
 }
 
-// Check browser support
 const SpeechRecognition =
   typeof window !== "undefined"
     ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
@@ -19,6 +20,8 @@ const SpeechRecognition =
 export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationProps) {
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [showDialog, setShowDialog] = useState(false);
+  const [editableTranscript, setEditableTranscript] = useState("");
   const [extracting, setExtracting] = useState(false);
   const recognitionRef = useRef<any>(null);
   const stoppingRef = useRef(false);
@@ -60,11 +63,9 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
         setListening(false);
         toast.error("Microphone access denied. Please allow mic access.");
       }
-      // For "no-speech" or "network" errors, let onend handle restart
     };
 
     recognition.onend = () => {
-      // Auto-restart if user hasn't explicitly stopped
       if (!stoppingRef.current && recognitionRef.current) {
         try {
           recognitionRef.current.start();
@@ -86,22 +87,30 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
     recognitionRef.current?.stop();
     recognitionRef.current = null;
     setListening(false);
-  }, []);
 
-  const extractFields = useCallback(async () => {
-    if (!transcript.trim()) return;
+    const currentTranscript = finalTranscriptRef.current.trim() || transcript.trim();
+    if (currentTranscript) {
+      setEditableTranscript(currentTranscript);
+      setShowDialog(true);
+    }
+  }, [transcript]);
+
+  const handleAutofill = useCallback(async () => {
+    if (!editableTranscript.trim()) return;
     setExtracting(true);
 
     try {
       const { data, error } = await supabase.functions.invoke("extract-ticket-fields", {
-        body: { transcript: transcript.trim(), formType },
+        body: { transcript: editableTranscript.trim(), formType },
       });
 
       if (error) throw error;
       if (data?.fields) {
         onFieldsExtracted(data.fields);
         toast.success("Form fields autofilled from your dictation!");
+        setShowDialog(false);
         setTranscript("");
+        setEditableTranscript("");
       } else {
         toast.error("Could not extract fields. Try again with more detail.");
       }
@@ -111,12 +120,18 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
     } finally {
       setExtracting(false);
     }
-  }, [transcript, formType, onFieldsExtracted]);
+  }, [editableTranscript, formType, onFieldsExtracted]);
+
+  const handleCancel = useCallback(() => {
+    setShowDialog(false);
+    setTranscript("");
+    setEditableTranscript("");
+  }, []);
 
   if (!SpeechRecognition) return null;
 
   return (
-    <div className="space-y-2">
+    <>
       <div className="flex items-center gap-2">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -149,31 +164,44 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
           </TooltipContent>
         </Tooltip>
 
-        {transcript.trim() && !listening && (
-          <Button
-            type="button"
-            variant="default"
-            size="sm"
-            className="gap-1.5"
-            onClick={extractFields}
-            disabled={extracting}
-          >
-            {extracting ? (
-              <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Extracting…</>
-            ) : (
-              <><Sparkles className="h-3.5 w-3.5" /> Fill Form</>
-            )}
-          </Button>
+        {listening && (
+          <span className="text-xs text-muted-foreground italic">Listening… speak now</span>
         )}
       </div>
 
-      {(transcript || listening) && (
-        <div className="rounded-md border border-border/50 bg-muted/30 p-2.5 text-xs text-muted-foreground leading-relaxed max-h-24 overflow-y-auto">
-          {transcript || (
-            <span className="italic">Listening… speak now</span>
-          )}
-        </div>
-      )}
-    </div>
+      <Dialog open={showDialog} onOpenChange={(open) => { if (!open) handleCancel(); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Review Transcript</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Review or edit the transcribed text, then click Autofill to populate the form.
+          </p>
+          <Textarea
+            value={editableTranscript}
+            onChange={(e) => setEditableTranscript(e.target.value)}
+            className="min-h-[120px]"
+            placeholder="Your dictated text will appear here..."
+          />
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button type="button" variant="outline" onClick={handleCancel} disabled={extracting}>
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleAutofill}
+              disabled={extracting || !editableTranscript.trim()}
+              className="gap-1.5"
+            >
+              {extracting ? (
+                <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Extracting…</>
+              ) : (
+                <><Sparkles className="h-3.5 w-3.5" /> Autofill Form</>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
