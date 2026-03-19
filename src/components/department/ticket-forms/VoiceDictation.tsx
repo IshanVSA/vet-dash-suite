@@ -12,93 +12,92 @@ interface VoiceDictationProps {
   onFieldsExtracted: (fields: Record<string, any>) => void;
 }
 
-const SpeechRecognition =
-  typeof window !== "undefined"
-    ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    : null;
-
 export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationProps) {
-  const [listening, setListening] = useState(false);
-  const [transcript, setTranscript] = useState("");
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [editableTranscript, setEditableTranscript] = useState("");
   const [extracting, setExtracting] = useState(false);
-  const recognitionRef = useRef<any>(null);
-  const stoppingRef = useRef(false);
-  const finalTranscriptRef = useRef("");
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const streamRef = useRef<MediaStream | null>(null);
 
-  const startListening = useCallback(() => {
-    if (!SpeechRecognition) {
-      toast.error("Speech recognition is not supported in this browser.");
-      return;
-    }
+  const startRecording = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      streamRef.current = stream;
+      chunksRef.current = [];
 
-    const recognition = new SpeechRecognition();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-    recognitionRef.current = recognition;
-    stoppingRef.current = false;
-    finalTranscriptRef.current = "";
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      mediaRecorderRef.current = recorder;
 
-    recognition.onresult = (event: any) => {
-      let interim = "";
-      let finalT = "";
-      for (let i = 0; i < event.results.length; i++) {
-        const t = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalT += t + " ";
-        } else {
-          interim = t;
+      recorder.ondataavailable = (e) => {
+        if (e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      recorder.onstop = async () => {
+        // Stop all tracks
+        stream.getTracks().forEach((t) => t.stop());
+        streamRef.current = null;
+
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        if (blob.size === 0) {
+          toast.error("No audio recorded. Please try again.");
+          return;
         }
-      }
-      finalTranscriptRef.current = finalT;
-      setTranscript(finalT + interim);
-    };
 
-    recognition.onerror = (event: any) => {
-      console.error("Speech recognition error:", event.error);
-      if (event.error === "not-allowed") {
-        stoppingRef.current = true;
-        setListening(false);
-        toast.error("Microphone access denied. Please allow mic access.");
-      } else if (event.error === "network") {
-        stoppingRef.current = true;
-        recognitionRef.current = null;
-        setListening(false);
-        toast.error("Speech recognition unavailable — network error. You can type your request manually using the Dictate button's dialog.");
-      }
-    };
-
-    recognition.onend = () => {
-      if (!stoppingRef.current && recognitionRef.current) {
+        setTranscribing(true);
         try {
-          recognitionRef.current.start();
-        } catch {
-          setListening(false);
-        }
-      } else {
-        setListening(false);
-      }
-    };
+          const formData = new FormData();
+          formData.append("file", blob, "recording.webm");
 
-    recognition.start();
-    setListening(true);
-    setTranscript("");
+          const { data: { session } } = await supabase.auth.getSession();
+          const res = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/transcribe-audio`,
+            {
+              method: "POST",
+              headers: {
+                Authorization: `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+                apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+              },
+              body: formData,
+            }
+          );
+
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            throw new Error(err.error || `Transcription failed (${res.status})`);
+          }
+
+          const { text } = await res.json();
+          if (!text?.trim()) {
+            toast.error("Could not transcribe audio. Please try again or speak louder.");
+            return;
+          }
+
+          setEditableTranscript(text.trim());
+          setShowDialog(true);
+        } catch (err) {
+          console.error("Transcription error:", err);
+          toast.error(err instanceof Error ? err.message : "Transcription failed.");
+        } finally {
+          setTranscribing(false);
+        }
+      };
+
+      recorder.start();
+      setRecording(true);
+    } catch (err) {
+      console.error("Mic access error:", err);
+      toast.error("Microphone access denied. Please allow mic access and try again.");
+    }
   }, []);
 
-  const stopListening = useCallback(() => {
-    stoppingRef.current = true;
-    recognitionRef.current?.stop();
-    recognitionRef.current = null;
-    setListening(false);
-
-    const currentTranscript = finalTranscriptRef.current.trim() || transcript.trim();
-    if (currentTranscript) {
-      setEditableTranscript(currentTranscript);
-      setShowDialog(true);
-    }
-  }, [transcript]);
+  const stopRecording = useCallback(() => {
+    mediaRecorderRef.current?.stop();
+    mediaRecorderRef.current = null;
+    setRecording(false);
+  }, []);
 
   const handleAutofill = useCallback(async () => {
     if (!editableTranscript.trim()) return;
@@ -114,7 +113,6 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
         onFieldsExtracted(data.fields);
         toast.success("Form fields autofilled from your dictation!");
         setShowDialog(false);
-        setTranscript("");
         setEditableTranscript("");
       } else {
         toast.error("Could not extract fields. Try again with more detail.");
@@ -129,11 +127,8 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
 
   const handleCancel = useCallback(() => {
     setShowDialog(false);
-    setTranscript("");
     setEditableTranscript("");
   }, []);
-
-  if (!SpeechRecognition) return null;
 
   return (
     <>
@@ -142,12 +137,18 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
           <TooltipTrigger asChild>
             <Button
               type="button"
-              variant={listening ? "destructive" : "outline"}
+              variant={recording ? "destructive" : "outline"}
               size="sm"
               className="gap-1.5"
-              onClick={listening ? stopListening : startListening}
+              onClick={recording ? stopRecording : startRecording}
+              disabled={transcribing}
             >
-              {listening ? (
+              {transcribing ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Transcribing…
+                </>
+              ) : recording ? (
                 <>
                   <MicOff className="h-3.5 w-3.5" />
                   <span className="relative flex h-2 w-2">
@@ -165,12 +166,16 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            {listening ? "Click to stop recording" : "Speak to autofill the form with AI"}
+            {transcribing
+              ? "Transcribing your audio…"
+              : recording
+                ? "Click to stop recording"
+                : "Speak to autofill the form with AI"}
           </TooltipContent>
         </Tooltip>
 
-        {listening && (
-          <span className="text-xs text-muted-foreground italic">Listening… speak now</span>
+        {recording && (
+          <span className="text-xs text-muted-foreground italic">Recording… speak now</span>
         )}
       </div>
 
