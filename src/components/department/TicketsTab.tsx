@@ -3,11 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Inbox } from "lucide-react";
+import { Plus, Inbox, LayoutGrid, Kanban, TableProperties } from "lucide-react";
 import { TicketCard } from "./TicketCard";
+import { TicketKanbanView } from "./TicketKanbanView";
+import { TicketTableView } from "./TicketTableView";
 import { NewTicketDialog } from "./NewTicketDialog";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
 import { getVisibleTicketTypes } from "@/lib/ticket-department-map";
+import { cn } from "@/lib/utils";
 
 interface TicketsTabProps {
   department: string;
@@ -23,8 +26,17 @@ const statusFilters = [
   { value: "emergency", label: "Emergency" },
 ];
 
+type ViewMode = "cards" | "kanban" | "table";
+
+const viewOptions: { value: ViewMode; label: string; icon: React.ElementType }[] = [
+  { value: "cards", label: "Cards", icon: LayoutGrid },
+  { value: "kanban", label: "Kanban", icon: Kanban },
+  { value: "table", label: "Table", icon: TableProperties },
+];
+
 export function TicketsTab({ department, services, clinicId }: TicketsTabProps) {
   const [filter, setFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [dialogOpen, setDialogOpen] = useState(false);
 
   // Fetch team members for assignment dropdown
@@ -66,7 +78,6 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
   const { data: tickets = [], refetch, isLoading } = useQuery({
     queryKey: ["department-tickets", department, filter, clinicId],
     queryFn: async () => {
-      // Build OR filter: native department tickets OR cross-department visible ticket types
       const orClauses = [`department.eq.${department}`];
       if (visibleTypes.length > 0) {
         orClauses.push(`ticket_type.in.(${visibleTypes.join(",")})`);
@@ -89,7 +100,6 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
       const { data, error } = await query;
       if (error) throw error;
 
-      // Post-filter: for social_media, only show "Add/Remove Team Members" if promoted
       let results = (data ?? []) as any[];
       if (department === "social_media") {
         results = results.filter((t: any) => {
@@ -104,10 +114,31 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
     },
   });
 
+  // Stats for the summary bar
+  const openCount = tickets.filter((t: any) => t.status === "open").length;
+  const inProgressCount = tickets.filter((t: any) => t.status === "in_progress").length;
+  const completedCount = tickets.filter((t: any) => t.status === "completed").length;
+  const emergencyCount = tickets.filter((t: any) => t.status === "emergency").length;
+
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+      {/* Summary stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {[
+          { label: "Open", count: openCount, color: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
+          { label: "In Progress", count: inProgressCount, color: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
+          { label: "Completed", count: completedCount, color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
+          { label: "Emergency", count: emergencyCount, color: "bg-destructive/10 text-destructive border-destructive/20" },
+        ].map(s => (
+          <div key={s.label} className={cn("rounded-lg border px-4 py-3 flex items-center justify-between", s.color)}>
+            <span className="text-xs font-medium">{s.label}</span>
+            <span className="text-lg font-bold">{s.count}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Toolbar: filters + view toggle + new ticket */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div className="flex items-center gap-2 overflow-x-auto">
           {statusFilters.map(sf => (
             <Badge
@@ -120,13 +151,37 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
             </Badge>
           ))}
         </div>
-        <Button size="sm" onClick={() => setDialogOpen(true)} className="shrink-0 gap-1.5">
-          <Plus className="h-3.5 w-3.5" />
-          New Ticket
-        </Button>
+        <div className="flex items-center gap-2">
+          {/* View toggle */}
+          <div className="flex items-center border border-border rounded-lg p-0.5 bg-muted/30">
+            {viewOptions.map(v => {
+              const Icon = v.icon;
+              return (
+                <button
+                  key={v.value}
+                  onClick={() => setViewMode(v.value)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all",
+                    viewMode === v.value
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  title={v.label}
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                  <span className="hidden md:inline">{v.label}</span>
+                </button>
+              );
+            })}
+          </div>
+          <Button size="sm" onClick={() => setDialogOpen(true)} className="shrink-0 gap-1.5">
+            <Plus className="h-3.5 w-3.5" />
+            New Ticket
+          </Button>
+        </div>
       </div>
 
-      {/* Ticket list */}
+      {/* Content */}
       {isLoading ? (
         <div className="py-12 flex items-center justify-center">
           <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -137,6 +192,18 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
           <p className="text-sm font-medium">No tickets found</p>
           <p className="text-xs mt-1">Create a new ticket to get started.</p>
         </div>
+      ) : viewMode === "kanban" ? (
+        <TicketKanbanView
+          tickets={tickets}
+          teamMembers={teamMemberProfiles}
+          onUpdated={() => refetch()}
+        />
+      ) : viewMode === "table" ? (
+        <TicketTableView
+          tickets={tickets}
+          teamMembers={teamMemberProfiles}
+          onUpdated={() => refetch()}
+        />
       ) : (
         <div className="space-y-2">
           {tickets.map((t: any) => (
