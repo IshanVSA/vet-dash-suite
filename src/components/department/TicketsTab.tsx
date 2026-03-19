@@ -238,7 +238,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         />
       ) : (
         <div className="space-y-2">
-          {tickets.map((t: any) => (
+          {filteredTickets.map((t: any) => (
             <TicketCard
               key={t.id}
               id={t.id}
