@@ -36,7 +36,8 @@ const CUSTOM_FORM_TYPES = ["Time Changes", "Pop-up Offers", "Third Party Integra
 const AUTO_TITLES: Record<string, string> = {
   "Time Changes": "Time Changes Request",
   "Pop-up Offers": "Pop-up Offer Request",
-  "Theme Updates": "Theme Update Request",
+  "Third Party Integrations": "Third Party Integration Request",
+  "Payment Options": "Payment Options Request",
   "Add/Remove Team Members": "Team Member Update Request",
   "New Forms": "New Form Request",
   "Price List Updates": "Price List Update Request",
