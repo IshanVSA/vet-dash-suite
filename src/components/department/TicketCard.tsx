@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Clock, AlertTriangle, CheckCircle2, Inbox, ChevronDown, ChevronUp, ArrowRightLeft, UserCircle } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Separator } from "@/components/ui/separator";
+import {
+  Clock, AlertTriangle, CheckCircle2, Inbox, ChevronDown, ChevronUp,
+  ArrowRightLeft, UserCircle, Calendar, Tag, Building2, FileText,
+} from "lucide-react";
+import { formatDistanceToNow, format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface TeamMemberOption {
   id: string;
@@ -28,16 +33,16 @@ interface TicketCardProps {
 }
 
 const statusConfig = {
-  open: { label: "Open", icon: Inbox, className: "bg-blue-500/10 text-blue-600 border-blue-500/20" },
-  in_progress: { label: "In Progress", icon: Clock, className: "bg-amber-500/10 text-amber-600 border-amber-500/20" },
-  completed: { label: "Completed", icon: CheckCircle2, className: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20" },
-  emergency: { label: "Emergency", icon: AlertTriangle, className: "bg-destructive/10 text-destructive border-destructive/20" },
+  open: { label: "Open", icon: Inbox, color: "text-blue-600", bg: "bg-blue-500/10", border: "border-l-blue-500" },
+  in_progress: { label: "In Progress", icon: Clock, color: "text-amber-600", bg: "bg-amber-500/10", border: "border-l-amber-500" },
+  completed: { label: "Completed", icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-500/10", border: "border-l-emerald-500" },
+  emergency: { label: "Emergency", icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/10", border: "border-l-destructive" },
 };
 
 const priorityConfig = {
-  regular: { label: "Regular", className: "bg-muted text-muted-foreground" },
-  urgent: { label: "Urgent", className: "bg-amber-500/10 text-amber-600" },
-  emergency: { label: "Emergency", className: "bg-destructive/10 text-destructive" },
+  regular: { label: "Regular", className: "bg-muted text-muted-foreground", dot: "bg-muted-foreground" },
+  urgent: { label: "Urgent", className: "bg-amber-500/10 text-amber-600", dot: "bg-amber-500" },
+  emergency: { label: "Emergency", className: "bg-destructive/10 text-destructive", dot: "bg-destructive" },
 };
 
 const allDepartments = [
@@ -60,6 +65,8 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
   const sc = statusConfig[status];
   const pc = priorityConfig[priority];
   const StatusIcon = sc.icon;
+  const deptLabel = allDepartments.find(d => d.value === department)?.label || department;
+  const assigneeName = assigned_to ? teamMembers.find(m => m.id === assigned_to)?.name : null;
 
   const handleStatusChange = async (newStatus: string) => {
     setUpdating(true);
@@ -70,7 +77,6 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
     setUpdating(false);
     if (error) {
       toast.error("Failed to update status");
-      console.error(error);
     } else {
       toast.success(`Status updated to ${newStatus.replace("_", " ")}`);
       onUpdated?.();
@@ -87,7 +93,6 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
     setUpdating(false);
     if (error) {
       toast.error("Failed to reassign department");
-      console.error(error);
     } else {
       toast.success(`Ticket moved to ${allDepartments.find(d => d.value === newDept)?.label}`);
       onUpdated?.();
@@ -104,7 +109,6 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
     setUpdating(false);
     if (error) {
       toast.error("Failed to assign team member");
-      console.error(error);
     } else {
       const name = value ? teamMembers.find(m => m.id === value)?.name ?? "member" : "nobody";
       toast.success(`Ticket assigned to ${name}`);
@@ -112,47 +116,120 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
     }
   };
 
-  const assigneeName = assigned_to ? teamMembers.find(m => m.id === assigned_to)?.name : null;
+  // Parse description into structured key-value pairs for display
+  const descriptionPairs = description
+    ? description.split(/(?<=\S)\s*(?=[A-Z][a-z]*\s*(?:Date|Hours|Name|Type|Changes|Options|Details|Update|Bio|Notes|Promote):)/g)
+        .map(part => {
+          const colonIdx = part.indexOf(":");
+          if (colonIdx > 0 && colonIdx < 40) {
+            return { key: part.slice(0, colonIdx).trim(), value: part.slice(colonIdx + 1).trim() };
+          }
+          return null;
+        })
+        .filter(Boolean) as { key: string; value: string }[]
+    : [];
+
+  const hasStructuredDesc = descriptionPairs.length >= 2;
 
   return (
-    <Card className={`overflow-hidden transition-all ${updating ? "opacity-60 pointer-events-none" : "hover-lift"}`}>
-      <CardContent className="p-4">
+    <Card className={cn(
+      "overflow-hidden transition-all border-l-[3px]",
+      sc.border,
+      updating ? "opacity-60 pointer-events-none" : "hover:shadow-md"
+    )}>
+      {/* Header row */}
+      <div className="px-4 pt-3.5 pb-3">
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1.5">
-              <StatusIcon className="h-4 w-4 shrink-0" />
-              <h3 className="text-sm font-semibold text-foreground truncate">{title}</h3>
+            <div className="flex items-center gap-2.5 mb-2">
+              <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center shrink-0", sc.bg)}>
+                <StatusIcon className={cn("h-3.5 w-3.5", sc.color)} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-sm font-semibold text-foreground truncate">{title}</h3>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                    <Calendar className="h-3 w-3" />
+                    {format(new Date(created_at), "MMM d, yyyy")}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    ({formatDistanceToNow(new Date(created_at), { addSuffix: true })})
+                  </span>
+                </div>
+              </div>
             </div>
-            {description && (
-              <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{description}</p>
-            )}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <Badge variant="outline" className={`text-[10px] px-2 py-0.5 ${sc.className}`}>{sc.label}</Badge>
-              <Badge variant="outline" className={`text-[10px] px-2 py-0.5 ${pc.className}`}>{pc.label}</Badge>
-              <Badge variant="secondary" className="text-[10px] px-2 py-0.5">{ticket_type}</Badge>
+
+            {/* Metadata badges */}
+            <div className="flex flex-wrap items-center gap-1.5 ml-[2.375rem]">
+              <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 gap-1", sc.bg, sc.color, "border-0")}>
+                {sc.label}
+              </Badge>
+              <Badge variant="outline" className={cn("text-[10px] px-2 py-0.5 gap-1", pc.className)}>
+                <span className={cn("h-1.5 w-1.5 rounded-full", pc.dot)} />
+                {pc.label}
+              </Badge>
+              <Badge variant="secondary" className="text-[10px] px-2 py-0.5 gap-1">
+                <Tag className="h-2.5 w-2.5" />{ticket_type}
+              </Badge>
+              <Badge variant="outline" className="text-[10px] px-2 py-0.5 gap-1 text-muted-foreground">
+                <Building2 className="h-2.5 w-2.5" />{deptLabel}
+              </Badge>
               {assigneeName && (
-                <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-primary/10 text-primary border-primary/20">
-                  <UserCircle className="h-3 w-3 mr-1" />{assigneeName}
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5 bg-primary/8 text-primary border-primary/20 gap-1">
+                  <UserCircle className="h-2.5 w-2.5" />{assigneeName}
+                </Badge>
+              )}
+              {!assigneeName && (
+                <Badge variant="outline" className="text-[10px] px-2 py-0.5 text-muted-foreground/60 border-dashed gap-1">
+                  <UserCircle className="h-2.5 w-2.5" />Unassigned
                 </Badge>
               )}
             </div>
           </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-[10px] text-muted-foreground whitespace-nowrap pt-0.5">
-              {formatDistanceToNow(new Date(created_at), { addSuffix: true })}
-            </span>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setExpanded(!expanded)}>
-              {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
-            </Button>
-          </div>
-        </div>
 
-        {expanded && (
-          <div className="mt-3 pt-3 border-t border-border/50 flex flex-wrap items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <span className="text-xs text-muted-foreground">Status:</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 px-2.5 text-xs text-muted-foreground hover:text-foreground shrink-0 gap-1"
+            onClick={() => setExpanded(!expanded)}
+          >
+            {expanded ? "Less" : "Details"}
+            {expanded ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </Button>
+        </div>
+      </div>
+
+      {/* Expanded detail panel */}
+      {expanded && (
+        <div className="border-t border-border/40">
+          {/* Description section */}
+          {description && (
+            <div className="px-4 py-3 bg-muted/20">
+              <div className="flex items-center gap-1.5 mb-2">
+                <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-xs font-medium text-foreground">Description</span>
+              </div>
+              {hasStructuredDesc ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-1.5 ml-5">
+                  {descriptionPairs.map((pair, i) => (
+                    <div key={i} className="flex gap-2">
+                      <span className="text-[11px] text-muted-foreground font-medium whitespace-nowrap min-w-[100px]">{pair.key}:</span>
+                      <span className="text-[11px] text-foreground break-words">{pair.value}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-[11px] text-muted-foreground ml-5 whitespace-pre-wrap leading-relaxed">{description}</p>
+              )}
+            </div>
+          )}
+
+          {/* Actions row */}
+          <div className="px-4 py-3 flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Status</label>
               <Select value={status} onValueChange={handleStatusChange}>
-                <SelectTrigger className="h-7 text-xs w-[130px]">
+                <SelectTrigger className="h-8 text-xs w-[130px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -162,11 +239,13 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-1.5">
-              <ArrowRightLeft className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Dept:</span>
+
+            <Separator orientation="vertical" className="h-5" />
+
+            <div className="flex items-center gap-2">
+              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Dept</label>
               <Select value={department} onValueChange={handleDepartmentChange}>
-                <SelectTrigger className="h-7 text-xs w-[130px]">
+                <SelectTrigger className="h-8 text-xs w-[130px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -176,11 +255,13 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-center gap-1.5">
-              <UserCircle className="h-3.5 w-3.5 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Assign:</span>
+
+            <Separator orientation="vertical" className="h-5" />
+
+            <div className="flex items-center gap-2">
+              <label className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Assign</label>
               <Select value={assigned_to || "unassigned"} onValueChange={handleAssigneeChange}>
-                <SelectTrigger className="h-7 text-xs w-[150px]">
+                <SelectTrigger className="h-8 text-xs w-[150px]">
                   <SelectValue placeholder="Unassigned" />
                 </SelectTrigger>
                 <SelectContent>
@@ -192,8 +273,8 @@ export function TicketCard({ id, title, ticket_type, priority, status, descripti
               </Select>
             </div>
           </div>
-        )}
-      </CardContent>
+        </div>
+      )}
     </Card>
   );
 }
