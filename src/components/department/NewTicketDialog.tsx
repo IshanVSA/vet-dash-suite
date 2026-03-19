@@ -11,6 +11,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2, Clock } from "lucide-react";
 import { FileUploader, type AttachedFile } from "./ticket-forms/FileUploader";
+import { getVisibleDepartmentLabels } from "@/lib/ticket-department-map";
 import { TimeChangesForm } from "./ticket-forms/TimeChangesForm";
 import { PopupOffersForm } from "./ticket-forms/PopupOffersForm";
 import { ThirdPartyIntegrationsForm } from "./ticket-forms/ThirdPartyIntegrationsForm";
@@ -227,8 +228,27 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               </div>
               <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
                 <Clock className="h-4 w-4 shrink-0" />
-                <span>Expected turnaround: <strong className="text-foreground">24–48 business hours</strong> (Mon–Fri)</span>
+                <span>Expected turnaround: <strong className="text-foreground">{ticketType === "Emergency" ? "Within 24 hours" : "24–48 business hours"}</strong> (Mon–Fri)</span>
               </div>
+              {(() => {
+                const depts = getVisibleDepartmentLabels(ticketType);
+                // For Add/Remove Team Members with social promotion, add Social Media
+                const finalDepts = ticketType === "Add/Remove Team Members" && promoteSocial
+                  ? [...depts, "Social Media"]
+                  : depts;
+                return finalDepts.length > 0 ? (
+                  <div className="rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground w-full">
+                    <p className="mb-1.5 font-medium text-foreground text-xs uppercase tracking-wide">Forwarded to</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {finalDepts.map(d => (
+                        <span key={d} className="inline-flex items-center rounded-md bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
+                          {d}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
             </div>
             <DialogFooter>
               <Button onClick={handleClose} className="w-full">Done</Button>
