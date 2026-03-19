@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.extract-ticket-fields]
 verify_jwt = false
+
+[functions.pagespeed-insights]
+verify_jwt = false
