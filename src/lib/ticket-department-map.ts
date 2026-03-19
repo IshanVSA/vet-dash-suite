@@ -14,6 +14,13 @@ export const TICKET_VISIBILITY: Record<string, string[]> = {
   "Emergency": ["website"],
 };
 
+const DEPARTMENT_LABELS: Record<string, string> = {
+  website: "Website",
+  seo: "SEO",
+  google_ads: "Google Ads",
+  social_media: "Social Media",
+};
+
 /**
  * Returns all ticket types that should be visible in a given department.
  */
@@ -21,4 +28,12 @@ export function getVisibleTicketTypes(department: string): string[] {
   return Object.entries(TICKET_VISIBILITY)
     .filter(([, depts]) => depts.includes(department))
     .map(([type]) => type);
+}
+
+/**
+ * Returns human-readable department names where a ticket type is visible.
+ */
+export function getVisibleDepartmentLabels(ticketType: string): string[] {
+  const depts = TICKET_VISIBILITY[ticketType] || [];
+  return depts.map(d => DEPARTMENT_LABELS[d] || d);
 }
