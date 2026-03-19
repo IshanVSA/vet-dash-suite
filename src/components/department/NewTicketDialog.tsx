@@ -223,6 +223,18 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
         return <PriceListForm onChange={handleCustomFormChange} />;
       case "Emergency":
         return <EmergencyForm onChange={handleCustomFormChange} />;
+      case "Dashboard Access":
+        return <DashboardAccessForm onChange={handleCustomFormChange} />;
+      case "Analytics Review":
+        return <AnalyticsReviewForm onChange={handleCustomFormChange} />;
+      case "Monthly Performance Report":
+        return <MonthlyReportForm onChange={handleCustomFormChange} />;
+      case "Call Volume Issues":
+        return <CallVolumeIssuesForm onChange={handleCustomFormChange} />;
+      case "Wrong Call Tracking":
+        return <WrongCallTrackingForm onChange={handleCustomFormChange} />;
+      case "Campaign Adjustments":
+        return <CampaignAdjustmentsForm onChange={handleCustomFormChange} />;
       default:
         return null;
     }
