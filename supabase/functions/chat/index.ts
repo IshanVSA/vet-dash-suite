@@ -118,7 +118,7 @@ serve(async (req) => {
     }
 
     const gatewayHeaders = {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     };
 
