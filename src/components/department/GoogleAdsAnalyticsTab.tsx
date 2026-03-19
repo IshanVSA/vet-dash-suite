@@ -119,10 +119,8 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
     const clicks = filteredTrends.reduce((s, d) => s + d.clicks, 0);
     const impressions = filteredTrends.reduce((s, d) => s + d.impressions, 0);
     const cost = filteredTrends.reduce((s, d) => s + d.cost, 0);
-    const conversions = filteredTrends.reduce((s, d) => s + d.conversions, 0);
     const ctr = impressions > 0 ? Math.round((clicks / impressions) * 10000) / 100 : 0;
     const cpc = clicks > 0 ? Math.round((cost / clicks) * 100) / 100 : 0;
-    const costPerConversion = conversions > 0 ? Math.round((cost / conversions) * 100) / 100 : 0;
 
     // Sort campaigns by cost desc
     const sortedCampaigns = [...campaigns].sort((a, b) => b.cost - a.cost);
@@ -133,10 +131,9 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       clicks: d.clicks,
       impressions: d.impressions,
       cost: Math.round(d.cost * 100) / 100,
-      conversions: d.conversions,
     }));
 
-    return { clicks, impressions, cost, conversions, ctr, cpc, costPerConversion, sortedCampaigns, chartData };
+    return { clicks, impressions, cost, ctr, cpc, sortedCampaigns, chartData };
   }, [metricsData, dateRange]);
 
   if (loading) {
