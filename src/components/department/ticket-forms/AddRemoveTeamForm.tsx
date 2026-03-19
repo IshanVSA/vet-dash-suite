@@ -61,6 +61,9 @@ export function AddRemoveTeamForm({ onChange }: AddRemoveTeamFormProps) {
         <Input placeholder="e.g. Veterinarian, Technician" value={memberRole} onChange={e => setMemberRole(e.target.value)} maxLength={200} />
       </div>
       {action === "add" && (
+        <p className="text-xs text-muted-foreground">Upload the team member's photo in the attachments section below.</p>
+      )}
+      {action === "add" && (
         <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
           <Checkbox
             id="promote-social"
@@ -71,9 +74,6 @@ export function AddRemoveTeamForm({ onChange }: AddRemoveTeamFormProps) {
             Promote new team member on social media
           </Label>
         </div>
-      )}
-      {action === "add" && (
-        <p className="text-xs text-muted-foreground">Upload the team member's photo in the attachments section below.</p>
       )}
     </div>
   );
