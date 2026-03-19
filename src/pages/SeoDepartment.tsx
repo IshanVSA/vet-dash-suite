@@ -112,6 +112,8 @@ export default function SeoDepartment() {
   const { team } = useDepartmentTeam("seo", selectedClinicId);
   const { latest, trafficData, topKeywords, isLoading, upsertSeoAnalytics, isUpserting } = useSeoAnalytics(selectedClinicId);
   const canEditSeo = useCanEditSeo();
+  const { role } = useUserRole();
+  const isClient = role === "client";
   const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
   const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
