@@ -1,31 +1,41 @@
 
 
-## Redesign: Transcript Dialog with Editable Textarea
+## Replace Browser Speech API with OpenAI Whisper
 
-### What Changes
-
-When the user clicks **Stop** after dictating, a **dialog popup** appears showing the transcribed text in an **editable textarea**. The user can review/edit the transcript, then click **"Autofill Form"** to extract fields and populate the form. They can also cancel/discard.
+The browser's Web Speech API fails in iframe/cross-origin contexts. We'll replace it with **MediaRecorder** (records audio as a blob) + a new **Supabase edge function** that sends the audio to **OpenAI Whisper** for transcription.
 
 ### Flow
 
 ```text
-[Dictate] → listening... → [Stop] → Dialog opens with transcript in textarea
-   → User reviews/edits → [Autofill Form] → AI extracts → form populated → dialog closes
-   → Or [Cancel] → dialog closes, transcript discarded
+[Dictate] → MediaRecorder captures mic audio → [Stop] → audio blob sent to edge function
+→ Edge function sends to OpenAI Whisper API → transcript returned
+→ Dialog opens with transcript in editable textarea → [Autofill Form] → AI extracts fields
 ```
 
-### Changes (single file)
+### Changes
 
-**`src/components/department/ticket-forms/VoiceDictation.tsx`**
+**1. New edge function: `supabase/functions/transcribe-audio/index.ts`**
+- Accepts audio file via FormData
+- Sends to `https://api.openai.com/v1/audio/transcriptions` using existing `OPENAI_API_KEY`
+- Model: `whisper-1`
+- Returns `{ text: "..." }`
+- Standard CORS headers
 
-- Add a `showDialog` state — set to `true` when Stop is clicked and transcript exists
-- Render a `Dialog` with:
-  - A `Textarea` pre-filled with the transcript (editable so user can correct mistakes)
-  - An "Autofill Form" button that calls the existing `extractFields` logic
-  - A "Cancel" button that closes the dialog and clears transcript
-- Remove the inline transcript preview and the inline "Fill Form" button — everything moves into the dialog
-- The mic button + pulsing indicator remain inline as-is
-- Import `Dialog`, `DialogContent`, `DialogHeader`, `DialogTitle`, `DialogFooter` and `Textarea`
+**2. Update `supabase/config.toml`**
+- Add `[functions.transcribe-audio]` with `verify_jwt = false`
 
-No other files need changes.
+**3. Rewrite `src/components/department/ticket-forms/VoiceDictation.tsx`**
+- Remove all Web Speech API code (`SpeechRecognition`, `recognition.*`)
+- Use `navigator.mediaDevices.getUserMedia()` + `MediaRecorder` to capture audio
+- On Stop: send recorded audio blob to `transcribe-audio` edge function
+- Show loading state ("Transcribing...") while waiting for Whisper response
+- On success: open the existing review dialog with the transcript
+- Remove the `if (!SpeechRecognition) return null` guard so the component always renders
+- Keep the existing dialog, autofill, and cancel logic unchanged
+
+### Technical Details
+
+- MediaRecorder uses `audio/webm` format (widely supported, Whisper accepts it)
+- Audio chunks collected in a ref array, combined into a single blob on stop
+- The component no longer depends on browser speech recognition support
 
