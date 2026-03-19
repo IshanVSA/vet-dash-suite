@@ -197,6 +197,19 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         />
       </div>
 
+      {/* Additional Notes */}
+      <div className="space-y-1.5">
+        <Label>Additional Notes</Label>
+        <Textarea
+          placeholder="Any additional notes or context..."
+          value={additionalNotes}
+          onChange={e => { setAdditionalNotes(e.target.value); handleFieldChange(); }}
+          rows={2}
+          maxLength={1000}
+          disabled={locked}
+        />
+      </div>
+
       {/* Start & End Date */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
@@ -204,8 +217,10 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           <Input
             type="date"
             value={startDate}
+            min={new Date().toISOString().split("T")[0]}
             onChange={e => { setStartDate(e.target.value); handleFieldChange(); }}
             disabled={locked}
+            className="block w-full"
           />
         </div>
         <div className="space-y-1.5">
@@ -213,8 +228,10 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           <Input
             type="date"
             value={endDate}
+            min={startDate || new Date().toISOString().split("T")[0]}
             onChange={e => { setEndDate(e.target.value); handleFieldChange(); }}
             disabled={locked}
+            className="block w-full"
           />
         </div>
       </div>
