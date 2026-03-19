@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { UserPlus, UserMinus } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { VoiceDictation } from "./VoiceDictation";
 
 interface AddRemoveTeamFormProps {
   onChange: (description: string) => void;
@@ -24,8 +25,16 @@ export function AddRemoveTeamForm({ onChange }: AddRemoveTeamFormProps) {
     onChange("Team Member Update:\n" + parts.join("\n"));
   }, [action, memberName, memberRole, onChange]);
 
+  const handleAutofill = useCallback((fields: Record<string, any>) => {
+    if (fields.action === "add" || fields.action === "remove") setAction(fields.action);
+    if (fields.memberName) setMemberName(fields.memberName);
+    if (fields.memberRole) setMemberRole(fields.memberRole);
+  }, []);
+
   return (
     <div className="space-y-3">
+      <VoiceDictation formType="Add/Remove Team" onFieldsExtracted={handleAutofill} />
+
       <div className="space-y-1.5">
         <Label>Action *</Label>
         <div className="grid grid-cols-2 gap-2">

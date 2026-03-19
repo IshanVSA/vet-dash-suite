@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
+import { useState, useEffect, useCallback } from "react";
+import { format, parse } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { VoiceDictation } from "./VoiceDictation";
 
 interface DaySchedule {
   open: boolean;
@@ -54,8 +55,38 @@ export function TimeChangesForm({ onChange }: TimeChangesFormProps) {
     setSchedule(prev => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
   };
 
+  const handleAutofill = useCallback((fields: Record<string, any>) => {
+    if (fields.startDate) {
+      try { setStartDate(parse(fields.startDate, "yyyy-MM-dd", new Date())); } catch {}
+    }
+    if (fields.endDate) {
+      try { setEndDate(parse(fields.endDate, "yyyy-MM-dd", new Date())); } catch {}
+    }
+
+    const dayKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+    setSchedule(prev => {
+      const next = { ...prev };
+      dayKeys.forEach((key, i) => {
+        const day = DAYS[i];
+        if (fields[`${key}Closed`] === true) {
+          next[day] = { ...next[day], open: false };
+        } else {
+          if (fields[`${key}Open`]) next[day] = { ...next[day], open: true, openTime: fields[`${key}Open`] };
+          if (fields[`${key}Close`]) next[day] = { ...next[day], open: true, closeTime: fields[`${key}Close`] };
+        }
+      });
+      return next;
+    });
+
+    if (fields.statHolidayOpen !== undefined) setStatHolidayOpen(fields.statHolidayOpen);
+    if (fields.statHolidayOpenTime) setStatHolidayOpenTime(fields.statHolidayOpenTime);
+    if (fields.statHolidayCloseTime) setStatHolidayCloseTime(fields.statHolidayCloseTime);
+  }, []);
+
   return (
     <div className="space-y-4">
+      <VoiceDictation formType="Time Changes" onFieldsExtracted={handleAutofill} />
+
       {/* Date range */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">

@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { VoiceDictation } from "./VoiceDictation";
 
 interface ThirdPartyIntegrationsFormProps {
   onChange: (description: string) => void;
@@ -39,8 +40,18 @@ export function ThirdPartyIntegrationsForm({ onChange }: ThirdPartyIntegrationsF
     onChange("Third Party Integration Request:\n" + parts.join("\n"));
   }, [integrationType, providerName, accountUrl, description, urgencyReason, onChange]);
 
+  const handleAutofill = useCallback((fields: Record<string, any>) => {
+    if (fields.integrationType && INTEGRATION_TYPES.includes(fields.integrationType)) setIntegrationType(fields.integrationType);
+    if (fields.providerName) setProviderName(fields.providerName);
+    if (fields.accountUrl) setAccountUrl(fields.accountUrl);
+    if (fields.description) setDescription(fields.description);
+    if (fields.urgencyReason) setUrgencyReason(fields.urgencyReason);
+  }, []);
+
   return (
     <div className="space-y-3">
+      <VoiceDictation formType="Third Party Integrations" onFieldsExtracted={handleAutofill} />
+
       <div className="space-y-1.5">
         <Label>Integration Type *</Label>
         <Select value={integrationType} onValueChange={setIntegrationType}>
