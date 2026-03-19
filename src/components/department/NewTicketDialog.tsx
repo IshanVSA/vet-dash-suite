@@ -41,6 +41,7 @@ const AUTO_TITLES: Record<string, string> = {
   "Add/Remove Team Members": "Team Member Update Request",
   "New Forms": "New Form Request",
   "Price List Updates": "Price List Update Request",
+  "Emergency": "Emergency — Website Issue",
 };
 
 export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "", clinicId }: NewTicketDialogProps) {
