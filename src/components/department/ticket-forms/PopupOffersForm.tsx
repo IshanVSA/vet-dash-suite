@@ -4,8 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, ShieldCheck, ShieldAlert, Loader2, AlertTriangle, Lightbulb } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { Shield, ShieldCheck, ShieldAlert, Loader2, AlertTriangle, Lightbulb, CalendarIcon } from "lucide-react";
 
 interface PopupOffersFormProps {
   onChange: (description: string) => void;
@@ -62,8 +66,8 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
   const [offerText, setOfferText] = useState("");
   const [termsAndConditions, setTermsAndConditions] = useState("");
   const [additionalNotes, setAdditionalNotes] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState<Date | undefined>();
+  const [endDate, setEndDate] = useState<Date | undefined>();
 
   const [clinicAddress, setClinicAddress] = useState("");
   const [complianceBody, setComplianceBody] = useState("");
@@ -98,8 +102,8 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       `Offer Description: ${offerText || "N/A"}`,
       `Terms & Conditions: ${termsAndConditions || "None"}`,
       `Additional Notes: ${additionalNotes || "None"}`,
-      `Start Date: ${startDate || "N/A"}`,
-      `End Date: ${endDate || "N/A"}`,
+      `Start Date: ${startDate ? format(startDate, "PPP") : "N/A"}`,
+      `End Date: ${endDate ? format(endDate, "PPP") : "N/A"}`,
       `Compliance Body: ${complianceBody || "N/A"}`,
       `Verified: ${verified ? "Yes" : "No"}`,
     ];
@@ -127,8 +131,8 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           offerTitle,
           offerText,
           termsAndConditions,
-          startDate,
-          endDate,
+          startDate: startDate ? format(startDate, "yyyy-MM-dd") : "",
+          endDate: endDate ? format(endDate, "yyyy-MM-dd") : "",
           complianceBody,
         },
       });
@@ -214,25 +218,62 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label>Start Date *</Label>
-          <Input
-            type="date"
-            value={startDate}
-            min={new Date().toISOString().split("T")[0]}
-            onChange={e => { setStartDate(e.target.value); handleFieldChange(); }}
-            disabled={locked}
-            className="block w-full"
-          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={locked}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !startDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={startDate}
+                onSelect={(date) => { setStartDate(date); handleFieldChange(); }}
+                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
         <div className="space-y-1.5">
           <Label>End Date *</Label>
-          <Input
-            type="date"
-            value={endDate}
-            min={startDate || new Date().toISOString().split("T")[0]}
-            onChange={e => { setEndDate(e.target.value); handleFieldChange(); }}
-            disabled={locked}
-            className="block w-full"
-          />
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                disabled={locked}
+                className={cn(
+                  "w-full justify-start text-left font-normal",
+                  !endDate && "text-muted-foreground"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={endDate}
+                onSelect={(date) => { setEndDate(date); handleFieldChange(); }}
+                disabled={(date) => {
+                  const today = new Date(new Date().setHours(0, 0, 0, 0));
+                  return date < (startDate || today);
+                }}
+                initialFocus
+                className={cn("p-3 pointer-events-auto")}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
