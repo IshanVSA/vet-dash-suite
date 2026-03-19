@@ -62,6 +62,11 @@ export function VoiceDictation({ formType, onFieldsExtracted }: VoiceDictationPr
         stoppingRef.current = true;
         setListening(false);
         toast.error("Microphone access denied. Please allow mic access.");
+      } else if (event.error === "network") {
+        stoppingRef.current = true;
+        recognitionRef.current = null;
+        setListening(false);
+        toast.error("Speech recognition unavailable — network error. You can type your request manually using the Dictate button's dialog.");
       }
     };
 
