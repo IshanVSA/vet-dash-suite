@@ -200,12 +200,12 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       {/* Clicks & Impressions Chart */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Daily Clicks & Conversions (30 Days)</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Daily Clicks & Impressions</CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={{
             clicks: { label: "Clicks", color: "hsl(var(--primary))" },
-            conversions: { label: "Conversions", color: "hsl(142, 71%, 45%)" },
+            impressions: { label: "Impressions", color: "hsl(142, 71%, 45%)" },
           }} className="h-[260px] w-full">
             <AreaChart data={computed.chartData}>
               <defs>
@@ -213,7 +213,7 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
                   <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
                   <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                 </linearGradient>
-                <linearGradient id="fillConversions" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="fillImpressions" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.3} />
                   <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
                 </linearGradient>
@@ -223,7 +223,7 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
               <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Area type="monotone" dataKey="clicks" stroke="hsl(var(--primary))" fill="url(#fillClicks)" strokeWidth={2} />
-              <Area type="monotone" dataKey="conversions" stroke="hsl(142, 71%, 45%)" fill="url(#fillConversions)" strokeWidth={2} />
+              <Area type="monotone" dataKey="impressions" stroke="hsl(142, 71%, 45%)" fill="url(#fillImpressions)" strokeWidth={2} />
             </AreaChart>
           </ChartContainer>
         </CardContent>
