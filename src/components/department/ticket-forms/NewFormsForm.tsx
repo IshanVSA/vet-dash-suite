@@ -32,7 +32,7 @@ export function NewFormsForm({ onChange, files, onFilesChange }: NewFormsFormPro
         <Label>Fields Needed</Label>
         <Textarea placeholder="List the fields you need, e.g.&#10;- Pet name&#10;- Owner name&#10;- Phone number&#10;- Appointment type" value={fieldsNeeded} onChange={e => setFieldsNeeded(e.target.value)} rows={4} maxLength={2000} />
       </div>
-      <FileUploader files={files} onFilesChange={onFilesChange} />
+      <FileUploader files={files} onFilesChange={onFilesChange} label="Attachments / Upload your own form" />
     </div>
   );
 }
