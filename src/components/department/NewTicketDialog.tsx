@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Upload, X, FileIcon, Loader2 } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
 import { TimeChangesForm } from "./ticket-forms/TimeChangesForm";
 import { PopupOffersForm } from "./ticket-forms/PopupOffersForm";
 import { ThirdPartyIntegrationsForm } from "./ticket-forms/ThirdPartyIntegrationsForm";
