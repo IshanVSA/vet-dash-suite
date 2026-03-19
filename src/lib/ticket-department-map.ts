@@ -12,6 +12,12 @@ export const TICKET_VISIBILITY: Record<string, string[]> = {
   "New Forms": ["website"],
   "Price List Updates": ["website", "social_media"],
   "Emergency": ["website"],
+  "Dashboard Access": ["google_ads"],
+  "Analytics Review": ["google_ads"],
+  "Monthly Performance Report": ["google_ads"],
+  "Call Volume Issues": ["google_ads"],
+  "Wrong Call Tracking": ["google_ads"],
+  "Campaign Adjustments": ["google_ads"],
 };
 
 const DEPARTMENT_LABELS: Record<string, string> = {

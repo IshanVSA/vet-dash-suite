@@ -20,6 +20,12 @@ import { AddRemoveTeamForm } from "./ticket-forms/AddRemoveTeamForm";
 import { NewFormsForm } from "./ticket-forms/NewFormsForm";
 import { PriceListForm } from "./ticket-forms/PriceListForm";
 import { EmergencyForm } from "./ticket-forms/EmergencyForm";
+import { DashboardAccessForm } from "./ticket-forms/DashboardAccessForm";
+import { AnalyticsReviewForm } from "./ticket-forms/AnalyticsReviewForm";
+import { MonthlyReportForm } from "./ticket-forms/MonthlyReportForm";
+import { CallVolumeIssuesForm } from "./ticket-forms/CallVolumeIssuesForm";
+import { WrongCallTrackingForm } from "./ticket-forms/WrongCallTrackingForm";
+import { CampaignAdjustmentsForm } from "./ticket-forms/CampaignAdjustmentsForm";
 
 interface NewTicketDialogProps {
   open: boolean;
@@ -32,7 +38,12 @@ interface NewTicketDialogProps {
 }
 
 
-const CUSTOM_FORM_TYPES = ["Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options", "Add/Remove Team Members", "New Forms", "Price List Updates", "Emergency"];
+const CUSTOM_FORM_TYPES = [
+  "Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options",
+  "Add/Remove Team Members", "New Forms", "Price List Updates", "Emergency",
+  "Dashboard Access", "Analytics Review", "Monthly Performance Report",
+  "Call Volume Issues", "Wrong Call Tracking", "Campaign Adjustments",
+];
 
 const AUTO_TITLES: Record<string, string> = {
   "Time Changes": "Time Changes Request",
@@ -43,6 +54,12 @@ const AUTO_TITLES: Record<string, string> = {
   "New Forms": "New Form Request",
   "Price List Updates": "Price List Update Request",
   "Emergency": "Emergency — Website Issue",
+  "Dashboard Access": "Dashboard Access Request",
+  "Analytics Review": "Analytics Review Request",
+  "Monthly Performance Report": "Monthly Performance Report Request",
+  "Call Volume Issues": "Call Volume Issue Report",
+  "Wrong Call Tracking": "Wrong Call Tracking Report",
+  "Campaign Adjustments": "Campaign Adjustment Request",
 };
 
 export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "", clinicId }: NewTicketDialogProps) {
@@ -206,6 +223,18 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
         return <PriceListForm onChange={handleCustomFormChange} />;
       case "Emergency":
         return <EmergencyForm onChange={handleCustomFormChange} />;
+      case "Dashboard Access":
+        return <DashboardAccessForm onChange={handleCustomFormChange} />;
+      case "Analytics Review":
+        return <AnalyticsReviewForm onChange={handleCustomFormChange} />;
+      case "Monthly Performance Report":
+        return <MonthlyReportForm onChange={handleCustomFormChange} />;
+      case "Call Volume Issues":
+        return <CallVolumeIssuesForm onChange={handleCustomFormChange} />;
+      case "Wrong Call Tracking":
+        return <WrongCallTrackingForm onChange={handleCustomFormChange} />;
+      case "Campaign Adjustments":
+        return <CampaignAdjustmentsForm onChange={handleCustomFormChange} />;
       default:
         return null;
     }
