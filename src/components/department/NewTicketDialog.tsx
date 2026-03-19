@@ -177,10 +177,13 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     }
 
     setLoading(false);
-    toast.success("Ticket created");
+    setSubmitted(true);
+    onCreated();
+  };
+
+  const handleClose = () => {
     reset();
     onOpenChange(false);
-    onCreated();
   };
 
 
