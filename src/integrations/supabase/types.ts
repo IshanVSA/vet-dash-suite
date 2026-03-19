@@ -519,6 +519,50 @@ export type Database = {
           },
         ]
       }
+      pagespeed_scores: {
+        Row: {
+          accessibility_score: number
+          best_practices_score: number
+          clinic_id: string
+          id: string
+          metrics_json: Json
+          performance_score: number
+          recorded_at: string
+          seo_score: number
+          strategy: string
+        }
+        Insert: {
+          accessibility_score?: number
+          best_practices_score?: number
+          clinic_id: string
+          id?: string
+          metrics_json?: Json
+          performance_score?: number
+          recorded_at?: string
+          seo_score?: number
+          strategy: string
+        }
+        Update: {
+          accessibility_score?: number
+          best_practices_score?: number
+          clinic_id?: string
+          id?: string
+          metrics_json?: Json
+          performance_score?: number
+          recorded_at?: string
+          seo_score?: number
+          strategy?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagespeed_scores_clinic_id_fkey"
+            columns: ["clinic_id"]
+            isOneToOne: false
+            referencedRelation: "clinics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       post_activity_log: {
         Row: {
           action: string
