@@ -218,21 +218,21 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         <div className="py-12 flex items-center justify-center">
           <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : tickets.length === 0 ? (
+      ) : filteredTickets.length === 0 ? (
         <div className="py-16 flex flex-col items-center justify-center text-muted-foreground">
           <Inbox className="h-10 w-10 mb-3 opacity-40" />
-          <p className="text-sm font-medium">No tickets found</p>
-          <p className="text-xs mt-1">Create a new ticket to get started.</p>
+          <p className="text-sm font-medium">{searchQuery ? "No matching tickets" : "No tickets found"}</p>
+          <p className="text-xs mt-1">{searchQuery ? "Try a different search term." : "Create a new ticket to get started."}</p>
         </div>
       ) : viewMode === "kanban" ? (
         <TicketKanbanView
-          tickets={tickets}
+          tickets={filteredTickets}
           teamMembers={teamMemberProfiles}
           onUpdated={() => refetch()}
         />
       ) : viewMode === "table" ? (
         <TicketTableView
-          tickets={tickets}
+          tickets={filteredTickets}
           teamMembers={teamMemberProfiles}
           onUpdated={() => refetch()}
         />
