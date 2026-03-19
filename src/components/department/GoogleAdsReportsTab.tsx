@@ -23,7 +23,6 @@ interface DailyTrend {
   clicks: number;
   impressions: number;
   cost: number;
-  conversions: number;
 }
 
 interface MetricsJson {
