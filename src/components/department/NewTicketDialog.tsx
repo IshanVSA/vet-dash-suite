@@ -74,6 +74,9 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     if (AUTO_TITLES[ticketType] && (!title || Object.values(AUTO_TITLES).includes(title))) {
       setTitle(AUTO_TITLES[ticketType]);
     }
+    if (ticketType === "Emergency") {
+      setPriority("emergency");
+    }
   }, [ticketType]);
 
   const reset = () => {
