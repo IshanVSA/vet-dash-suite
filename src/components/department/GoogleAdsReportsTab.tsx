@@ -109,7 +109,7 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
       y = renderKPICards(doc, y, [
         { label: "Total Ad Spend", value: fmtCurrency(computed.cost) },
         { label: "Clicks", value: computed.clicks.toLocaleString() },
-        { label: "Conversions", value: Math.round(computed.conversions).toLocaleString() },
+        { label: "Avg. CPC", value: fmtCurrency(computed.cpc) },
         { label: "CTR", value: `${computed.ctr}%` },
       ], PDF_COLORS.googleAds);
 
