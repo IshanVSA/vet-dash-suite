@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { UserPlus, UserMinus } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -14,18 +13,16 @@ export function AddRemoveTeamForm({ onChange }: AddRemoveTeamFormProps) {
   const [action, setAction] = useState<"add" | "remove">("add");
   const [memberName, setMemberName] = useState("");
   const [memberRole, setMemberRole] = useState("");
-  const [promoteSocial, setPromoteSocial] = useState(false);
 
   useEffect(() => {
     const parts = [
       `Action: ${action === "add" ? "Add" : "Remove"} Team Member`,
       `Name: ${memberName || "N/A"}`,
       `Role/Title: ${memberRole || "N/A"}`,
-      action === "add" ? `Promote on Social Media: ${promoteSocial ? "Yes" : "No"}` : "",
       action === "add" ? "(See attachments for photo)" : "",
     ].filter(Boolean);
     onChange("Team Member Update:\n" + parts.join("\n"));
-  }, [action, memberName, memberRole, promoteSocial, onChange]);
+  }, [action, memberName, memberRole, onChange]);
 
   return (
     <div className="space-y-3">
@@ -62,18 +59,6 @@ export function AddRemoveTeamForm({ onChange }: AddRemoveTeamFormProps) {
       </div>
       {action === "add" && (
         <p className="text-xs text-muted-foreground">Upload the team member's photo in the attachments section below.</p>
-      )}
-      {action === "add" && (
-        <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
-          <Checkbox
-            id="promote-social"
-            checked={promoteSocial}
-            onCheckedChange={(checked) => setPromoteSocial(checked === true)}
-          />
-          <Label htmlFor="promote-social" className="cursor-pointer text-sm font-normal">
-            Promote new team member on social media
-          </Label>
-        </div>
       )}
     </div>
   );
