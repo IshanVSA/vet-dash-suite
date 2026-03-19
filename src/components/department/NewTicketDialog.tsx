@@ -29,10 +29,6 @@ interface NewTicketDialogProps {
   clinicId?: string;
 }
 
-interface AttachedFile {
-  file: File;
-  preview?: string;
-}
 
 const CUSTOM_FORM_TYPES = ["Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options", "Add/Remove Team Members", "New Forms", "Price List Updates"];
 
