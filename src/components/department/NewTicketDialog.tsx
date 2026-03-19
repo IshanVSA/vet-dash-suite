@@ -90,28 +90,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setCustomDescription(desc);
   }, []);
 
-  const addFiles = useCallback((newFiles: FileList | File[]) => {
-    const arr = Array.from(newFiles).slice(0, 5 - files.length);
-    const mapped: AttachedFile[] = arr.map(f => ({
-      file: f,
-      preview: f.type.startsWith("image/") ? URL.createObjectURL(f) : undefined,
-    }));
-    setFiles(prev => [...prev, ...mapped].slice(0, 5));
-  }, [files.length]);
-
-  const removeFile = (index: number) => {
-    setFiles(prev => {
-      const removed = prev[index];
-      if (removed.preview) URL.revokeObjectURL(removed.preview);
-      return prev.filter((_, i) => i !== index);
-    });
-  };
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
-  }, [addFiles]);
 
   const uploadFiles = async (ticketId: string): Promise<string[]> => {
     const paths: string[] = [];
