@@ -46,6 +46,7 @@ interface DepartmentOverviewProps {
   accentColor?: string;
   extraSection?: ReactNode;
   clinicId?: string;
+  hideQuickActions?: boolean;
 }
 
 function useTicketCounts(department: string, clinicId?: string): TicketSummary {
