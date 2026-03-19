@@ -12,6 +12,7 @@ interface FileUploaderProps {
   files: AttachedFile[];
   onFilesChange: (files: AttachedFile[]) => void;
   maxFiles?: number;
+  label?: string;
 }
 
 const formatSize = (bytes: number) => {
