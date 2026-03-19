@@ -191,6 +191,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
         return <NewFormsForm onChange={handleCustomFormChange} files={files} onFilesChange={setFiles} />;
       case "Price List Updates":
         return <PriceListForm onChange={handleCustomFormChange} />;
+      case "Emergency":
+        return <EmergencyForm onChange={handleCustomFormChange} />;
       default:
         return null;
     }
