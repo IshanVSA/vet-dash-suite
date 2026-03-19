@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Upload, X, FileIcon, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { FileUploader, type AttachedFile } from "./ticket-forms/FileUploader";
 import { TimeChangesForm } from "./ticket-forms/TimeChangesForm";
 import { PopupOffersForm } from "./ticket-forms/PopupOffersForm";
 import { ThirdPartyIntegrationsForm } from "./ticket-forms/ThirdPartyIntegrationsForm";
@@ -28,10 +29,6 @@ interface NewTicketDialogProps {
   clinicId?: string;
 }
 
-interface AttachedFile {
-  file: File;
-  preview?: string;
-}
 
 const CUSTOM_FORM_TYPES = ["Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options", "Add/Remove Team Members", "New Forms", "Price List Updates"];
 
@@ -56,10 +53,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const [notes, setNotes] = useState("");
   const [files, setFiles] = useState<AttachedFile[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [dragOver, setDragOver] = useState(false);
   const [popupConsented, setPopupConsented] = useState(false);
   const [promoteSocial, setPromoteSocial] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isCustomForm = CUSTOM_FORM_TYPES.includes(ticketType);
   const isAddTeamMember = ticketType === "Add/Remove Team Members" && customDescription.includes("Action: Add");
@@ -95,28 +90,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setCustomDescription(desc);
   }, []);
 
-  const addFiles = useCallback((newFiles: FileList | File[]) => {
-    const arr = Array.from(newFiles).slice(0, 5 - files.length);
-    const mapped: AttachedFile[] = arr.map(f => ({
-      file: f,
-      preview: f.type.startsWith("image/") ? URL.createObjectURL(f) : undefined,
-    }));
-    setFiles(prev => [...prev, ...mapped].slice(0, 5));
-  }, [files.length]);
-
-  const removeFile = (index: number) => {
-    setFiles(prev => {
-      const removed = prev[index];
-      if (removed.preview) URL.revokeObjectURL(removed.preview);
-      return prev.filter((_, i) => i !== index);
-    });
-  };
-
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setDragOver(false);
-    if (e.dataTransfer.files.length) addFiles(e.dataTransfer.files);
-  }, [addFiles]);
 
   const uploadFiles = async (ticketId: string): Promise<string[]> => {
     const paths: string[] = [];
@@ -195,11 +168,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     onCreated();
   };
 
-  const formatSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-  };
 
   const renderCustomForm = () => {
     switch (ticketType) {
@@ -282,66 +250,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
           )}
 
           {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && (
-            <div className="space-y-1.5">
-              <Label>Attachments <span className="text-muted-foreground font-normal">({files.length}/5)</span></Label>
-              <input
-                ref={fileInputRef}
-                type="file"
-                multiple
-                className="hidden"
-                accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt,.csv,.zip"
-                onChange={e => { if (e.target.files) addFiles(e.target.files); e.target.value = ""; }}
-              />
-              <div
-                className={`border-2 border-dashed rounded-lg p-4 transition-colors cursor-pointer ${
-                  dragOver
-                    ? "border-primary bg-primary/5"
-                    : "border-border hover:border-primary/50 hover:bg-muted/30"
-                }`}
-                onClick={() => files.length < 5 && fileInputRef.current?.click()}
-                onDragOver={e => { e.preventDefault(); setDragOver(true); }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={handleDrop}
-              >
-                {files.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center text-muted-foreground py-1">
-                    <Upload className="h-5 w-5 mb-1" />
-                    <span className="text-xs">Drag & drop files here or click to browse</span>
-                    <span className="text-[10px] mt-0.5">Images, PDFs, Docs, Spreadsheets (max 5 files)</span>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {files.map((f, i) => (
-                      <div key={i} className="flex items-center gap-2 p-1.5 rounded-md bg-muted/40 group">
-                        {f.preview ? (
-                          <img src={f.preview} alt="" className="h-8 w-8 rounded object-cover shrink-0" />
-                        ) : (
-                          <div className="h-8 w-8 rounded bg-muted flex items-center justify-center shrink-0">
-                            <FileIcon className="h-4 w-4 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium truncate text-foreground">{f.file.name}</p>
-                          <p className="text-[10px] text-muted-foreground">{formatSize(f.file.size)}</p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={e => { e.stopPropagation(); removeFile(i); }}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    ))}
-                    {files.length < 5 && (
-                      <p className="text-[10px] text-center text-muted-foreground">Click or drop to add more</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+            <FileUploader files={files} onFilesChange={setFiles} />
           )}
 
           {isAddTeamMember && (
