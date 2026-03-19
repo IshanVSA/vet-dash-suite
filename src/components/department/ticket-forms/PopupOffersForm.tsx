@@ -131,8 +131,8 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           offerTitle,
           offerText,
           termsAndConditions,
-          startDate,
-          endDate,
+          startDate: startDate ? format(startDate, "yyyy-MM-dd") : "",
+          endDate: endDate ? format(endDate, "yyyy-MM-dd") : "",
           complianceBody,
         },
       });
