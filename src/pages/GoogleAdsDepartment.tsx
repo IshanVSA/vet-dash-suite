@@ -51,13 +51,13 @@ export default function GoogleAdsDepartment() {
       </div>
       <CardContent className="p-0">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Campaign</TableHead>
-              <TableHead className="text-right">Spend</TableHead>
-              <TableHead className="text-right">Clicks</TableHead>
-              <TableHead className="text-right">Conv.</TableHead>
-              <TableHead className="text-right">CTR</TableHead>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Campaign</TableHead>
+                <TableHead className="text-right">Spend</TableHead>
+                <TableHead className="text-right">Clicks</TableHead>
+                <TableHead className="text-right">CPC</TableHead>
+                <TableHead className="text-right">CTR</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
