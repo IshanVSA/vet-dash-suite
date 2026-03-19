@@ -48,12 +48,11 @@ interface ComputedMetrics {
 }
 
 function computeMetrics(m: MetricsJson): ComputedMetrics {
-  const { clicks, impressions, cost, conversions, daily_trends, campaigns } = m;
+  const { clicks, impressions, cost, daily_trends, campaigns } = m;
   const ctr = impressions > 0 ? Math.round((clicks / impressions) * 10000) / 100 : 0;
   const cpc = clicks > 0 ? Math.round((cost / clicks) * 100) / 100 : 0;
-  const costPerConversion = conversions > 0 ? Math.round((cost / conversions) * 100) / 100 : 0;
   const sortedCampaigns = [...campaigns].sort((a, b) => b.cost - a.cost);
-  return { clicks, impressions, cost, conversions, ctr, cpc, costPerConversion, campaigns: sortedCampaigns, dailyTrends: daily_trends || [] };
+  return { clicks, impressions, cost, ctr, cpc, campaigns: sortedCampaigns, dailyTrends: daily_trends || [] };
 }
 
 function fmtCurrency(v: number): string {
