@@ -7,6 +7,7 @@ import { Plus, Inbox } from "lucide-react";
 import { TicketCard } from "./TicketCard";
 import { NewTicketDialog } from "./NewTicketDialog";
 import { useDepartmentTeam } from "@/hooks/useDepartmentTeam";
+import { getVisibleTicketTypes } from "@/lib/ticket-department-map";
 
 interface TicketsTabProps {
   department: string;
@@ -60,13 +61,21 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
     },
   });
 
+  const visibleTypes = getVisibleTicketTypes(department);
+
   const { data: tickets = [], refetch, isLoading } = useQuery({
     queryKey: ["department-tickets", department, filter, clinicId],
     queryFn: async () => {
+      // Build OR filter: native department tickets OR cross-department visible ticket types
+      const orClauses = [`department.eq.${department}`];
+      if (visibleTypes.length > 0) {
+        orClauses.push(`ticket_type.in.(${visibleTypes.join(",")})`);
+      }
+
       let query = supabase
         .from("department_tickets" as any)
         .select("*")
-        .eq("department", department)
+        .or(orClauses.join(","))
         .order("created_at", { ascending: false });
 
       if (clinicId) {
@@ -79,7 +88,19 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
 
       const { data, error } = await query;
       if (error) throw error;
-      return (data ?? []) as any[];
+
+      // Post-filter: for social_media, only show "Add/Remove Team Members" if promoted
+      let results = (data ?? []) as any[];
+      if (department === "social_media") {
+        results = results.filter((t: any) => {
+          if (t.ticket_type === "Add/Remove Team Members") {
+            return t.description?.includes("Promote on Social Media: Yes");
+          }
+          return true;
+        });
+      }
+
+      return results;
     },
   });
 
