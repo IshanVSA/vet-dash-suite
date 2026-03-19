@@ -116,7 +116,18 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
     },
   });
 
-  // Stats for the summary bar
+  // Client-side search filtering
+  const filteredTickets = useMemo(() => {
+    if (!searchQuery.trim()) return tickets;
+    const q = searchQuery.toLowerCase();
+    return tickets.filter((t: any) =>
+      (t.title?.toLowerCase().includes(q)) ||
+      (t.description?.toLowerCase().includes(q)) ||
+      (t.ticket_type?.toLowerCase().includes(q))
+    );
+  }, [tickets, searchQuery]);
+
+  // Stats for the summary bar (based on all tickets, not filtered)
   const openCount = tickets.filter((t: any) => t.status === "open").length;
   const inProgressCount = tickets.filter((t: any) => t.status === "in_progress").length;
   const completedCount = tickets.filter((t: any) => t.status === "completed").length;
