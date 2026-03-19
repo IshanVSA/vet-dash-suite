@@ -232,8 +232,8 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               <PreviewStat icon={DollarSign} label="Ad Spend" value={fmtCurrency(computed.cost)} />
-              <PreviewStat icon={MousePointerClick} label="Clicks" value={computed.clicks.toLocaleString()} sub={`CPC: ${fmtCurrency(computed.cpc)}`} />
-              <PreviewStat icon={Target} label="Conversions" value={Math.round(computed.conversions).toLocaleString()} sub={`${fmtCurrency(computed.costPerConversion)}/conv`} />
+              <PreviewStat icon={MousePointerClick} label="Clicks" value={computed.clicks.toLocaleString()} sub={`${computed.impressions.toLocaleString()} impr.`} />
+              <PreviewStat icon={DollarSign} label="Avg. CPC" value={fmtCurrency(computed.cpc)} sub={`${computed.clicks.toLocaleString()} clicks`} />
               <PreviewStat icon={Percent} label="CTR" value={`${computed.ctr}%`} sub={`${computed.impressions.toLocaleString()} impr.`} />
             </div>
             {computed.campaigns.length > 0 && (
