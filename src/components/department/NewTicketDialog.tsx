@@ -47,6 +47,7 @@ const AUTO_TITLES: Record<string, string> = {
 export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "", clinicId }: NewTicketDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [title, setTitle] = useState("");
   const [ticketType, setTicketType] = useState(defaultType);
   const [priority, setPriority] = useState<"regular" | "urgent" | "emergency">("regular");
