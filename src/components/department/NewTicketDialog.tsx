@@ -136,7 +136,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       toast.error("Issue type and description are required for emergency tickets");
       return;
     }
-    }
     if (!user) return;
 
     let finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
