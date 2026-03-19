@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-const GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
+const GATEWAY = "https://api.openai.com/v1/chat/completions";
 
 const tools = [
   {
@@ -96,8 +96,8 @@ serve(async (req) => {
 
   try {
     const { messages } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
+    if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not configured");
 
     // Extract user ID from auth header
     const authHeader = req.headers.get("Authorization");
@@ -118,7 +118,7 @@ serve(async (req) => {
     }
 
     const gatewayHeaders = {
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     };
 
@@ -129,7 +129,7 @@ serve(async (req) => {
       method: "POST",
       headers: gatewayHeaders,
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gpt-4o-mini",
         messages: allMessages,
         tools,
         stream: false,
@@ -210,7 +210,7 @@ serve(async (req) => {
       method: "POST",
       headers: gatewayHeaders,
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "gpt-4o-mini",
         messages: finalMessages,
         stream: true,
       }),
