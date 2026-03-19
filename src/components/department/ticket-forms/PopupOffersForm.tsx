@@ -4,8 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
-import { Shield, ShieldCheck, ShieldAlert, Loader2, AlertTriangle, Lightbulb } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { format } from "date-fns";
+import { Shield, ShieldCheck, ShieldAlert, Loader2, AlertTriangle, Lightbulb, CalendarIcon } from "lucide-react";
 
 interface PopupOffersFormProps {
   onChange: (description: string) => void;
