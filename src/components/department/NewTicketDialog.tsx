@@ -18,6 +18,7 @@ import { PaymentOptionsForm } from "./ticket-forms/PaymentOptionsForm";
 import { AddRemoveTeamForm } from "./ticket-forms/AddRemoveTeamForm";
 import { NewFormsForm } from "./ticket-forms/NewFormsForm";
 import { PriceListForm } from "./ticket-forms/PriceListForm";
+import { EmergencyForm } from "./ticket-forms/EmergencyForm";
 
 interface NewTicketDialogProps {
   open: boolean;
