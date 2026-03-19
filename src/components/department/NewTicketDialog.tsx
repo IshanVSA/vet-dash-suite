@@ -18,6 +18,7 @@ import { PaymentOptionsForm } from "./ticket-forms/PaymentOptionsForm";
 import { AddRemoveTeamForm } from "./ticket-forms/AddRemoveTeamForm";
 import { NewFormsForm } from "./ticket-forms/NewFormsForm";
 import { PriceListForm } from "./ticket-forms/PriceListForm";
+import { EmergencyForm } from "./ticket-forms/EmergencyForm";
 
 interface NewTicketDialogProps {
   open: boolean;
@@ -30,7 +31,7 @@ interface NewTicketDialogProps {
 }
 
 
-const CUSTOM_FORM_TYPES = ["Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options", "Add/Remove Team Members", "New Forms", "Price List Updates"];
+const CUSTOM_FORM_TYPES = ["Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options", "Add/Remove Team Members", "New Forms", "Price List Updates", "Emergency"];
 
 const AUTO_TITLES: Record<string, string> = {
   "Time Changes": "Time Changes Request",
@@ -40,6 +41,7 @@ const AUTO_TITLES: Record<string, string> = {
   "Add/Remove Team Members": "Team Member Update Request",
   "New Forms": "New Form Request",
   "Price List Updates": "Price List Update Request",
+  "Emergency": "Emergency — Website Issue",
 };
 
 export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "", clinicId }: NewTicketDialogProps) {
@@ -71,6 +73,9 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   useEffect(() => {
     if (AUTO_TITLES[ticketType] && (!title || Object.values(AUTO_TITLES).includes(title))) {
       setTitle(AUTO_TITLES[ticketType]);
+    }
+    if (ticketType === "Emergency") {
+      setPriority("emergency");
     }
   }, [ticketType]);
 
@@ -125,6 +130,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     }
     if (ticketType === "Price List Updates" && !customDescription.includes("Description of Changes: ") || (ticketType === "Price List Updates" && customDescription.includes("Description of Changes: N/A") && customDescription.includes("Terms & Conditions: N/A"))) {
       toast.error("Please fill in at least one field (Description or Terms & Conditions)");
+      return;
+    }
+    if (ticketType === "Emergency" && (customDescription.includes("Issue Type: N/A") || customDescription.includes("Description: N/A"))) {
+      toast.error("Issue type and description are required for emergency tickets");
       return;
     }
     if (!user) return;
@@ -189,6 +198,8 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
         return <NewFormsForm onChange={handleCustomFormChange} files={files} onFilesChange={setFiles} />;
       case "Price List Updates":
         return <PriceListForm onChange={handleCustomFormChange} />;
+      case "Emergency":
+        return <EmergencyForm onChange={handleCustomFormChange} />;
       default:
         return null;
     }
