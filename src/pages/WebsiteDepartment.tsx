@@ -51,6 +51,9 @@ export default function WebsiteDepartment() {
   const { clinics, selectedClinicId, setSelectedClinicId, loading: clinicsLoading } = useClinicSelector();
   const { team } = useDepartmentTeam("website", selectedClinicId);
   const kpiData = useWebsiteKPIs(selectedClinicId);
+  const { role } = useUserRole();
+  const canViewHealth = role === "admin" || role === "concierge";
+  const tabs = canViewHealth ? [...baseTabs, healthTab] : baseTabs;
 
   const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
 
