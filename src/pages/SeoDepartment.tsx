@@ -112,6 +112,8 @@ export default function SeoDepartment() {
   const { team } = useDepartmentTeam("seo", selectedClinicId);
   const { latest, trafficData, topKeywords, isLoading, upsertSeoAnalytics, isUpserting } = useSeoAnalytics(selectedClinicId);
   const canEditSeo = useCanEditSeo();
+  const { role } = useUserRole();
+  const isClient = role === "client";
   const [seoDialogOpen, setSeoDialogOpen] = useState(false);
 
   const selectedClinicName = clinics.find(c => c.id === selectedClinicId)?.clinic_name;
@@ -164,7 +166,7 @@ export default function SeoDepartment() {
           </TabsList>
 
           <TabsContent value="overview" className="mt-4">
-            <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} />
+            <DepartmentOverview kpis={kpis} services={services} trafficData={trafficData.length > 0 ? trafficData : [{ label: "No data", value: 0 }]} trafficLabel="Organic Traffic Trend" team={team} department="seo" accentColor="hsl(var(--dept-seo))" extraSection={<TopKeywordsCard keywords={topKeywords} />} clinicId={selectedClinicId} hideQuickActions={isClient} />
           </TabsContent>
           <TabsContent value="tickets" className="mt-4"><TicketsTab department="seo" services={services} clinicId={selectedClinicId} /></TabsContent>
           <TabsContent value="analytics" className="mt-4"><SeoAnalyticsTab clinicId={selectedClinicId} /></TabsContent>

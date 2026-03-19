@@ -46,6 +46,7 @@ interface DepartmentOverviewProps {
   accentColor?: string;
   extraSection?: ReactNode;
   clinicId?: string;
+  hideQuickActions?: boolean;
 }
 
 function useTicketCounts(department: string, clinicId?: string): TicketSummary {
@@ -96,7 +97,7 @@ const staggerItem = {
 };
 
 export function DepartmentOverview({
-  kpis, services, trafficData, trafficLabel = "Traffic Trend", team, department, accentColor = "hsl(var(--primary))", extraSection, clinicId,
+  kpis, services, trafficData, trafficLabel = "Traffic Trend", team, department, accentColor = "hsl(var(--primary))", extraSection, clinicId, hideQuickActions = false,
 }: DepartmentOverviewProps) {
   const [ticketDialogOpen, setTicketDialogOpen] = useState(false);
   const [prefilledService, setPrefilledService] = useState("");
@@ -124,30 +125,34 @@ export function DepartmentOverview({
       </div>
 
       {/* Quick Actions */}
-      <motion.div variants={staggerItem}>
-        <Card className="border-border/50">
-          <div className="px-5 py-3.5 border-b border-border/30 flex items-center justify-between">
-            <h3 className="text-sm font-semibold text-foreground">Quick Actions</h3>
-            <span className="text-[11px] text-muted-foreground">Click to create ticket</span>
-          </div>
-          <CardContent className="pt-3 pb-3">
-            <div className="flex flex-wrap gap-1.5">
-              {services.map(s => (
-                <Badge
-                  key={s}
-                  variant="secondary"
-                  className="text-xs font-medium px-3 py-1.5 cursor-pointer hover:bg-primary/8 hover:text-primary transition-all duration-200 hover:shadow-sm"
-                  onClick={() => { setPrefilledService(s); setTicketDialogOpen(true); }}
-                >
-                  {s}
-                </Badge>
-              ))}
+      {!hideQuickActions && (
+        <motion.div variants={staggerItem}>
+          <Card className="border-border/50">
+            <div className="px-5 py-3.5 border-b border-border/30 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Quick Actions</h3>
+              <span className="text-[11px] text-muted-foreground">Click to create ticket</span>
             </div>
-          </CardContent>
-        </Card>
-      </motion.div>
+            <CardContent className="pt-3 pb-3">
+              <div className="flex flex-wrap gap-1.5">
+                {services.map(s => (
+                  <Badge
+                    key={s}
+                    variant="secondary"
+                    className="text-xs font-medium px-3 py-1.5 cursor-pointer hover:bg-primary/8 hover:text-primary transition-all duration-200 hover:shadow-sm"
+                    onClick={() => { setPrefilledService(s); setTicketDialogOpen(true); }}
+                  >
+                    {s}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
 
-      <NewTicketDialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen} department={department} services={services} onCreated={() => {}} defaultType={prefilledService} clinicId={clinicId} />
+      {!hideQuickActions && (
+        <NewTicketDialog open={ticketDialogOpen} onOpenChange={setTicketDialogOpen} department={department} services={services} onCreated={() => {}} defaultType={prefilledService} clinicId={clinicId} />
+      )}
 
       {/* Chart + Ticket Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
