@@ -138,13 +138,12 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
 
         autoTable(doc, {
           startY: y,
-          head: [["Date", "Spend", "Clicks", "Impressions", "Conversions"]],
+          head: [["Date", "Spend", "Clicks", "Impressions"]],
           body: computed.dailyTrends.map(d => [
             d.date,
             fmtCurrency(d.cost),
             d.clicks.toLocaleString(),
             d.impressions.toLocaleString(),
-            Math.round(d.conversions).toString(),
           ]),
           ...getTableStyles(PDF_COLORS.googleAds),
         });
