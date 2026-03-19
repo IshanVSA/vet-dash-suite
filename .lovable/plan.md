@@ -1,75 +1,74 @@
 
 
-## Cross-Department Ticket Visibility
+## Website Health Tab — PageSpeed Insights Integration
 
-### Problem
-Currently, tickets are stored with a single `department` value and only shown in that department's Tickets tab. The user wants certain ticket types (created from Website) to also appear in other departments' Tickets tabs.
+### What We're Building
+A new "Website Health" tab in the Website department that fetches and displays Google PageSpeed Insights scores (Performance, Accessibility, Best Practices, SEO) for both mobile and desktop strategies. It includes historical tracking by storing results in the database. The tab is hidden from clients — only visible to admin and concierge (team member) roles.
 
-### Ticket Type → Department Visibility Map
+### Architecture
 
-| Ticket Type | Visible In |
-|---|---|
-| Time Changes | Website, SEO, Google Ads, Social Media |
-| Pop-up Offers | Website, Social Media |
-| Third Party Integrations | Website |
-| Payment Options | Website |
-| Add/Remove Team Members | Website (+ Social Media if "Promote on Social Media" checked) |
-| New Forms | Website |
-| Price List Updates | Website, Social Media |
-| Emergency | Website |
-| Others | Website |
+```text
+┌─────────────────────────────────────────────┐
+│  WebsiteDepartment.tsx                      │
+│  ├─ useUserRole() → filter tabs             │
+│  ├─ New "Health" tab (admin/concierge only) │
+│  └─ <WebsiteHealthTab clinicId={...} />     │
+├─────────────────────────────────────────────┤
+│  Edge Function: pagespeed-insights          │
+│  ├─ Accepts clinic URL + strategy           │
+│  ├─ Calls Google PSI API (free, no key req) │
+│  ├─ Stores results in pagespeed_scores      │
+│  └─ Returns scores to client                │
+├─────────────────────────────────────────────┤
+│  DB: pagespeed_scores table                 │
+│  ├─ clinic_id, strategy, scores (jsonb)     │
+│  ├─ recorded_at timestamp                   │
+│  └─ RLS: admin/concierge only              │
+└─────────────────────────────────────────────┘
+```
 
-### Approach
+### Plan
 
-**Option A — Client-side filtering (recommended)**: Define the visibility map as a shared constant. When fetching tickets in `TicketsTab`, instead of filtering by `department = X`, query tickets whose `ticket_type` maps to the current department. No database changes needed.
+#### 1. Database Migration — `pagespeed_scores` table
+Create a new table to store historical PageSpeed results:
+- `id` (uuid, PK)
+- `clinic_id` (uuid, NOT NULL)
+- `strategy` (text — 'mobile' or 'desktop')
+- `performance_score` (integer, 0-100)
+- `accessibility_score` (integer, 0-100)
+- `best_practices_score` (integer, 0-100)
+- `seo_score` (integer, 0-100)
+- `metrics_json` (jsonb — stores detailed metrics like FCP, LCP, TBT, CLS, SI)
+- `recorded_at` (timestamptz, default now())
 
-**Option B — Database `visible_departments` column**: Add an array column to `department_tickets` that stores which departments should see the ticket. This requires a migration + updating insert logic.
+RLS: SELECT/INSERT for admin and concierge only. No client access.
 
-### Implementation (Option A)
+#### 2. Edge Function — `pagespeed-insights`
+- Accepts `{ url: string, clinic_id: string, strategy: "mobile" | "desktop" }`
+- Calls the public Google PageSpeed Insights API (`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=...&strategy=...`)
+- Extracts Lighthouse category scores + Core Web Vitals (FCP, LCP, TBT, CLS, Speed Index)
+- Inserts results into `pagespeed_scores` table
+- Returns the scores to the frontend
+- Auth: requires authenticated user with admin/concierge role
 
-**1. Create shared constant** `src/lib/ticket-department-map.ts`
-- Export a `TICKET_VISIBILITY` map: `Record<string, string[]>` mapping each ticket type to its visible departments
-- Export a helper `getVisibleTicketTypes(department: string): string[]` that returns all ticket types visible to a given department
+#### 3. Component — `WebsiteHealthTab.tsx`
+- Fetches latest scores from `pagespeed_scores` for the selected clinic
+- Displays four circular score gauges (Performance, Accessibility, Best Practices, SEO) for both mobile and desktop in a toggle/tab layout
+- Shows Core Web Vitals metrics (FCP, LCP, TBT, CLS) with pass/fail indicators
+- Historical chart: line chart showing performance score trend over time using Recharts
+- "Run Test" button that invokes the edge function for a fresh scan
+- Uses the clinic's `website` field from the `clinics` table as the URL
 
-**2. Update `TicketsTab.tsx` query logic**
-- Import `getVisibleTicketTypes`
-- Instead of `.eq("department", department)`, use `.in("ticket_type", getVisibleTicketTypes(department))`
-- Also keep `.eq("department", department)` as a fallback for ticket types from other departments (SEO's own "Backlinking" tickets, etc.)
-- Final query: fetch tickets where `department = current` OR `ticket_type IN visibleTypes`
-
-**3. Handle "Add/Remove Team Members" special case**
-- When "Promote on Social Media" is checked, the description already includes `Promote on Social Media: Yes`
-- The query for `social_media` department will check: if ticket_type is "Add/Remove Team Members", only show it if description contains "Promote on Social Media: Yes"
-- This is handled in client-side post-filtering after the query
-
-**4. Update `TicketsTab` query to fetch cross-department tickets**
-- The query needs to fetch from `department_tickets` without strict department filtering for mapped types
-- Use an OR filter: tickets where `department = currentDept` OR (`ticket_type` is in the cross-visible list AND `clinic_id` matches)
+#### 4. WebsiteDepartment.tsx Updates
+- Import `useUserRole` hook
+- Conditionally add the "Health" tab to the tabs array only when role is `admin` or `concierge`
+- Add the `TabsContent` for the health tab
+- Use `Activity` (or `HeartPulse`) icon from lucide-react for the tab
 
 ### Technical Details
 
-The visibility map constant:
-```typescript
-export const TICKET_VISIBILITY: Record<string, string[]> = {
-  "Time Changes": ["website", "seo", "google_ads", "social_media"],
-  "Pop-up Offers": ["website", "social_media"],
-  "Third Party Integrations": ["website"],
-  "Payment Options": ["website"],
-  "Add/Remove Team Members": ["website"], // social_media conditional
-  "New Forms": ["website"],
-  "Price List Updates": ["website", "social_media"],
-  "Emergency": ["website"],
-  "Others": ["website"],
-};
-```
-
-The TicketsTab query will use Supabase's `.or()` filter to combine:
-- `department.eq.{currentDept}` (native tickets for this department)
-- `ticket_type.in.(types that map to this department)` (cross-department visibility)
-
-Then client-side post-filter handles the "Add/Remove Team Members" + social media conditional.
-
-### Files Changed
-- **New**: `src/lib/ticket-department-map.ts` — visibility map and helper
-- **Edit**: `src/components/department/TicketsTab.tsx` — updated query logic
+- The Google PageSpeed Insights API v5 is **free** and does not require an API key for basic usage (though rate-limited). We can optionally use the `GOOGLE_CLIENT_ID` secret if needed for higher quotas.
+- Score color coding: 0-49 red, 50-89 amber, 90-100 green (matching Google's convention)
+- The edge function handles both fetching and storing, keeping the frontend simple
+- Historical data query limited to last 30 records per strategy to keep charts readable
 
