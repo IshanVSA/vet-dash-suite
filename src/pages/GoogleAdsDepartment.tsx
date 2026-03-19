@@ -35,8 +35,8 @@ export default function GoogleAdsDepartment() {
 
   const kpis = [
     { label: "Ad Spend", value: adsData.loading ? "—" : `$${adsData.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "Last 30 days", changeType: "neutral" as const, icon: DollarSign, gradient: "blue" as const },
-    { label: "Clicks", value: adsData.loading ? "—" : adsData.clicks.toLocaleString(), change: adsData.hasData ? `CPC: $${adsData.clicks > 0 ? (adsData.cost / adsData.clicks).toFixed(2) : "0"}` : "", changeType: "neutral" as const, icon: MousePointerClick, gradient: "green" as const },
-    { label: "Conversions", value: adsData.loading ? "—" : Math.round(adsData.conversions).toLocaleString(), change: adsData.hasData && adsData.conversions > 0 ? `$${(adsData.cost / adsData.conversions).toFixed(2)}/conv` : "", changeType: "neutral" as const, icon: Target, gradient: "amber" as const },
+    { label: "Clicks", value: adsData.loading ? "—" : adsData.clicks.toLocaleString(), change: adsData.hasData ? `${adsData.impressions.toLocaleString()} impr.` : "", changeType: "neutral" as const, icon: MousePointerClick, gradient: "green" as const },
+    { label: "Avg. CPC", value: adsData.loading ? "—" : `$${adsData.cpc.toFixed(2)}`, change: adsData.hasData ? `${adsData.clicks.toLocaleString()} clicks` : "", changeType: "neutral" as const, icon: DollarSign, gradient: "amber" as const },
     { label: "CTR", value: adsData.loading ? "—" : `${adsData.ctr}%`, change: adsData.hasData ? `${adsData.impressions.toLocaleString()} impr.` : "", changeType: "neutral" as const, icon: Percent, gradient: "purple" as const },
   ];
 
