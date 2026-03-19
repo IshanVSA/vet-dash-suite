@@ -249,7 +249,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
             </div>
           )}
 
-          {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && (
+          {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && ticketType !== "New Forms" && (
             <FileUploader files={files} onFilesChange={setFiles} />
           )}
 
