@@ -1,0 +1,102 @@
+import { useState, useEffect } from "react";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+interface ThirdPartyIntegrationsFormProps {
+  onChange: (description: string) => void;
+}
+
+const INTEGRATION_TYPES = [
+  "Online Booking / Scheduling",
+  "Payment Gateway",
+  "Loyalty / Rewards Program",
+  "Review / Reputation Management",
+  "Telemedicine / Virtual Visits",
+  "Email Marketing (e.g. Mailchimp)",
+  "CRM / Client Management",
+  "Lab Results Integration",
+  "Pharmacy Integration",
+  "Other",
+];
+
+export function ThirdPartyIntegrationsForm({ onChange }: ThirdPartyIntegrationsFormProps) {
+  const [integrationType, setIntegrationType] = useState("");
+  const [providerName, setProviderName] = useState("");
+  const [accountUrl, setAccountUrl] = useState("");
+  const [description, setDescription] = useState("");
+  const [urgencyReason, setUrgencyReason] = useState("");
+
+  useEffect(() => {
+    const parts = [
+      `Integration Type: ${integrationType || "N/A"}`,
+      `Provider/Platform: ${providerName || "N/A"}`,
+      `Account/Dashboard URL: ${accountUrl || "N/A"}`,
+      `Details & Requirements: ${description || "N/A"}`,
+      `Reason for Request: ${urgencyReason || "N/A"}`,
+    ];
+    onChange("Third Party Integration Request:\n" + parts.join("\n"));
+  }, [integrationType, providerName, accountUrl, description, urgencyReason, onChange]);
+
+  return (
+    <div className="space-y-3">
+      <div className="space-y-1.5">
+        <Label>Integration Type *</Label>
+        <Select value={integrationType} onValueChange={setIntegrationType}>
+          <SelectTrigger><SelectValue placeholder="Select integration type" /></SelectTrigger>
+          <SelectContent>
+            {INTEGRATION_TYPES.map(t => (
+              <SelectItem key={t} value={t}>{t}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Provider / Platform Name *</Label>
+        <Input
+          placeholder="e.g. PetDesk, Weave, Mailchimp..."
+          value={providerName}
+          onChange={e => setProviderName(e.target.value)}
+          maxLength={200}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Account / Dashboard URL</Label>
+        <Input
+          placeholder="https://..."
+          value={accountUrl}
+          onChange={e => setAccountUrl(e.target.value)}
+          maxLength={500}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Details & Requirements *</Label>
+        <Textarea
+          placeholder="Describe what you need integrated, any embed codes, widgets, or specific pages where it should appear..."
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+          rows={3}
+          maxLength={2000}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        <Label>Reason for Request</Label>
+        <Input
+          placeholder="e.g. Switching providers, new feature needed..."
+          value={urgencyReason}
+          onChange={e => setUrgencyReason(e.target.value)}
+          maxLength={500}
+        />
+      </div>
+
+      <p className="text-xs text-muted-foreground">
+        If you have embed codes, API keys, or documentation, upload them in the attachments section below.
+      </p>
+    </div>
+  );
+}

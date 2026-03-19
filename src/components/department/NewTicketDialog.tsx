@@ -11,7 +11,8 @@ import { toast } from "sonner";
 import { Upload, X, FileIcon, Loader2 } from "lucide-react";
 import { TimeChangesForm } from "./ticket-forms/TimeChangesForm";
 import { PopupOffersForm } from "./ticket-forms/PopupOffersForm";
-import { ThemeUpdatesForm } from "./ticket-forms/ThemeUpdatesForm";
+import { ThirdPartyIntegrationsForm } from "./ticket-forms/ThirdPartyIntegrationsForm";
+import { PaymentOptionsForm } from "./ticket-forms/PaymentOptionsForm";
 import { AddRemoveTeamForm } from "./ticket-forms/AddRemoveTeamForm";
 import { NewFormsForm } from "./ticket-forms/NewFormsForm";
 import { PriceListForm } from "./ticket-forms/PriceListForm";
@@ -31,12 +32,13 @@ interface AttachedFile {
   preview?: string;
 }
 
-const CUSTOM_FORM_TYPES = ["Time Changes", "Pop-up Offers", "Theme Updates", "Add/Remove Team Members", "New Forms", "Price List Updates"];
+const CUSTOM_FORM_TYPES = ["Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options", "Add/Remove Team Members", "New Forms", "Price List Updates"];
 
 const AUTO_TITLES: Record<string, string> = {
   "Time Changes": "Time Changes Request",
   "Pop-up Offers": "Pop-up Offer Request",
-  "Theme Updates": "Theme Update Request",
+  "Third Party Integrations": "Third Party Integration Request",
+  "Payment Options": "Payment Options Request",
   "Add/Remove Team Members": "Team Member Update Request",
   "New Forms": "New Form Request",
   "Price List Updates": "Price List Update Request",
@@ -198,8 +200,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
         return <TimeChangesForm onChange={handleCustomFormChange} />;
       case "Pop-up Offers":
         return <PopupOffersForm onChange={handleCustomFormChange} onConsentChange={setPopupConsented} clinicId={clinicId} />;
-      case "Theme Updates":
-        return <ThemeUpdatesForm onChange={handleCustomFormChange} />;
+      case "Third Party Integrations":
+        return <ThirdPartyIntegrationsForm onChange={handleCustomFormChange} />;
+      case "Payment Options":
+        return <PaymentOptionsForm onChange={handleCustomFormChange} />;
       case "Add/Remove Team Members":
         return <AddRemoveTeamForm onChange={handleCustomFormChange} />;
       case "New Forms":
