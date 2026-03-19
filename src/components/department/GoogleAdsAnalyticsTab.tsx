@@ -29,7 +29,6 @@ interface MetricsJson {
   clicks: number;
   impressions: number;
   cost: number;
-  conversions: number;
   daily_trends: DailyTrend[];
   campaigns: Campaign[];
 }
