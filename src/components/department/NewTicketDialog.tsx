@@ -87,6 +87,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setNotes("");
     setFiles([]);
     setPopupConsented(false);
+    setPromoteSocial(false);
   };
 
   const handleCustomFormChange = useCallback((desc: string) => {
