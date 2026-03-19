@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Inbox, LayoutGrid, Kanban, TableProperties } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Inbox, LayoutGrid, Kanban, TableProperties, Search, X } from "lucide-react";
 import { TicketCard } from "./TicketCard";
 import { TicketKanbanView } from "./TicketKanbanView";
 import { TicketTableView } from "./TicketTableView";
@@ -38,6 +39,7 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
   const [filter, setFilter] = useState("all");
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Fetch team members for assignment dropdown
   const { data: teamMemberProfiles = [] } = useQuery({
@@ -114,7 +116,18 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
     },
   });
 
-  // Stats for the summary bar
+  // Client-side search filtering
+  const filteredTickets = useMemo(() => {
+    if (!searchQuery.trim()) return tickets;
+    const q = searchQuery.toLowerCase();
+    return tickets.filter((t: any) =>
+      (t.title?.toLowerCase().includes(q)) ||
+      (t.description?.toLowerCase().includes(q)) ||
+      (t.ticket_type?.toLowerCase().includes(q))
+    );
+  }, [tickets, searchQuery]);
+
+  // Stats for the summary bar (based on all tickets, not filtered)
   const openCount = tickets.filter((t: any) => t.status === "open").length;
   const inProgressCount = tickets.filter((t: any) => t.status === "in_progress").length;
   const completedCount = tickets.filter((t: any) => t.status === "completed").length;
@@ -135,6 +148,25 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
             <span className="text-lg font-bold">{s.count}</span>
           </div>
         ))}
+      </div>
+
+      {/* Search bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search by title, description, or ticket type…"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9 pr-9 h-9 text-sm"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
       </div>
 
       {/* Toolbar: filters + view toggle + new ticket */}
@@ -186,27 +218,27 @@ export function TicketsTab({ department, services, clinicId }: TicketsTabProps) 
         <div className="py-12 flex items-center justify-center">
           <div className="h-5 w-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         </div>
-      ) : tickets.length === 0 ? (
+      ) : filteredTickets.length === 0 ? (
         <div className="py-16 flex flex-col items-center justify-center text-muted-foreground">
           <Inbox className="h-10 w-10 mb-3 opacity-40" />
-          <p className="text-sm font-medium">No tickets found</p>
-          <p className="text-xs mt-1">Create a new ticket to get started.</p>
+          <p className="text-sm font-medium">{searchQuery ? "No matching tickets" : "No tickets found"}</p>
+          <p className="text-xs mt-1">{searchQuery ? "Try a different search term." : "Create a new ticket to get started."}</p>
         </div>
       ) : viewMode === "kanban" ? (
         <TicketKanbanView
-          tickets={tickets}
+          tickets={filteredTickets}
           teamMembers={teamMemberProfiles}
           onUpdated={() => refetch()}
         />
       ) : viewMode === "table" ? (
         <TicketTableView
-          tickets={tickets}
+          tickets={filteredTickets}
           teamMembers={teamMemberProfiles}
           onUpdated={() => refetch()}
         />
       ) : (
         <div className="space-y-2">
-          {tickets.map((t: any) => (
+          {filteredTickets.map((t: any) => (
             <TicketCard
               key={t.id}
               id={t.id}

@@ -1,3 +1,4 @@
+import { useState, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -51,6 +52,9 @@ const deptLabels: Record<string, string> = {
 };
 
 export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanbanViewProps) {
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverCol, setDragOverCol] = useState<string | null>(null);
+
   const handleStatusChange = async (ticketId: string, newStatus: string) => {
     const { error } = await supabase
       .from("department_tickets" as any)
@@ -64,13 +68,57 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
     }
   };
 
+  const handleDragStart = (e: React.DragEvent, ticketId: string) => {
+    setDraggedId(ticketId);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", ticketId);
+  };
+
+  const handleDragOver = (e: React.DragEvent, colKey: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverCol(colKey);
+  };
+
+  const handleDragLeave = () => {
+    setDragOverCol(null);
+  };
+
+  const handleDrop = async (e: React.DragEvent, colKey: string) => {
+    e.preventDefault();
+    setDragOverCol(null);
+    const ticketId = e.dataTransfer.getData("text/plain");
+    const ticket = tickets.find(t => t.id === ticketId);
+    if (!ticket || ticket.status === colKey) {
+      setDraggedId(null);
+      return;
+    }
+    setDraggedId(null);
+    await handleStatusChange(ticketId, colKey);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    setDragOverCol(null);
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
       {columns.map(col => {
         const Icon = col.icon;
         const colTickets = tickets.filter(t => t.status === col.key);
+        const isOver = dragOverCol === col.key;
         return (
-          <div key={col.key} className="flex flex-col min-h-[300px]">
+          <div
+            key={col.key}
+            className={cn(
+              "flex flex-col min-h-[300px] rounded-xl transition-all duration-200",
+              isOver && "ring-2 ring-primary/40 bg-primary/5"
+            )}
+            onDragOver={(e) => handleDragOver(e, col.key)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, col.key)}
+          >
             {/* Column header */}
             <div className={cn("flex items-center gap-2 px-3 py-2.5 rounded-lg border mb-3", col.headerBg)}>
               <Icon className={cn("h-4 w-4", col.color)} />
@@ -83,32 +131,43 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
             {/* Cards */}
             <div className="flex-1 space-y-2">
               {colTickets.length === 0 ? (
-                <div className="flex items-center justify-center h-24 rounded-lg border border-dashed border-border/60 text-xs text-muted-foreground">
-                  No tickets
+                <div className={cn(
+                  "flex items-center justify-center h-24 rounded-lg border border-dashed text-xs text-muted-foreground transition-colors",
+                  isOver ? "border-primary/40 bg-primary/5" : "border-border/60"
+                )}>
+                  {isOver ? "Drop here" : "No tickets"}
                 </div>
               ) : (
                 colTickets.map(t => {
                   const assignee = t.assigned_to ? teamMembers.find(m => m.id === t.assigned_to)?.name : null;
+                  const isDragging = draggedId === t.id;
                   return (
                     <Card
                       key={t.id}
-                      className="p-3 hover:shadow-md transition-shadow cursor-default group"
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, t.id)}
+                      onDragEnd={handleDragEnd}
+                      className={cn(
+                        "p-3 hover:shadow-md transition-all cursor-grab active:cursor-grabbing group",
+                        isDragging && "opacity-40 scale-95"
+                      )}
                     >
                       <div className="flex items-start gap-2 mb-2">
+                        <GripVertical className="h-3.5 w-3.5 mt-0.5 shrink-0 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
                         <div className={cn("h-2 w-2 rounded-full mt-1.5 shrink-0", priorityDot[t.priority])} />
                         <h4 className="text-sm font-medium text-foreground leading-tight line-clamp-2">{t.title}</h4>
                       </div>
 
                       {t.description && (
-                        <p className="text-[11px] text-muted-foreground line-clamp-2 mb-2 pl-4">{t.description}</p>
+                        <p className="text-[11px] text-muted-foreground line-clamp-2 mb-2 pl-[2.25rem]">{t.description}</p>
                       )}
 
-                      <div className="flex flex-wrap items-center gap-1 mb-2 pl-4">
+                      <div className="flex flex-wrap items-center gap-1 mb-2 pl-[2.25rem]">
                         <Badge variant="secondary" className="text-[10px] px-1.5 py-0">{t.ticket_type}</Badge>
                         <Badge variant="outline" className="text-[10px] px-1.5 py-0">{deptLabels[t.department] || t.department}</Badge>
                       </div>
 
-                      <div className="flex items-center justify-between pl-4">
+                      <div className="flex items-center justify-between pl-[2.25rem]">
                         <span className="text-[10px] text-muted-foreground">
                           {formatDistanceToNow(new Date(t.created_at), { addSuffix: true })}
                         </span>
@@ -119,20 +178,6 @@ export function TicketKanbanView({ tickets, teamMembers, onUpdated }: TicketKanb
                         ) : (
                           <span className="text-[10px] text-muted-foreground italic">Unassigned</span>
                         )}
-                      </div>
-
-                      {/* Quick status change on hover */}
-                      <div className="mt-2 pt-2 border-t border-border/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Select value={t.status} onValueChange={(v) => handleStatusChange(t.id, v)}>
-                          <SelectTrigger className="h-6 text-[11px] w-full">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="open" className="text-xs">Open</SelectItem>
-                            <SelectItem value="in_progress" className="text-xs">In Progress</SelectItem>
-                            <SelectItem value="completed" className="text-xs">Completed</SelectItem>
-                          </SelectContent>
-                        </Select>
                       </div>
                     </Card>
                   );
