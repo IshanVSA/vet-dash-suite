@@ -8,8 +8,9 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
-import { format } from "date-fns";
+import { format, parse } from "date-fns";
 import { Shield, ShieldCheck, ShieldAlert, Loader2, AlertTriangle, Lightbulb, CalendarIcon } from "lucide-react";
+import { VoiceDictation } from "./VoiceDictation";
 
 interface PopupOffersFormProps {
   onChange: (description: string) => void;
@@ -36,18 +37,13 @@ const PROVINCE_MAP: Record<string, string> = {
 function detectComplianceBody(address: string): string {
   if (!address) return "General Veterinary Advertising Standards";
   const upper = address.toUpperCase();
-
-  // Check Canadian provinces
   for (const [code, body] of Object.entries(PROVINCE_MAP)) {
-    // Match province code in postal-style addresses or spelled out
     const patterns = [
       new RegExp(`\\b${code}\\b`),
       new RegExp(`\\b${code}\\s+[A-Z]\\d[A-Z]`, "i"),
     ];
     if (patterns.some(p => p.test(upper))) return body;
   }
-
-  // Common province names
   const nameMap: Record<string, string> = {
     ALBERTA: "AB", BRITISH_COLUMBIA: "BC", "BRITISH COLUMBIA": "BC",
     ONTARIO: "ON", SASKATCHEWAN: "SK", MANITOBA: "MB", QUEBEC: "QC",
@@ -57,7 +53,6 @@ function detectComplianceBody(address: string): string {
   for (const [name, code] of Object.entries(nameMap)) {
     if (upper.includes(name)) return PROVINCE_MAP[code];
   }
-
   return "General Veterinary Advertising Standards";
 }
 
@@ -80,7 +75,6 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
   } | null>(null);
   const [consented, setConsented] = useState(false);
 
-  // Fetch clinic address
   useEffect(() => {
     if (!clinicId) return;
     supabase
@@ -95,7 +89,6 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
       });
   }, [clinicId]);
 
-  // Emit description
   useEffect(() => {
     const parts = [
       `Offer Title: ${offerTitle || "N/A"}`,
@@ -110,7 +103,6 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
     onChange("Pop-up Offer Details:\n" + parts.join("\n"));
   }, [offerTitle, offerText, termsAndConditions, additionalNotes, startDate, endDate, complianceBody, verified, onChange]);
 
-  // Reset verification when form changes
   const handleFieldChange = useCallback(() => {
     if (verified) {
       setVerified(false);
@@ -120,25 +112,33 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
     }
   }, [verified, onConsentChange]);
 
+  const handleAutofill = useCallback((fields: Record<string, any>) => {
+    if (fields.offerTitle) { setOfferTitle(fields.offerTitle); handleFieldChange(); }
+    if (fields.offerText) { setOfferText(fields.offerText); handleFieldChange(); }
+    if (fields.termsAndConditions) { setTermsAndConditions(fields.termsAndConditions); handleFieldChange(); }
+    if (fields.additionalNotes) { setAdditionalNotes(fields.additionalNotes); handleFieldChange(); }
+    if (fields.startDate) {
+      try { setStartDate(parse(fields.startDate, "yyyy-MM-dd", new Date())); handleFieldChange(); } catch {}
+    }
+    if (fields.endDate) {
+      try { setEndDate(parse(fields.endDate, "yyyy-MM-dd", new Date())); handleFieldChange(); } catch {}
+    }
+  }, [handleFieldChange]);
+
   const handleVerify = async () => {
     if (!offerTitle.trim()) return;
     setVerifying(true);
     setVerificationResult(null);
-
     try {
       const { data, error } = await supabase.functions.invoke("verify-popup-offer", {
         body: {
-          offerTitle,
-          offerText,
-          termsAndConditions,
+          offerTitle, offerText, termsAndConditions,
           startDate: startDate ? format(startDate, "yyyy-MM-dd") : "",
           endDate: endDate ? format(endDate, "yyyy-MM-dd") : "",
           complianceBody,
         },
       });
-
       if (error) throw error;
-
       setVerificationResult(data);
       setVerified(data.compliant === true);
     } catch (err) {
@@ -163,7 +163,8 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
 
   return (
     <div className="space-y-4">
-      {/* Offer Title */}
+      <VoiceDictation formType="Pop-up Offers" onFieldsExtracted={handleAutofill} />
+
       <div className="space-y-1.5">
         <Label>Offer Title *</Label>
         <Input
@@ -175,7 +176,6 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         />
       </div>
 
-      {/* Offer Description */}
       <div className="space-y-1.5">
         <Label>Offer Description</Label>
         <Textarea
@@ -188,7 +188,6 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         />
       </div>
 
-      {/* Terms & Conditions */}
       <div className="space-y-1.5">
         <Label>Terms &amp; Conditions</Label>
         <Textarea
@@ -201,7 +200,6 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         />
       </div>
 
-      {/* Additional Notes */}
       <div className="space-y-1.5">
         <Label>Additional Notes</Label>
         <Textarea
@@ -214,33 +212,18 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         />
       </div>
 
-      {/* Start & End Date */}
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label>Start Date *</Label>
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                disabled={locked}
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !startDate && "text-muted-foreground"
-                )}
-              >
+              <Button variant="outline" disabled={locked} className={cn("w-full justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {startDate ? format(startDate, "PPP") : <span>Pick a date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={startDate}
-                onSelect={(date) => { setStartDate(date); handleFieldChange(); }}
-                disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
+              <Calendar mode="single" selected={startDate} onSelect={(date) => { setStartDate(date); handleFieldChange(); }} disabled={(date) => date < new Date(new Date().setHours(0, 0, 0, 0))} initialFocus className={cn("p-3 pointer-events-auto")} />
             </PopoverContent>
           </Popover>
         </div>
@@ -248,36 +231,18 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
           <Label>End Date *</Label>
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                disabled={locked}
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !endDate && "text-muted-foreground"
-                )}
-              >
+              <Button variant="outline" disabled={locked} className={cn("w-full justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {endDate ? format(endDate, "PPP") : <span>Pick a date</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
-              <Calendar
-                mode="single"
-                selected={endDate}
-                onSelect={(date) => { setEndDate(date); handleFieldChange(); }}
-                disabled={(date) => {
-                  const today = new Date(new Date().setHours(0, 0, 0, 0));
-                  return date < (startDate || today);
-                }}
-                initialFocus
-                className={cn("p-3 pointer-events-auto")}
-              />
+              <Calendar mode="single" selected={endDate} onSelect={(date) => { setEndDate(date); handleFieldChange(); }} disabled={(date) => { const today = new Date(new Date().setHours(0, 0, 0, 0)); return date < (startDate || today); }} initialFocus className={cn("p-3 pointer-events-auto")} />
             </PopoverContent>
           </Popover>
         </div>
       </div>
 
-      {/* Compliance Body */}
       {complianceBody && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/40 rounded-md px-3 py-2">
           <Shield className="h-3.5 w-3.5 shrink-0" />
@@ -285,14 +250,7 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         </div>
       )}
 
-      {/* Verify Button */}
-      <Button
-        type="button"
-        variant="outline"
-        className="w-full"
-        disabled={!canVerify || verifying || locked}
-        onClick={handleVerify}
-      >
+      <Button type="button" variant="outline" className="w-full" disabled={!canVerify || verifying || locked} onClick={handleVerify}>
         {verifying ? (
           <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Verifying…</>
         ) : verified ? (
@@ -302,13 +260,8 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         )}
       </Button>
 
-      {/* Verification Result */}
       {verificationResult && (
-        <div className={`rounded-lg border p-3 space-y-2 text-sm ${
-          verificationResult.compliant
-            ? "border-primary/30 bg-primary/5"
-            : "border-destructive/30 bg-destructive/5"
-        }`}>
+        <div className={`rounded-lg border p-3 space-y-2 text-sm ${verificationResult.compliant ? "border-primary/30 bg-primary/5" : "border-destructive/30 bg-destructive/5"}`}>
           <div className="flex items-center gap-2 font-medium">
             {verificationResult.compliant ? (
               <><ShieldCheck className="h-4 w-4 text-primary" /> Offer is compliant</>
@@ -316,7 +269,6 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
               <><ShieldAlert className="h-4 w-4 text-destructive" /> Compliance issues found</>
             )}
           </div>
-
           {verificationResult.issues.length > 0 && (
             <div className="space-y-1">
               {verificationResult.issues.map((issue, i) => (
@@ -327,7 +279,6 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
               ))}
             </div>
           )}
-
           {verificationResult.suggestions.length > 0 && (
             <div className="space-y-1 pt-1 border-t border-border/50">
               <p className="text-xs font-medium text-muted-foreground">Suggestions:</p>
@@ -342,17 +293,8 @@ export function PopupOffersForm({ onChange, onConsentChange, clinicId }: PopupOf
         </div>
       )}
 
-      {/* Consent Checkbox */}
-      <div className={`flex items-start gap-2 rounded-md border p-3 ${
-        !verified ? "opacity-50" : ""
-      }`}>
-        <Checkbox
-          id="popup-consent"
-          checked={consented}
-          onCheckedChange={(checked) => handleConsentChange(checked === true)}
-          disabled={!verified}
-          className="mt-0.5"
-        />
+      <div className={`flex items-start gap-2 rounded-md border p-3 ${!verified ? "opacity-50" : ""}`}>
+        <Checkbox id="popup-consent" checked={consented} onCheckedChange={(checked) => handleConsentChange(checked === true)} disabled={!verified} className="mt-0.5" />
         <label htmlFor="popup-consent" className="text-xs leading-relaxed cursor-pointer select-none">
           I acknowledge that all information provided for this pop-up offer is correct and compliant
           with <strong>{complianceBody || "applicable regulatory"}</strong> regulations. I confirm

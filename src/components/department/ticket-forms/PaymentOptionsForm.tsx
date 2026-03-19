@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { VoiceDictation } from "./VoiceDictation";
 
 interface PaymentOptionsFormProps {
   onChange: (description: string) => void;
@@ -56,8 +57,21 @@ export function PaymentOptionsForm({ onChange }: PaymentOptionsFormProps) {
     onChange("Payment Options Request:\n" + parts.join("\n"));
   }, [requestType, selectedMethods, providerName, pageLocation, details, onChange]);
 
+  const handleAutofill = useCallback((fields: Record<string, any>) => {
+    if (fields.requestType && REQUEST_TYPES.includes(fields.requestType)) setRequestType(fields.requestType);
+    if (fields.paymentMethods && Array.isArray(fields.paymentMethods)) {
+      const validIds = PAYMENT_METHODS.map(m => m.id);
+      setSelectedMethods(fields.paymentMethods.filter((id: string) => validIds.includes(id)));
+    }
+    if (fields.providerName) setProviderName(fields.providerName);
+    if (fields.pageLocation) setPageLocation(fields.pageLocation);
+    if (fields.details) setDetails(fields.details);
+  }, []);
+
   return (
     <div className="space-y-3">
+      <VoiceDictation formType="Payment Options" onFieldsExtracted={handleAutofill} />
+
       <div className="space-y-1.5">
         <Label>Request Type *</Label>
         <Select value={requestType} onValueChange={setRequestType}>

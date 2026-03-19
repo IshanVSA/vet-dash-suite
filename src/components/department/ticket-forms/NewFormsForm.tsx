@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUploader, type AttachedFile } from "./FileUploader";
+import { VoiceDictation } from "./VoiceDictation";
 
 interface NewFormsFormProps {
   onChange: (description: string) => void;
@@ -22,8 +23,15 @@ export function NewFormsForm({ onChange, files, onFilesChange }: NewFormsFormPro
     onChange("New Form Request:\n" + parts.join("\n"));
   }, [formName, fieldsNeeded, onChange]);
 
+  const handleAutofill = useCallback((fields: Record<string, any>) => {
+    if (fields.formName) setFormName(fields.formName);
+    if (fields.fieldsNeeded) setFieldsNeeded(fields.fieldsNeeded);
+  }, []);
+
   return (
     <div className="space-y-3">
+      <VoiceDictation formType="New Forms" onFieldsExtracted={handleAutofill} />
+
       <div className="space-y-1.5">
         <Label>Form Name / Purpose *</Label>
         <Input placeholder="e.g. New Patient Registration Form" value={formName} onChange={e => setFormName(e.target.value)} maxLength={200} />
