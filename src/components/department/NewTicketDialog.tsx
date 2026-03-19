@@ -31,7 +31,7 @@ interface NewTicketDialogProps {
 }
 
 
-const CUSTOM_FORM_TYPES = ["Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options", "Add/Remove Team Members", "New Forms", "Price List Updates"];
+const CUSTOM_FORM_TYPES = ["Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options", "Add/Remove Team Members", "New Forms", "Price List Updates", "Emergency"];
 
 const AUTO_TITLES: Record<string, string> = {
   "Time Changes": "Time Changes Request",
