@@ -14,13 +14,15 @@ import { useClinicSelector } from "@/hooks/useClinicSelector";
 import { useWebsiteKPIs } from "@/hooks/useWebsiteKPIs";
 import { useUserRole } from "@/hooks/useUserRole";
 
-const tabs = [
+const baseTabs = [
   { value: "overview", label: "Overview", icon: LayoutDashboard },
   { value: "tickets", label: "Tickets", icon: Ticket },
   { value: "analytics", label: "Analytics", icon: BarChart3 },
   { value: "reports", label: "Reports", icon: FileText },
   { value: "uploads", label: "Uploads", icon: Upload },
 ];
+
+const healthTab = { value: "health", label: "Health", icon: HeartPulse };
 
 const services = [
   "Time Changes", "Pop-up Offers", "Third Party Integrations", "Payment Options",
