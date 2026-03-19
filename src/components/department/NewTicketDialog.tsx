@@ -5,11 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { Upload, X, FileIcon, Loader2 } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { TimeChangesForm } from "./ticket-forms/TimeChangesForm";
 import { PopupOffersForm } from "./ticket-forms/PopupOffersForm";
 import { ThirdPartyIntegrationsForm } from "./ticket-forms/ThirdPartyIntegrationsForm";
@@ -62,6 +62,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isCustomForm = CUSTOM_FORM_TYPES.includes(ticketType);
+  const isAddTeamMember = ticketType === "Add/Remove Team Members" && customDescription.includes("Action: Add");
 
   useEffect(() => {
     if (open && defaultType) {
@@ -153,7 +154,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
 
     let finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
     if (ticketType === "Add/Remove Team Members" && promoteSocial && finalDescription) {
-      finalDescription = finalDescription + "\nPromote on Social Media: Yes";
+      finalDescription = `${finalDescription}\nPromote on Social Media: Yes`;
     }
 
     setLoading(true);
@@ -264,7 +265,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
             </div>
           )}
 
-          {/* Custom or generic description */}
           {isCustomForm ? (
             renderCustomForm()
           ) : (
@@ -274,7 +274,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
             </div>
           )}
 
-          {/* Notes / Bio — before attachments for team members, after for others */}
           {ticketType !== "Pop-up Offers" && (
             <div className="space-y-1.5">
               <Label htmlFor="ticket-notes">{ticketType === "Add/Remove Team Members" ? "Bio" : "Notes"}</Label>
@@ -282,7 +281,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
             </div>
           )}
 
-          {/* Attachments — hidden for Time Changes and Pop-up Offers */}
           {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && (
             <div className="space-y-1.5">
               <Label>Attachments <span className="text-muted-foreground font-normal">({files.length}/5)</span></Label>
@@ -341,10 +339,12 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
                       <p className="text-[10px] text-center text-muted-foreground">Click or drop to add more</p>
                     )}
                   </div>
+                )}
+              </div>
+            </div>
           )}
 
-          {/* Promote on social media — only for Add/Remove Team Members */}
-          {ticketType === "Add/Remove Team Members" && customDescription.includes("Action: Add") && (
+          {isAddTeamMember && (
             <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
               <Checkbox
                 id="promote-social"
@@ -354,9 +354,6 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
               <Label htmlFor="promote-social" className="cursor-pointer text-sm font-normal">
                 Promote new team member on social media
               </Label>
-            </div>
-          )}
-        </div>
             </div>
           )}
         </div>
