@@ -123,6 +123,10 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
       toast.error("Please verify the offer and provide consent before submitting");
       return;
     }
+    if (ticketType === "Price List Updates" && !customDescription.includes("Description of Changes: ") || (ticketType === "Price List Updates" && customDescription.includes("Description of Changes: N/A") && customDescription.includes("Terms & Conditions: N/A"))) {
+      toast.error("Please fill in at least one field (Description or Terms & Conditions)");
+      return;
+    }
     if (!user) return;
 
     let finalDescription = isCustomForm ? customDescription : (genericDescription.trim() || null);
