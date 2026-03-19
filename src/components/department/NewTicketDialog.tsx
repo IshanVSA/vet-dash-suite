@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, CheckCircle2, Clock } from "lucide-react";
 import { FileUploader, type AttachedFile } from "./ticket-forms/FileUploader";
 import { TimeChangesForm } from "./ticket-forms/TimeChangesForm";
 import { PopupOffersForm } from "./ticket-forms/PopupOffersForm";
@@ -47,6 +47,7 @@ const AUTO_TITLES: Record<string, string> = {
 export function NewTicketDialog({ open, onOpenChange, department, services, onCreated, defaultType = "", clinicId }: NewTicketDialogProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
   const [title, setTitle] = useState("");
   const [ticketType, setTicketType] = useState(defaultType);
   const [priority, setPriority] = useState<"regular" | "urgent" | "emergency">("regular");
@@ -89,6 +90,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     setFiles([]);
     setPopupConsented(false);
     setPromoteSocial(false);
+    setSubmitted(false);
   };
 
   const handleCustomFormChange = useCallback((desc: string) => {
@@ -175,10 +177,13 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
     }
 
     setLoading(false);
-    toast.success("Ticket created");
+    setSubmitted(true);
+    onCreated();
+  };
+
+  const handleClose = () => {
     reset();
     onOpenChange(false);
-    onCreated();
   };
 
 
@@ -206,77 +211,102 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(val) => { if (!val) handleClose(); else onOpenChange(val); }}>
       <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>New Ticket — {ticketType || "Select Type"}</DialogTitle>
-          <DialogDescription>Create a new support ticket for this department.</DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-2">
-          {!isCustomForm && (
-            <div className="space-y-1.5">
-              <Label htmlFor="ticket-title">Title *</Label>
-              <Input id="ticket-title" placeholder="Brief summary of the issue" value={title} onChange={e => setTitle(e.target.value)} maxLength={200} />
+        {submitted ? (
+          <>
+            <div className="flex flex-col items-center justify-center py-8 text-center space-y-4">
+              <div className="rounded-full bg-primary/10 p-4">
+                <CheckCircle2 className="h-10 w-10 text-primary" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-semibold text-foreground">Ticket Submitted Successfully</h3>
+                <p className="text-sm text-muted-foreground max-w-sm">
+                  Your request has been received and assigned to our team.
+                </p>
+              </div>
+              <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-4 py-3 text-sm text-muted-foreground">
+                <Clock className="h-4 w-4 shrink-0" />
+                <span>Expected turnaround: <strong className="text-foreground">24–48 business hours</strong> (Mon–Fri)</span>
+              </div>
             </div>
-          )}
+            <DialogFooter>
+              <Button onClick={handleClose} className="w-full">Done</Button>
+            </DialogFooter>
+          </>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle>New Ticket — {ticketType || "Select Type"}</DialogTitle>
+              <DialogDescription>Create a new support ticket for this department.</DialogDescription>
+            </DialogHeader>
 
-          {!isCustomForm && (
-            <div className="space-y-1.5">
-              <Label>Type *</Label>
-              <Select value={ticketType} onValueChange={setTicketType}>
-                <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                <SelectContent>
-                  {services.map(s => (
-                    <SelectItem key={s} value={s}>{s}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+            <div className="space-y-4 py-2">
+              {!isCustomForm && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="ticket-title">Title *</Label>
+                  <Input id="ticket-title" placeholder="Brief summary of the issue" value={title} onChange={e => setTitle(e.target.value)} maxLength={200} />
+                </div>
+              )}
+
+              {!isCustomForm && (
+                <div className="space-y-1.5">
+                  <Label>Type *</Label>
+                  <Select value={ticketType} onValueChange={setTicketType}>
+                    <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                    <SelectContent>
+                      {services.map(s => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              {isCustomForm ? (
+                renderCustomForm()
+              ) : (
+                <div className="space-y-1.5">
+                  <Label htmlFor="ticket-desc">Description</Label>
+                  <Textarea id="ticket-desc" placeholder="Describe the issue in detail..." value={genericDescription} onChange={e => setGenericDescription(e.target.value)} rows={3} maxLength={2000} />
+                </div>
+              )}
+
+              {ticketType !== "Pop-up Offers" && (
+                <div className="space-y-1.5">
+                  <Label htmlFor="ticket-notes">{ticketType === "Add/Remove Team Members" ? "Bio" : "Notes"}</Label>
+                  <Textarea id="ticket-notes" placeholder={ticketType === "Add/Remove Team Members" ? "Short bio for the team member..." : "Additional notes..."} value={notes} onChange={e => setNotes(e.target.value)} rows={2} maxLength={1000} />
+                </div>
+              )}
+
+              {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && ticketType !== "New Forms" && (
+                <FileUploader files={files} onFilesChange={setFiles} label={ticketType === "Price List Updates" ? "Upload your price list doc" : "Attachments"} />
+              )}
+
+              {isAddTeamMember && (
+                <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
+                  <Checkbox
+                    id="promote-social"
+                    checked={promoteSocial}
+                    onCheckedChange={(checked) => setPromoteSocial(checked === true)}
+                  />
+                  <Label htmlFor="promote-social" className="cursor-pointer text-sm font-normal">
+                    Promote new team member on social media
+                  </Label>
+                </div>
+              )}
             </div>
-          )}
 
-          {isCustomForm ? (
-            renderCustomForm()
-          ) : (
-            <div className="space-y-1.5">
-              <Label htmlFor="ticket-desc">Description</Label>
-              <Textarea id="ticket-desc" placeholder="Describe the issue in detail..." value={genericDescription} onChange={e => setGenericDescription(e.target.value)} rows={3} maxLength={2000} />
-            </div>
-          )}
-
-          {ticketType !== "Pop-up Offers" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="ticket-notes">{ticketType === "Add/Remove Team Members" ? "Bio" : "Notes"}</Label>
-              <Textarea id="ticket-notes" placeholder={ticketType === "Add/Remove Team Members" ? "Short bio for the team member..." : "Additional notes..."} value={notes} onChange={e => setNotes(e.target.value)} rows={2} maxLength={1000} />
-            </div>
-          )}
-
-          {ticketType !== "Time Changes" && ticketType !== "Pop-up Offers" && ticketType !== "New Forms" && (
-            <FileUploader files={files} onFilesChange={setFiles} label={ticketType === "Price List Updates" ? "Upload your price list doc" : "Attachments"} />
-          )}
-
-          {isAddTeamMember && (
-            <div className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 p-3">
-              <Checkbox
-                id="promote-social"
-                checked={promoteSocial}
-                onCheckedChange={(checked) => setPromoteSocial(checked === true)}
-              />
-              <Label htmlFor="promote-social" className="cursor-pointer text-sm font-normal">
-                Promote new team member on social media
-              </Label>
-            </div>
-          )}
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented)}>
-            {uploading ? (
-              <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
-            ) : loading ? "Creating…" : "Create Ticket"}
-          </Button>
-        </DialogFooter>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleClose}>Cancel</Button>
+              <Button onClick={handleSubmit} disabled={loading || uploading || (ticketType === "Pop-up Offers" && !popupConsented)}>
+                {uploading ? (
+                  <><Loader2 className="h-4 w-4 mr-1.5 animate-spin" /> Uploading…</>
+                ) : loading ? "Creating…" : "Create Ticket"}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
