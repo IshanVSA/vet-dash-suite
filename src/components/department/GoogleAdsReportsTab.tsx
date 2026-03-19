@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Download, DollarSign, MousePointerClick, Target, Percent, Megaphone, BarChart3 } from "lucide-react";
+import { FileText, Download, DollarSign, MousePointerClick, Percent, Megaphone, BarChart3 } from "lucide-react";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import {
@@ -16,7 +16,6 @@ interface Campaign {
   clicks: number;
   impressions: number;
   cost: number;
-  conversions: number;
 }
 
 interface DailyTrend {
@@ -24,14 +23,12 @@ interface DailyTrend {
   clicks: number;
   impressions: number;
   cost: number;
-  conversions: number;
 }
 
 interface MetricsJson {
   clicks: number;
   impressions: number;
   cost: number;
-  conversions: number;
   daily_trends: DailyTrend[];
   campaigns: Campaign[];
 }
@@ -44,21 +41,18 @@ interface ComputedMetrics {
   clicks: number;
   impressions: number;
   cost: number;
-  conversions: number;
   ctr: number;
   cpc: number;
-  costPerConversion: number;
   campaigns: Campaign[];
   dailyTrends: DailyTrend[];
 }
 
 function computeMetrics(m: MetricsJson): ComputedMetrics {
-  const { clicks, impressions, cost, conversions, daily_trends, campaigns } = m;
+  const { clicks, impressions, cost, daily_trends, campaigns } = m;
   const ctr = impressions > 0 ? Math.round((clicks / impressions) * 10000) / 100 : 0;
   const cpc = clicks > 0 ? Math.round((cost / clicks) * 100) / 100 : 0;
-  const costPerConversion = conversions > 0 ? Math.round((cost / conversions) * 100) / 100 : 0;
   const sortedCampaigns = [...campaigns].sort((a, b) => b.cost - a.cost);
-  return { clicks, impressions, cost, conversions, ctr, cpc, costPerConversion, campaigns: sortedCampaigns, dailyTrends: daily_trends || [] };
+  return { clicks, impressions, cost, ctr, cpc, campaigns: sortedCampaigns, dailyTrends: daily_trends || [] };
 }
 
 function fmtCurrency(v: number): string {
@@ -115,7 +109,7 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
       y = renderKPICards(doc, y, [
         { label: "Total Ad Spend", value: fmtCurrency(computed.cost) },
         { label: "Clicks", value: computed.clicks.toLocaleString() },
-        { label: "Conversions", value: Math.round(computed.conversions).toLocaleString() },
+        { label: "Avg. CPC", value: fmtCurrency(computed.cpc) },
         { label: "CTR", value: `${computed.ctr}%` },
       ], PDF_COLORS.googleAds);
 
@@ -129,10 +123,8 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
           ["Total Ad Spend", fmtCurrency(computed.cost)],
           ["Clicks", computed.clicks.toLocaleString()],
           ["Impressions", computed.impressions.toLocaleString()],
-          ["Conversions", Math.round(computed.conversions).toLocaleString()],
           ["CTR", `${computed.ctr}%`],
           ["Avg. CPC", fmtCurrency(computed.cpc)],
-          ["Cost per Conversion", fmtCurrency(computed.costPerConversion)],
         ],
         ...getTableStyles(PDF_COLORS.googleAds),
         columnStyles: { 1: { fontStyle: "bold" as const } },
@@ -146,13 +138,12 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
 
         autoTable(doc, {
           startY: y,
-          head: [["Date", "Spend", "Clicks", "Impressions", "Conversions"]],
+          head: [["Date", "Spend", "Clicks", "Impressions"]],
           body: computed.dailyTrends.map(d => [
             d.date,
             fmtCurrency(d.cost),
             d.clicks.toLocaleString(),
             d.impressions.toLocaleString(),
-            Math.round(d.conversions).toString(),
           ]),
           ...getTableStyles(PDF_COLORS.googleAds),
         });
@@ -166,11 +157,11 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
 
         autoTable(doc, {
           startY: y,
-          head: [["Campaign", "Spend", "Clicks", "Impressions", "Conv.", "CTR", "CPC"]],
+          head: [["Campaign", "Spend", "Clicks", "Impressions", "CTR", "CPC"]],
           body: computed.campaigns.map(c => {
             const ctr = c.impressions > 0 ? `${(Math.round((c.clicks / c.impressions) * 10000) / 100)}%` : "0%";
             const cpc = c.clicks > 0 ? fmtCurrency(Math.round((c.cost / c.clicks) * 100) / 100) : "$0.00";
-            return [c.name, fmtCurrency(c.cost), c.clicks.toLocaleString(), c.impressions.toLocaleString(), Math.round(c.conversions).toString(), ctr, cpc];
+            return [c.name, fmtCurrency(c.cost), c.clicks.toLocaleString(), c.impressions.toLocaleString(), ctr, cpc];
           }),
           ...getTableStyles(PDF_COLORS.googleAds),
           columnStyles: { 0: { cellWidth: 50 } },
@@ -241,8 +232,8 @@ export function GoogleAdsReportsTab({ clinicId }: Props) {
           <CardContent>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
               <PreviewStat icon={DollarSign} label="Ad Spend" value={fmtCurrency(computed.cost)} />
-              <PreviewStat icon={MousePointerClick} label="Clicks" value={computed.clicks.toLocaleString()} sub={`CPC: ${fmtCurrency(computed.cpc)}`} />
-              <PreviewStat icon={Target} label="Conversions" value={Math.round(computed.conversions).toLocaleString()} sub={`${fmtCurrency(computed.costPerConversion)}/conv`} />
+              <PreviewStat icon={MousePointerClick} label="Clicks" value={computed.clicks.toLocaleString()} sub={`${computed.impressions.toLocaleString()} impr.`} />
+              <PreviewStat icon={DollarSign} label="Avg. CPC" value={fmtCurrency(computed.cpc)} sub={`${computed.clicks.toLocaleString()} clicks`} />
               <PreviewStat icon={Percent} label="CTR" value={`${computed.ctr}%`} sub={`${computed.impressions.toLocaleString()} impr.`} />
             </div>
             {computed.campaigns.length > 0 && (

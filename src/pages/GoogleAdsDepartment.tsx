@@ -1,7 +1,7 @@
 import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Megaphone, LayoutDashboard, Ticket, BarChart3, FileText, Upload, DollarSign, MousePointerClick, Target, Percent } from "lucide-react";
+import { Megaphone, LayoutDashboard, Ticket, BarChart3, FileText, Upload, DollarSign, MousePointerClick, Percent, Eye } from "lucide-react";
 import { DepartmentOverview } from "@/components/department/DepartmentOverview";
 import { TicketsTab } from "@/components/department/TicketsTab";
 import { GoogleAdsAnalyticsTab } from "@/components/department/GoogleAdsAnalyticsTab";
@@ -35,8 +35,8 @@ export default function GoogleAdsDepartment() {
 
   const kpis = [
     { label: "Ad Spend", value: adsData.loading ? "—" : `$${adsData.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, change: "Last 30 days", changeType: "neutral" as const, icon: DollarSign, gradient: "blue" as const },
-    { label: "Clicks", value: adsData.loading ? "—" : adsData.clicks.toLocaleString(), change: adsData.hasData ? `CPC: $${adsData.clicks > 0 ? (adsData.cost / adsData.clicks).toFixed(2) : "0"}` : "", changeType: "neutral" as const, icon: MousePointerClick, gradient: "green" as const },
-    { label: "Conversions", value: adsData.loading ? "—" : Math.round(adsData.conversions).toLocaleString(), change: adsData.hasData && adsData.conversions > 0 ? `$${(adsData.cost / adsData.conversions).toFixed(2)}/conv` : "", changeType: "neutral" as const, icon: Target, gradient: "amber" as const },
+    { label: "Clicks", value: adsData.loading ? "—" : adsData.clicks.toLocaleString(), change: adsData.hasData ? `${adsData.impressions.toLocaleString()} impr.` : "", changeType: "neutral" as const, icon: MousePointerClick, gradient: "green" as const },
+    { label: "Avg. CPC", value: adsData.loading ? "—" : `$${adsData.cpc.toFixed(2)}`, change: adsData.hasData ? `${adsData.clicks.toLocaleString()} clicks` : "", changeType: "neutral" as const, icon: DollarSign, gradient: "amber" as const },
     { label: "CTR", value: adsData.loading ? "—" : `${adsData.ctr}%`, change: adsData.hasData ? `${adsData.impressions.toLocaleString()} impr.` : "", changeType: "neutral" as const, icon: Percent, gradient: "purple" as const },
   ];
 
@@ -51,13 +51,13 @@ export default function GoogleAdsDepartment() {
       </div>
       <CardContent className="p-0">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Campaign</TableHead>
-              <TableHead className="text-right">Spend</TableHead>
-              <TableHead className="text-right">Clicks</TableHead>
-              <TableHead className="text-right">Conv.</TableHead>
-              <TableHead className="text-right">CTR</TableHead>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Campaign</TableHead>
+                <TableHead className="text-right">Spend</TableHead>
+                <TableHead className="text-right">Clicks</TableHead>
+                <TableHead className="text-right">CPC</TableHead>
+                <TableHead className="text-right">CTR</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -66,7 +66,7 @@ export default function GoogleAdsDepartment() {
                 <TableCell className="font-medium truncate max-w-[180px]">{c.name}</TableCell>
                 <TableCell className="text-right tabular-nums">{c.spend}</TableCell>
                 <TableCell className="text-right tabular-nums">{c.clicks}</TableCell>
-                <TableCell className="text-right tabular-nums">{c.conversions}</TableCell>
+                <TableCell className="text-right tabular-nums">{c.cpc}</TableCell>
                 <TableCell className="text-right tabular-nums">{c.ctr}</TableCell>
               </TableRow>
             ))}

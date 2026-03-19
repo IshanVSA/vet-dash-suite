@@ -7,7 +7,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, BarChart, Bar } from "recharts";
 import { Button } from "@/components/ui/button";
 import { StatsCard } from "@/components/StatsCard";
-import { DollarSign, MousePointerClick, Eye, Target, Percent, Megaphone, RefreshCw, TrendingUp } from "lucide-react";
+import { DollarSign, MousePointerClick, Eye, Percent, Megaphone, RefreshCw, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { DateRangeFilter, type DateRange } from "@/components/department/DateRangeFilter";
 
@@ -16,7 +16,6 @@ interface DailyTrend {
   clicks: number;
   impressions: number;
   cost: number;
-  conversions: number;
 }
 
 interface Campaign {
@@ -24,14 +23,12 @@ interface Campaign {
   clicks: number;
   impressions: number;
   cost: number;
-  conversions: number;
 }
 
 interface MetricsJson {
   clicks: number;
   impressions: number;
   cost: number;
-  conversions: number;
   daily_trends: DailyTrend[];
   campaigns: Campaign[];
 }
@@ -122,10 +119,8 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
     const clicks = filteredTrends.reduce((s, d) => s + d.clicks, 0);
     const impressions = filteredTrends.reduce((s, d) => s + d.impressions, 0);
     const cost = filteredTrends.reduce((s, d) => s + d.cost, 0);
-    const conversions = filteredTrends.reduce((s, d) => s + d.conversions, 0);
     const ctr = impressions > 0 ? Math.round((clicks / impressions) * 10000) / 100 : 0;
     const cpc = clicks > 0 ? Math.round((cost / clicks) * 100) / 100 : 0;
-    const costPerConversion = conversions > 0 ? Math.round((cost / conversions) * 100) / 100 : 0;
 
     // Sort campaigns by cost desc
     const sortedCampaigns = [...campaigns].sort((a, b) => b.cost - a.cost);
@@ -136,10 +131,9 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
       clicks: d.clicks,
       impressions: d.impressions,
       cost: Math.round(d.cost * 100) / 100,
-      conversions: d.conversions,
     }));
 
-    return { clicks, impressions, cost, conversions, ctr, cpc, costPerConversion, sortedCampaigns, chartData };
+    return { clicks, impressions, cost, ctr, cpc, sortedCampaigns, chartData };
   }, [metricsData, dateRange]);
 
   if (loading) {
@@ -200,18 +194,18 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
         <StatsCard title="Total Spend" value={`$${computed.cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} icon={DollarSign} change="Last 30 days" changeType="neutral" index={0} />
         <StatsCard title="Clicks" value={computed.clicks.toLocaleString()} icon={MousePointerClick} change={`CPC: $${computed.cpc}`} changeType="neutral" index={1} />
         <StatsCard title="Impressions" value={computed.impressions.toLocaleString()} icon={Eye} change={`CTR: ${computed.ctr}%`} changeType="neutral" index={2} />
-        <StatsCard title="Conversions" value={Math.round(computed.conversions).toLocaleString()} icon={Target} change={`Cost/Conv: $${computed.costPerConversion}`} changeType="neutral" index={3} />
+        <StatsCard title="Avg. CPC" value={`$${computed.cpc}`} icon={DollarSign} change={`${computed.clicks.toLocaleString()} clicks`} changeType="neutral" index={3} />
       </div>
 
       {/* Clicks & Impressions Chart */}
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Daily Clicks & Conversions (30 Days)</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">Daily Clicks & Impressions</CardTitle>
         </CardHeader>
         <CardContent>
           <ChartContainer config={{
             clicks: { label: "Clicks", color: "hsl(var(--primary))" },
-            conversions: { label: "Conversions", color: "hsl(142, 71%, 45%)" },
+            impressions: { label: "Impressions", color: "hsl(142, 71%, 45%)" },
           }} className="h-[260px] w-full">
             <AreaChart data={computed.chartData}>
               <defs>
@@ -219,7 +213,7 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
                   <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
                   <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
                 </linearGradient>
-                <linearGradient id="fillConversions" x1="0" y1="0" x2="0" y2="1">
+                <linearGradient id="fillImpressions" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0.3} />
                   <stop offset="95%" stopColor="hsl(142, 71%, 45%)" stopOpacity={0} />
                 </linearGradient>
@@ -229,7 +223,7 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
               <YAxis tick={{ fontSize: 11 }} className="text-muted-foreground" />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Area type="monotone" dataKey="clicks" stroke="hsl(var(--primary))" fill="url(#fillClicks)" strokeWidth={2} />
-              <Area type="monotone" dataKey="conversions" stroke="hsl(142, 71%, 45%)" fill="url(#fillConversions)" strokeWidth={2} />
+              <Area type="monotone" dataKey="impressions" stroke="hsl(142, 71%, 45%)" fill="url(#fillImpressions)" strokeWidth={2} />
             </AreaChart>
           </ChartContainer>
         </CardContent>
@@ -270,7 +264,6 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
                 <TableHead className="text-xs text-right">Spend</TableHead>
                 <TableHead className="text-xs text-right">Clicks</TableHead>
                 <TableHead className="text-xs text-right">Impr.</TableHead>
-                <TableHead className="text-xs text-right">Conv.</TableHead>
                 <TableHead className="text-xs text-right">CTR</TableHead>
                 <TableHead className="text-xs text-right">CPC</TableHead>
               </TableRow>
@@ -285,7 +278,6 @@ export function GoogleAdsAnalyticsTab({ clinicId }: Props) {
                     <TableCell className="text-xs text-right tabular-nums">${c.cost.toFixed(2)}</TableCell>
                     <TableCell className="text-xs text-right tabular-nums">{c.clicks.toLocaleString()}</TableCell>
                     <TableCell className="text-xs text-right tabular-nums">{c.impressions.toLocaleString()}</TableCell>
-                    <TableCell className="text-xs text-right tabular-nums">{Math.round(c.conversions)}</TableCell>
                     <TableCell className="text-xs text-right tabular-nums">{ctr}%</TableCell>
                     <TableCell className="text-xs text-right tabular-nums">${cpc}</TableCell>
                   </TableRow>
