@@ -58,6 +58,7 @@ export function NewTicketDialog({ open, onOpenChange, department, services, onCr
   const [uploading, setUploading] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const [popupConsented, setPopupConsented] = useState(false);
+  const [promoteSocial, setPromoteSocial] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isCustomForm = CUSTOM_FORM_TYPES.includes(ticketType);
