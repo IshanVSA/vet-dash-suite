@@ -20,6 +20,12 @@ import { AddRemoveTeamForm } from "./ticket-forms/AddRemoveTeamForm";
 import { NewFormsForm } from "./ticket-forms/NewFormsForm";
 import { PriceListForm } from "./ticket-forms/PriceListForm";
 import { EmergencyForm } from "./ticket-forms/EmergencyForm";
+import { DashboardAccessForm } from "./ticket-forms/DashboardAccessForm";
+import { AnalyticsReviewForm } from "./ticket-forms/AnalyticsReviewForm";
+import { MonthlyReportForm } from "./ticket-forms/MonthlyReportForm";
+import { CallVolumeIssuesForm } from "./ticket-forms/CallVolumeIssuesForm";
+import { WrongCallTrackingForm } from "./ticket-forms/WrongCallTrackingForm";
+import { CampaignAdjustmentsForm } from "./ticket-forms/CampaignAdjustmentsForm";
 
 interface NewTicketDialogProps {
   open: boolean;
