@@ -44,6 +44,10 @@ function WebsiteUrlField({ clinicId, currentUrl, onSaved }: { clinicId: string; 
 
   const save = async () => {
     const trimmed = url.trim();
+    if (trimmed && !trimmed.startsWith("https://")) {
+      toast.error("Website URL must start with https://");
+      return;
+    }
     setSaving(true);
     const { error } = await supabase.from("clinics").update({ website: trimmed || null }).eq("id", clinicId);
     setSaving(false);
