@@ -36,7 +36,39 @@ interface ClinicCredentials {
   last_google_sync_at: string | null;
 }
 
-export default function ClinicDetail() {
+function WebsiteUrlField({ clinicId, currentUrl, onSaved }: { clinicId: string; currentUrl: string; onSaved: (url: string) => void }) {
+  const [url, setUrl] = useState(currentUrl);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setUrl(currentUrl); }, [currentUrl]);
+
+  const save = async () => {
+    const trimmed = url.trim();
+    setSaving(true);
+    const { error } = await supabase.from("clinics").update({ website: trimmed || null }).eq("id", clinicId);
+    setSaving(false);
+    if (error) { toast.error("Failed to save website URL"); return; }
+    onSaved(trimmed);
+    toast.success("Website URL saved");
+  };
+
+  return (
+    <div className="flex gap-2">
+      <Input
+        placeholder="https://example.com"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        className="flex-1"
+      />
+      <Button size="sm" onClick={save} disabled={saving || url.trim() === (currentUrl || "")}>
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+        Save
+      </Button>
+    </div>
+  );
+}
+
+
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { role } = useUserRole();
