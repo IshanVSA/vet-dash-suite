@@ -68,7 +68,7 @@ function WebsiteUrlField({ clinicId, currentUrl, onSaved }: { clinicId: string; 
   );
 }
 
-
+export default function ClinicDetail() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const { role } = useUserRole();
