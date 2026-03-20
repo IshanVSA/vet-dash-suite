@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useUserRole } from "@/hooks/useUserRole";
@@ -6,8 +6,9 @@ import { DashboardLayout } from "@/components/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, RefreshCw, Loader2, Users, Sparkles } from "lucide-react";
+import { ArrowLeft, RefreshCw, Loader2, Users, Sparkles, Globe, Check } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -21,7 +22,7 @@ import { GoogleAdsConnectionCard } from "@/components/clinic-detail/GoogleAdsCon
 import { GoogleAccountSelectionDialog } from "@/components/clinic-detail/GoogleAccountSelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 
-interface ClinicData { clinic_name: string; }
+interface ClinicData { clinic_name: string; website: string | null; }
 interface ClinicCredentials {
   meta_page_access_token: string | null;
   meta_page_id: string | null;
@@ -33,6 +34,38 @@ interface ClinicCredentials {
   google_ads_account_name: string | null;
   last_meta_sync_at: string | null;
   last_google_sync_at: string | null;
+}
+
+function WebsiteUrlField({ clinicId, currentUrl, onSaved }: { clinicId: string; currentUrl: string; onSaved: (url: string) => void }) {
+  const [url, setUrl] = useState(currentUrl);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => { setUrl(currentUrl); }, [currentUrl]);
+
+  const save = async () => {
+    const trimmed = url.trim();
+    setSaving(true);
+    const { error } = await supabase.from("clinics").update({ website: trimmed || null }).eq("id", clinicId);
+    setSaving(false);
+    if (error) { toast.error("Failed to save website URL"); return; }
+    onSaved(trimmed);
+    toast.success("Website URL saved");
+  };
+
+  return (
+    <div className="flex gap-2">
+      <Input
+        placeholder="https://example.com"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        className="flex-1"
+      />
+      <Button size="sm" onClick={save} disabled={saving || url.trim() === (currentUrl || "")}>
+        {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+        Save
+      </Button>
+    </div>
+  );
 }
 
 export default function ClinicDetail() {
@@ -60,7 +93,7 @@ export default function ClinicDetail() {
 
   useEffect(() => {
     if (!id) return;
-    supabase.from("clinics").select("clinic_name, ai_seo_enabled").eq("id", id).maybeSingle().then(({ data }) => {
+    supabase.from("clinics").select("clinic_name, ai_seo_enabled, website").eq("id", id).maybeSingle().then(({ data }) => {
       setClinic(data);
       setAiSeoEnabled((data as any)?.ai_seo_enabled ?? false);
     });
@@ -549,6 +582,23 @@ export default function ClinicDetail() {
                 onRefresh={() => { fetchCredentials(); fetchAnalytics(); }}
               />
               <TrackingSetupCard clinicId={id!} />
+
+              {/* Website URL Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Globe className="h-4 w-4 text-primary" />
+                    Website URL
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <WebsiteUrlField
+                    clinicId={id!}
+                    currentUrl={clinic?.website || ""}
+                    onSaved={(url) => setClinic((prev) => prev ? { ...prev, website: url } : prev)}
+                  />
+                </CardContent>
+              </Card>
               
               <Card>
                 <CardHeader>
