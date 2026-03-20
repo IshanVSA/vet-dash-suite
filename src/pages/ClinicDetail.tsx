@@ -22,7 +22,7 @@ import { GoogleAdsConnectionCard } from "@/components/clinic-detail/GoogleAdsCon
 import { GoogleAccountSelectionDialog } from "@/components/clinic-detail/GoogleAccountSelectionDialog";
 import { TrackingSetupCard } from "@/components/clinic-detail/TrackingSetupCard";
 
-interface ClinicData { clinic_name: string; }
+interface ClinicData { clinic_name: string; website: string | null; }
 interface ClinicCredentials {
   meta_page_access_token: string | null;
   meta_page_id: string | null;
