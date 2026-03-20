@@ -61,7 +61,7 @@ export default function ClinicDetail() {
 
   useEffect(() => {
     if (!id) return;
-    supabase.from("clinics").select("clinic_name, ai_seo_enabled").eq("id", id).maybeSingle().then(({ data }) => {
+    supabase.from("clinics").select("clinic_name, ai_seo_enabled, website").eq("id", id).maybeSingle().then(({ data }) => {
       setClinic(data);
       setAiSeoEnabled((data as any)?.ai_seo_enabled ?? false);
     });
